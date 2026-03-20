@@ -36,10 +36,6 @@ pub struct IntakeOnboardingProgress {
     pub resources: IntakeItem,
     pub success_measures: IntakeItem,
     pub user_acceptance_testing: IntakeItem,
-    pub stop: IntakeItem,
-    pub exploration: IntakeItem,
-    pub ideation: IntakeItem,
-    pub project_risk_manager: IntakeItem,
 }
 
 impl Default for IntakeOnboardingProgress {
@@ -69,35 +65,23 @@ impl Default for IntakeOnboardingProgress {
                 skills: vec![String::from("hx:intake-onboarding-uat")],
                 ..Default::default()
             },
-            stop: IntakeItem {
-                skills: vec![String::from("hx:stop")],
-                agent: "sonnet".to_string(),
-                ..Default::default()
-            },
-            exploration: IntakeItem::default(),
-            ideation: IntakeItem::default(),
-            project_risk_manager: IntakeItem::default(),
         }
     }
 }
 
 /// Canonical section order; do not reorder without user approval.
-pub const INTAKE_ONBOARDING_SECTIONS: [&str; 10] = [
+pub const INTAKE_ONBOARDING_SECTIONS: [&str; 6] = [
     "goal",
     "scope",
     "user_knowledge",
     "resources",
     "success_measures",
     "user_acceptance_testing",
-    "stop",
-    "exploration",
-    "ideation",
-    "project_risk_manager",
 ];
 
 impl IntakeOnboardingProgress {
     /// Returns an ordered snapshot of all sections and their items.
-    pub fn items(&self) -> [(&str, &IntakeItem); 10] {
+    pub fn items(&self) -> [(&str, &IntakeItem); 6] {
         [
             ("goal", &self.goal),
             ("scope", &self.scope),
@@ -105,10 +89,6 @@ impl IntakeOnboardingProgress {
             ("resources", &self.resources),
             ("success_measures", &self.success_measures),
             ("user_acceptance_testing", &self.user_acceptance_testing),
-            ("stop", &self.stop),
-            ("exploration", &self.exploration),
-            ("ideation", &self.ideation),
-            ("project_risk_manager", &self.project_risk_manager),
         ]
     }
 
@@ -120,10 +100,6 @@ impl IntakeOnboardingProgress {
             "resources" => Some(&mut self.resources),
             "success_measures" => Some(&mut self.success_measures),
             "user_acceptance_testing" => Some(&mut self.user_acceptance_testing),
-            "stop" => Some(&mut self.stop),
-            "exploration" => Some(&mut self.exploration),
-            "ideation" => Some(&mut self.ideation),
-            "project_risk_manager" => Some(&mut self.project_risk_manager),
             _ => None,
         }
     }

@@ -4,7 +4,7 @@ Tracks progress through intake onboarding sections for the active project. Store
 
 Each section has `status` (a Status value), `agent` (defaults to `"opus"`), and `skills` (string array).
 
-Sections (in order): `goal`, `scope`, `user_knowledge`, `resources`, `success_measures`, `user_acceptance_testing`, `stop`, `exploration`, `ideation`, `project_risk_manager`.
+Sections (in order): `goal`, `scope`, `user_knowledge`, `resources`, `success_measures`, `user_acceptance_testing`.
 
 ## Shared Types
 
@@ -37,7 +37,6 @@ harnessx intake-onboarding init
     "resources": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-resources"] },
     "success_measures": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-success-measures"] },
     "user_acceptance_testing": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-uat"] },
-    "stop": { "status": "not_started", "agent": "opus", "skills": ["hx:stop"] },
     ...
   }
 }
@@ -69,7 +68,6 @@ harnessx intake-onboarding list
     { "section": "resources", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-resources"] },
     { "section": "success_measures", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-success-measures"] },
     { "section": "user_acceptance_testing", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-uat"] },
-    { "section": "stop", "status": "not_started", "agent": "opus", "skills": ["hx:stop"] },
     ...
   ]
 }

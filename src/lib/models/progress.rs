@@ -134,6 +134,16 @@ impl ProjectProgress {
         let id = registry.active_project_id()?;
         self.save(id)
     }
+
+    /// Loads progress for the active project, marks the given stage complete, and saves.
+    pub fn complete_stage_for_active_project(stage_name: &str) -> ParserResult<()> {
+        let mut progress = Self::for_active_project()?;
+        if let Some(stage) = progress.item_mut(stage_name) {
+            stage.status = Status::Completed;
+            progress.save_for_active_project()?;
+        }
+        Ok(())
+    }
 }
 
 impl Default for ProjectProgress {

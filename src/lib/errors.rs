@@ -23,6 +23,12 @@ pub enum ParserError {
     #[error("no intake-onboarding progress found for project '{0}' — run `intake-onboarding init` first")]
     IntakeOnboardingNotFound(String),
 
+    #[error("intake completion already initialised for project '{0}'")]
+    IntakeCompletionAlreadyExists(String),
+
+    #[error("no intake completion progress found for project '{0}' — run `intake-completion init` first")]
+    IntakeCompletionNotFound(String),
+
     #[error("intake team already initialised for project '{0}'")]
     IntakeTeamAlreadyExists(String),
 

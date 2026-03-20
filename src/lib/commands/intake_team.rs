@@ -5,6 +5,7 @@ use clap::Subcommand;
 use crate::errors::{ParserError, ParserResult};
 use crate::models::intake_onboarding::NextItemResponse;
 use crate::models::intake_team::{IntakeTeamProgress, INTAKE_TEAM_SECTIONS};
+use crate::models::progress::ProjectProgress;
 use crate::models::status::Status;
 use crate::output::exit_with;
 
@@ -90,5 +91,10 @@ fn complete_section(section: &str) -> ParserResult<IntakeTeamProgress> {
     item.status = Status::Completed;
 
     progress.save_for_active_project()?;
+
+    if progress.next_item().is_none() {
+        ProjectProgress::complete_stage_for_active_project("intake_team")?;
+    }
+
     Ok(progress)
 }

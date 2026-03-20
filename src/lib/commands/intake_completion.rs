@@ -1,32 +1,33 @@
-//! Intake onboarding subcommands: init, status, next, complete, list.
+//! Intake completion subcommands: init, status, next, complete, list.
 
 use clap::Subcommand;
 
 use crate::errors::{ParserError, ParserResult};
-use crate::models::intake_onboarding::{IntakeOnboardingProgress, NextItemResponse, INTAKE_ONBOARDING_SECTIONS};
+use crate::models::intake_completion::{IntakeCompletionProgress, INTAKE_COMPLETION_SECTIONS};
+use crate::models::intake_onboarding::NextItemResponse;
 use crate::models::progress::ProjectProgress;
 use crate::models::status::Status;
 use crate::output::exit_with;
 
 #[derive(Subcommand)]
-pub enum IntakeOnboardingCommand {
-    /// Initialise intake onboarding progress for the active project.
+pub enum IntakeCompletionCommand {
+    /// Initialise intake completion progress for the active project.
     Init,
-    /// Show intake onboarding progress for the active project.
+    /// Show intake completion progress for the active project.
     Status,
-    /// List all intake onboarding sections with their current status.
+    /// List all intake completion sections with their current status.
     List,
-    /// Show the next incomplete intake onboarding section.
+    /// Show the next incomplete intake completion section.
     Next,
-    /// Mark an intake onboarding section as complete.
+    /// Mark an intake completion section as complete.
     Complete { section: String },
 }
 
-impl IntakeOnboardingCommand {
+impl IntakeCompletionCommand {
     pub fn run(self) -> ! {
         match self {
-            Self::Init => exit_with(IntakeOnboardingProgress::init_for_active_project()),
-            Self::Status => exit_with(IntakeOnboardingProgress::for_active_project()),
+            Self::Init => exit_with(IntakeCompletionProgress::init_for_active_project()),
+            Self::Status => exit_with(IntakeCompletionProgress::for_active_project()),
             Self::List => exit_with(list_all_items()),
             Self::Next => exit_with(next_incomplete_section()),
             Self::Complete { section } => exit_with(complete_section(&section)),
@@ -35,7 +36,7 @@ impl IntakeOnboardingCommand {
 }
 
 fn list_all_items() -> ParserResult<serde_json::Value> {
-    let progress = IntakeOnboardingProgress::for_active_project()?;
+    let progress = IntakeCompletionProgress::for_active_project()?;
 
     let items: Vec<serde_json::Value> = progress
         .items()
@@ -54,11 +55,11 @@ fn list_all_items() -> ParserResult<serde_json::Value> {
 }
 
 fn next_incomplete_section() -> ParserResult<serde_json::Value> {
-    let progress = IntakeOnboardingProgress::for_active_project()?;
+    let progress = IntakeCompletionProgress::for_active_project()?;
 
     let Some(name) = progress.next_item() else {
         return Ok(serde_json::json!({
-            "message": "Intake onboarding fully completed. Confirm for user and stop agent."
+            "message": "Intake completion fully completed. Confirm for user and stop agent."
         }));
     };
 
@@ -75,24 +76,24 @@ fn next_incomplete_section() -> ParserResult<serde_json::Value> {
     })?)
 }
 
-fn complete_section(section: &str) -> ParserResult<IntakeOnboardingProgress> {
-    if !INTAKE_ONBOARDING_SECTIONS.contains(&section) {
-        return Err(ParserError::IntakeOnboardingNotFound(format!(
+fn complete_section(section: &str) -> ParserResult<IntakeCompletionProgress> {
+    if !INTAKE_COMPLETION_SECTIONS.contains(&section) {
+        return Err(ParserError::IntakeCompletionNotFound(format!(
             "unknown section '{section}'"
         )));
     }
 
-    let mut progress = IntakeOnboardingProgress::for_active_project()?;
+    let mut progress = IntakeCompletionProgress::for_active_project()?;
 
     let item = progress
         .item_mut(section)
-        .expect("section was validated against INTAKE_ONBOARDING_SECTIONS");
+        .expect("section was validated against INTAKE_COMPLETION_SECTIONS");
     item.status = Status::Completed;
 
     progress.save_for_active_project()?;
 
     if progress.next_item().is_none() {
-        ProjectProgress::complete_stage_for_active_project("intake_onboarding")?;
+        ProjectProgress::complete_stage_for_active_project("intake_exploration")?;
     }
 
     Ok(progress)
