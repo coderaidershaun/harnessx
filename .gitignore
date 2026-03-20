@@ -3,3 +3,4 @@ target
 .git
 Cargo.lock
 agent-memory
+harnessx
