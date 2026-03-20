@@ -1,0 +1,57 @@
+{
+  "goal": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "directory": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "scope": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "user_knowledge": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "resources": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "success_measures": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "user_acceptance_testing": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "team": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "exploration": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "ideation": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  },
+  "project_risk_manager": {
+    "status": "not_started",
+    "agent": "opus",
+    "skills": []
+  }
+}
