@@ -12,6 +12,32 @@ use crate::models::project::ProjectRegistry;
 const ACTIONS_FILE: &str = "intake_actions.json";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum Complexity {
+    SuperLow,
+    Low,
+    Medium,
+    High,
+    SuperHigh,
+    Uncertain,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum ActionMode {
+    Plan,
+    Execute,
+    Review,
+    Rework,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Note {
+    pub agent: SmolStr,
+    pub note: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ActionItem {
     pub id: SmolStr,
     pub title: SmolStr,
@@ -20,6 +46,10 @@ pub struct ActionItem {
     pub detail: String,
     pub tags: Vec<String>,
     pub input_docs: Vec<String>,
+    pub complexity: Complexity,
+    pub mode: ActionMode,
+    #[serde(default)]
+    pub notes: Option<Vec<Note>>,
 }
 
 fn file_path(project_id: &str) -> String {

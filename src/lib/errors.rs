@@ -37,6 +37,9 @@ pub enum ParserError {
 
     #[error("action item '{0}' not found")]
     ActionItemNotFound(String),
+
+    #[error("invalid enum value: {0}")]
+    InvalidEnumValue(String),
 }
 
 pub type ParserResult<T> = Result<T, ParserError>;

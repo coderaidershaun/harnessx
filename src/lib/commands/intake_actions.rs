@@ -4,7 +4,7 @@ use clap::Subcommand;
 use smol_str::SmolStr;
 
 use crate::errors::{ParserError, ParserResult};
-use crate::models::intake_actions::{self, ActionItem};
+use crate::models::intake_actions::{self, ActionItem, ActionMode, Complexity, Note};
 use crate::output::exit_with;
 
 #[derive(Subcommand)]
@@ -23,6 +23,14 @@ pub enum IntakeActionsCommand {
         tags: String,
         #[arg(long, default_value = "")]
         input_docs: String,
+        #[arg(long, default_value = "")]
+        complexity: String,
+        #[arg(long, default_value = "")]
+        mode: String,
+        #[arg(long)]
+        note_agent: Option<String>,
+        #[arg(long)]
+        note_text: Option<String>,
     },
     /// Remove an action item by ID.
     Remove { id: String },
@@ -41,6 +49,14 @@ pub enum IntakeActionsCommand {
         tags: Option<String>,
         #[arg(long)]
         input_docs: Option<String>,
+        #[arg(long)]
+        complexity: Option<String>,
+        #[arg(long)]
+        mode: Option<String>,
+        #[arg(long)]
+        note_agent: Option<String>,
+        #[arg(long)]
+        note_text: Option<String>,
     },
     /// List all action items.
     List,
@@ -64,7 +80,14 @@ impl IntakeActionsCommand {
                 detail,
                 tags,
                 input_docs,
-            } => exit_with(create_action(title, category, origin, detail, tags, input_docs)),
+                complexity,
+                mode,
+                note_agent,
+                note_text,
+            } => exit_with(create_action(
+                title, category, origin, detail, tags, input_docs, complexity, mode, note_agent,
+                note_text,
+            )),
 
             Self::Remove { id } => exit_with(remove_action(&id)),
 
@@ -76,13 +99,57 @@ impl IntakeActionsCommand {
                 detail,
                 tags,
                 input_docs,
-            } => exit_with(update_action(&id, title, category, origin, detail, tags, input_docs)),
+                complexity,
+                mode,
+                note_agent,
+                note_text,
+            } => exit_with(update_action(
+                &id, title, category, origin, detail, tags, input_docs, complexity, mode,
+                note_agent, note_text,
+            )),
 
             Self::List => exit_with(intake_actions::for_active_project()),
         }
     }
 }
 
+fn parse_complexity(s: &str) -> ParserResult<Complexity> {
+    match s {
+        "super-low" => Ok(Complexity::SuperLow),
+        "low" => Ok(Complexity::Low),
+        "medium" => Ok(Complexity::Medium),
+        "high" => Ok(Complexity::High),
+        "super-high" => Ok(Complexity::SuperHigh),
+        "uncertain" => Ok(Complexity::Uncertain),
+        other => Err(ParserError::InvalidEnumValue(format!(
+            "invalid complexity: '{other}' (expected super-low, low, medium, high, super-high, uncertain)"
+        ))),
+    }
+}
+
+fn parse_mode(s: &str) -> ParserResult<ActionMode> {
+    match s {
+        "plan" => Ok(ActionMode::Plan),
+        "execute" => Ok(ActionMode::Execute),
+        "review" => Ok(ActionMode::Review),
+        "rework" => Ok(ActionMode::Rework),
+        other => Err(ParserError::InvalidEnumValue(format!(
+            "invalid mode: '{other}' (expected plan, execute, review, rework)"
+        ))),
+    }
+}
+
+fn build_note(agent: Option<String>, text: Option<String>) -> Option<Vec<Note>> {
+    match (agent, text) {
+        (Some(a), Some(t)) => Some(vec![Note {
+            agent: SmolStr::new(a),
+            note: t,
+        }]),
+        _ => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn create_action(
     title: String,
     category: String,
@@ -90,6 +157,10 @@ fn create_action(
     detail: String,
     tags: String,
     input_docs: String,
+    complexity: String,
+    mode: String,
+    note_agent: Option<String>,
+    note_text: Option<String>,
 ) -> ParserResult<ActionItem> {
     let mut items = intake_actions::for_active_project()?;
 
@@ -101,6 +172,9 @@ fn create_action(
         detail,
         tags: parse_csv(&tags),
         input_docs: parse_csv(&input_docs),
+        complexity: parse_complexity(&complexity)?,
+        mode: parse_mode(&mode)?,
+        notes: build_note(note_agent, note_text),
     };
 
     items.push(item.clone());
@@ -121,6 +195,7 @@ fn remove_action(id: &str) -> ParserResult<ActionItem> {
     Ok(removed)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_action(
     id: &str,
     title: Option<String>,
@@ -129,6 +204,10 @@ fn update_action(
     detail: Option<String>,
     tags: Option<String>,
     input_docs: Option<String>,
+    complexity: Option<String>,
+    mode: Option<String>,
+    note_agent: Option<String>,
+    note_text: Option<String>,
 ) -> ParserResult<ActionItem> {
     let mut items = intake_actions::for_active_project()?;
 
@@ -154,6 +233,22 @@ fn update_action(
     }
     if let Some(v) = input_docs {
         item.input_docs = parse_csv(&v);
+    }
+    if let Some(v) = complexity {
+        item.complexity = parse_complexity(&v)?;
+    }
+    if let Some(v) = mode {
+        item.mode = parse_mode(&v)?;
+    }
+    if let (Some(agent), Some(text)) = (note_agent, note_text) {
+        let new_note = Note {
+            agent: SmolStr::new(agent),
+            note: text,
+        };
+        match &mut item.notes {
+            Some(notes) => notes.push(new_note),
+            None => item.notes = Some(vec![new_note]),
+        }
     }
 
     let updated = item.clone();
