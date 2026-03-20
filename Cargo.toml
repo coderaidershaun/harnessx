@@ -10,7 +10,6 @@ readme = "README.md"
 exclude = [
     "harnessx/",
     ".claude/agent-memory/",
-    ".obsidian/",
 ]
 
 [lib]
