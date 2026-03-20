@@ -123,6 +123,38 @@ impl Project {
         Ok(project)
     }
 
+    fn update_active(mutate_fn: impl FnOnce(&mut Project)) -> ParserResult<Self> {
+        let mut registry = ProjectRegistry::load_or_default()?;
+        let project = registry.active.as_mut().ok_or(ParserError::NoActiveProject)?;
+        mutate_fn(project);
+        registry.save()?;
+        Ok(registry.active.unwrap())
+    }
+
+    pub fn update_title(value: SmolStr) -> ParserResult<Self> {
+        Self::update_active(|p| p.title = value)
+    }
+
+    pub fn update_subtitle(value: String) -> ParserResult<Self> {
+        Self::update_active(|p| p.subtitle = value)
+    }
+
+    pub fn update_description(value: String) -> ParserResult<Self> {
+        Self::update_active(|p| p.description = value)
+    }
+
+    pub fn update_takeaway(value: String) -> ParserResult<Self> {
+        Self::update_active(|p| p.takeaway_line = value)
+    }
+
+    pub fn update_directory(value: String) -> ParserResult<Self> {
+        Self::update_active(|p| p.directory = value)
+    }
+
+    pub fn update_username(value: String) -> ParserResult<Self> {
+        Self::update_active(|p| p.user_name = value)
+    }
+
     /// Removes a project from the registry and deletes its `harnessx/<id>/` metadata folder only.
     pub fn remove(id: &str) -> ParserResult<Self> {
         let mut registry = ProjectRegistry::load_or_default()?;

@@ -1,4 +1,4 @@
-//! Project subcommands: create, list, active, activate, remove.
+//! Project subcommands: create, list, active, activate, remove, and field updates.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -19,6 +19,18 @@ pub enum ProjectCommand {
     Activate { id: String },
     /// Remove a project and its metadata folder (`harnessx/<id>/`).
     Remove { id: String },
+    /// Update the active project's title.
+    UpdateTitle { value: String },
+    /// Update the active project's subtitle.
+    UpdateSubtitle { value: String },
+    /// Update the active project's description.
+    UpdateDescription { value: String },
+    /// Update the active project's takeaway line.
+    UpdateTakeaway { value: String },
+    /// Update the active project's directory.
+    UpdateDirectory { value: String },
+    /// Update the active project's username.
+    UpdateUsername { value: String },
 }
 
 impl ProjectCommand {
@@ -33,6 +45,24 @@ impl ProjectCommand {
             Self::Active => exit_with(active_project()),
             Self::Activate { id } => exit_with(activate_project(&id)),
             Self::Remove { id } => exit_with(Project::remove(&id)),
+            Self::UpdateTitle { value } => {
+                exit_with(Project::update_title(SmolStr::new(&value)))
+            }
+            Self::UpdateSubtitle { value } => {
+                exit_with(Project::update_subtitle(value))
+            }
+            Self::UpdateDescription { value } => {
+                exit_with(Project::update_description(value))
+            }
+            Self::UpdateTakeaway { value } => {
+                exit_with(Project::update_takeaway(value))
+            }
+            Self::UpdateDirectory { value } => {
+                exit_with(Project::update_directory(value))
+            }
+            Self::UpdateUsername { value } => {
+                exit_with(Project::update_username(value))
+            }
         }
     }
 }
