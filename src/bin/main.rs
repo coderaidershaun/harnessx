@@ -3,8 +3,9 @@
 use clap::{Parser, Subcommand};
 
 use harnessx::commands::init::InitArgs;
-use harnessx::commands::intake::IntakeCommand;
+use harnessx::commands::intake_onboarding::IntakeOnboardingCommand;
 use harnessx::commands::intake_actions::IntakeActionsCommand;
+use harnessx::commands::intake_team::IntakeTeamCommand;
 use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
 
@@ -24,10 +25,10 @@ enum Command {
         #[command(subcommand)]
         command: ProjectCommand,
     },
-    /// Manage intake progress.
-    Intake {
+    /// Manage intake onboarding progress.
+    IntakeOnboarding {
         #[command(subcommand)]
-        command: IntakeCommand,
+        command: IntakeOnboardingCommand,
     },
     /// Manage project pipeline progress.
     Progress {
@@ -39,6 +40,11 @@ enum Command {
         #[command(subcommand)]
         command: IntakeActionsCommand,
     },
+    /// Manage intake team progress.
+    IntakeTeam {
+        #[command(subcommand)]
+        command: IntakeTeamCommand,
+    },
 }
 
 fn main() {
@@ -46,8 +52,9 @@ fn main() {
     match cli.command {
         Command::Init(args) => args.run(),
         Command::Project { command } => command.run(),
-        Command::Intake { command } => command.run(),
+        Command::IntakeOnboarding { command } => command.run(),
         Command::Progress { command } => command.run(),
         Command::IntakeActions { command } => command.run(),
+        Command::IntakeTeam { command } => command.run(),
     }
 }

@@ -1,4 +1,4 @@
-//! Intake progress tracking for projects.
+//! Intake onboarding progress tracking for projects.
 
 use std::fs;
 use std::path::Path;
@@ -9,7 +9,7 @@ use crate::errors::{ParserError, ParserResult};
 use crate::models::project::ProjectRegistry;
 use crate::models::status::Status;
 
-const INTAKE_FILE: &str = "intake_progress.json";
+const INTAKE_ONBOARDING_FILE: &str = "intake_progress.json";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntakeItem {
@@ -28,48 +28,84 @@ impl Default for IntakeItem {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct IntakeProgress {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct IntakeOnboardingProgress {
     pub goal: IntakeItem,
-    pub directory: IntakeItem,
     pub scope: IntakeItem,
     pub user_knowledge: IntakeItem,
     pub resources: IntakeItem,
     pub success_measures: IntakeItem,
     pub user_acceptance_testing: IntakeItem,
-    pub team: IntakeItem,
+    pub stop: IntakeItem,
     pub exploration: IntakeItem,
     pub ideation: IntakeItem,
     pub project_risk_manager: IntakeItem,
 }
 
+impl Default for IntakeOnboardingProgress {
+    fn default() -> Self {
+        Self {
+            goal: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-goal")],
+                ..Default::default()
+            },
+            scope: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-scope")],
+                ..Default::default()
+            },
+            user_knowledge: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-user-knowledge")],
+                ..Default::default()
+            },
+            resources: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-resources")],
+                ..Default::default()
+            },
+            success_measures: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-success-measures")],
+                ..Default::default()
+            },
+            user_acceptance_testing: IntakeItem {
+                skills: vec![String::from("hx:intake-onboarding-uat")],
+                ..Default::default()
+            },
+            stop: IntakeItem {
+                skills: vec![String::from("hx:stop")],
+                agent: "sonnet".to_string(),
+                ..Default::default()
+            },
+            exploration: IntakeItem::default(),
+            ideation: IntakeItem::default(),
+            project_risk_manager: IntakeItem::default(),
+        }
+    }
+}
+
 /// Canonical section order; do not reorder without user approval.
-pub const INTAKE_SECTIONS: [&str; 11] = [
+pub const INTAKE_ONBOARDING_SECTIONS: [&str; 10] = [
     "goal",
-    "directory",
     "scope",
     "user_knowledge",
     "resources",
     "success_measures",
     "user_acceptance_testing",
-    "team",
+    "stop",
     "exploration",
     "ideation",
     "project_risk_manager",
 ];
 
-impl IntakeProgress {
+impl IntakeOnboardingProgress {
     /// Returns an ordered snapshot of all sections and their items.
-    pub fn items(&self) -> [(&str, &IntakeItem); 11] {
+    pub fn items(&self) -> [(&str, &IntakeItem); 10] {
         [
             ("goal", &self.goal),
-            ("directory", &self.directory),
             ("scope", &self.scope),
             ("user_knowledge", &self.user_knowledge),
             ("resources", &self.resources),
             ("success_measures", &self.success_measures),
             ("user_acceptance_testing", &self.user_acceptance_testing),
-            ("team", &self.team),
+            ("stop", &self.stop),
             ("exploration", &self.exploration),
             ("ideation", &self.ideation),
             ("project_risk_manager", &self.project_risk_manager),
@@ -79,13 +115,12 @@ impl IntakeProgress {
     pub fn item_mut(&mut self, name: &str) -> Option<&mut IntakeItem> {
         match name {
             "goal" => Some(&mut self.goal),
-            "directory" => Some(&mut self.directory),
             "scope" => Some(&mut self.scope),
             "user_knowledge" => Some(&mut self.user_knowledge),
             "resources" => Some(&mut self.resources),
             "success_measures" => Some(&mut self.success_measures),
             "user_acceptance_testing" => Some(&mut self.user_acceptance_testing),
-            "team" => Some(&mut self.team),
+            "stop" => Some(&mut self.stop),
             "exploration" => Some(&mut self.exploration),
             "ideation" => Some(&mut self.ideation),
             "project_risk_manager" => Some(&mut self.project_risk_manager),
@@ -102,7 +137,7 @@ impl IntakeProgress {
     }
 
     fn file_path(project_id: &str) -> String {
-        format!("harnessx/{project_id}/intake/{INTAKE_FILE}")
+        format!("harnessx/{project_id}/intake/{INTAKE_ONBOARDING_FILE}")
     }
 
     pub fn load(project_id: &str) -> ParserResult<Self> {
@@ -123,13 +158,13 @@ impl IntakeProgress {
         Ok(())
     }
 
-    /// Creates a default intake file for the active project. Errors if one already exists.
+    /// Creates a default intake onboarding file for the active project. Errors if one already exists.
     pub fn init_for_active_project() -> ParserResult<Self> {
         let registry = ProjectRegistry::load_or_default()?;
         let id = registry.active_project_id()?;
 
         if Path::new(&Self::file_path(id)).exists() {
-            return Err(ParserError::IntakeAlreadyExists(id.to_string()));
+            return Err(ParserError::IntakeOnboardingAlreadyExists(id.to_string()));
         }
 
         let progress = Self::default();
@@ -142,7 +177,7 @@ impl IntakeProgress {
         let id = registry.active_project_id()?;
 
         if !Path::new(&Self::file_path(id)).exists() {
-            return Err(ParserError::IntakeNotFound(id.to_string()));
+            return Err(ParserError::IntakeOnboardingNotFound(id.to_string()));
         }
 
         Self::load(id)

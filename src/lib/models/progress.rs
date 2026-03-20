@@ -14,54 +14,62 @@ const PROGRESS_FILE: &str = "progress.json";
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Stage {
     pub status: Status,
-    pub command: String,
+    pub agent: String,
 }
 
 /// Ordered list of all pipeline stage names, defining the progression order.
-pub const PROGRESS_STAGES: [&str; 7] = [
-    "intake",
+pub const PROGRESS_STAGES: [&str; 9] = [
+    "user_input_required",
+    "intake_onboarding",
+    "intake_team",
+    "intake_exploration",
     "planning",
     "review",
     "execution",
     "user_acceptance",
     "complete",
-    "user_input_required",
 ];
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ProjectProgress {
-    pub intake: Stage,
+    pub user_input_required: Stage,
+    pub intake_onboarding: Stage,
+    pub intake_team: Stage,
+    pub intake_exploration: Stage,
     pub planning: Stage,
     pub review: Stage,
     pub execution: Stage,
     pub user_acceptance: Stage,
     pub complete: Stage,
-    pub user_input_required: Stage,
 }
 
 impl ProjectProgress {
     /// Returns an ordered snapshot of all stages.
-    pub fn items(&self) -> [(&str, &Stage); 7] {
+    pub fn items(&self) -> [(&str, &Stage); 9] {
         [
-            ("intake", &self.intake),
+            ("user_input_required", &self.user_input_required),
+            ("intake_onboarding", &self.intake_onboarding),
+            ("intake_team", &self.intake_team),
+            ("intake_exploration", &self.intake_exploration),
             ("planning", &self.planning),
             ("review", &self.review),
             ("execution", &self.execution),
             ("user_acceptance", &self.user_acceptance),
             ("complete", &self.complete),
-            ("user_input_required", &self.user_input_required),
         ]
     }
 
     pub fn item_mut(&mut self, name: &str) -> Option<&mut Stage> {
         match name {
-            "intake" => Some(&mut self.intake),
+            "user_input_required" => Some(&mut self.user_input_required),
+            "intake_onboarding" => Some(&mut self.intake_onboarding),
+            "intake_team" => Some(&mut self.intake_team),
+            "intake_exploration" => Some(&mut self.intake_exploration),
             "planning" => Some(&mut self.planning),
             "review" => Some(&mut self.review),
             "execution" => Some(&mut self.execution),
             "user_acceptance" => Some(&mut self.user_acceptance),
             "complete" => Some(&mut self.complete),
-            "user_input_required" => Some(&mut self.user_input_required),
             _ => None,
         }
     }
@@ -128,10 +136,51 @@ impl ProjectProgress {
     }
 }
 
+impl Default for ProjectProgress {
+    fn default() -> Self {
+        Self {
+            user_input_required: Stage {
+                status: Status::Completed,
+                agent: "hx-user-troubleshooting-specialist".into(),
+                ..Default::default()
+            },
+            intake_onboarding: Stage {
+                agent: "hx-intake-onboarding-specialist".into(),
+                ..Default::default()
+            },
+            intake_team: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            intake_exploration: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            planning: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            review: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            execution: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            user_acceptance: Stage {
+                agent: "hx-TODO-WARN-USER".into(),
+                ..Default::default()
+            },
+            complete: Stage::default(),
+        }
+    }
+}
+
 /// Return value for the `next` CLI response.
 #[derive(Serialize)]
 pub struct NextStageResponse {
     pub stage: String,
     pub status: Status,
-    pub command: String,
+    pub agent: String,
 }

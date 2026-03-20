@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use smol_str::SmolStr;
 
 use crate::errors::{ParserError, ParserResult};
-use crate::models::intake::IntakeProgress;
+use crate::models::intake_onboarding::IntakeOnboardingProgress;
 use crate::models::intake_actions;
 use crate::models::progress::ProjectProgress;
 
@@ -116,7 +116,7 @@ impl Project {
         registry.set_active(project.clone());
         registry.save()?;
 
-        IntakeProgress::default().save(&id)?;
+        IntakeOnboardingProgress::default().save(&id)?;
         ProjectProgress::default().save(&id)?;
         intake_actions::save(&[], &id)?;
 

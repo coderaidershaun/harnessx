@@ -17,11 +17,17 @@ pub enum ParserError {
     #[error("no active project")]
     NoActiveProject,
 
-    #[error("intake already initialised for project '{0}'")]
-    IntakeAlreadyExists(String),
+    #[error("intake-onboarding already initialised for project '{0}'")]
+    IntakeOnboardingAlreadyExists(String),
 
-    #[error("no intake progress found for project '{0}' — run `intake init` first")]
-    IntakeNotFound(String),
+    #[error("no intake-onboarding progress found for project '{0}' — run `intake-onboarding init` first")]
+    IntakeOnboardingNotFound(String),
+
+    #[error("intake team already initialised for project '{0}'")]
+    IntakeTeamAlreadyExists(String),
+
+    #[error("no intake team progress found for project '{0}' — run `intake-team init` first")]
+    IntakeTeamNotFound(String),
 
     #[error("progress already initialised for project '{0}'")]
     ProgressAlreadyExists(String),

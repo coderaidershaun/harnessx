@@ -2,9 +2,9 @@
 
 Tracks progress through pipeline stages for the active project. Stored at `harnessx/<id>/progress.json`.
 
-Each stage has `status` (a Status value) and `command` (string).
+Each stage has `status` (a Status value) and `agent` (the specialist agent name that handles this stage).
 
-Stages (in order): `intake`, `planning`, `review`, `execution`, `user_acceptance`, `complete`, `user_input_required`.
+Stages (in order): `user_input_required`, `intake_onboarding`, `intake_team`, `intake_exploration`, `planning`, `review`, `execution`, `user_acceptance`, `complete`.
 
 ## `progress init`
 
@@ -18,8 +18,11 @@ harnessx progress init
 {
   "success": true,
   "data": {
-    "intake": { "status": "not_started", "command": "" },
-    "planning": { "status": "not_started", "command": "" },
+    "user_input_required": { "status": "completed", "agent": "hx-user-troubleshooting-specialist" },
+    "intake_onboarding": { "status": "not_started", "agent": "hx-intake-onboarding-specialist" },
+    "intake_team": { "status": "not_started", "agent": "hx-intake-team-specialist" },
+    "intake_exploration": { "status": "not_started", "agent": "hx-intake-exploration-specialist" },
+    "planning": { "status": "not_started", "agent": "hx-planning-specialist" },
     ...
   }
 }
@@ -45,9 +48,9 @@ harnessx progress next
 {
   "success": true,
   "data": {
-    "stage": "intake",
+    "stage": "intake_onboarding",
     "status": "not_started",
-    "command": ""
+    "agent": "hx-intake-onboarding-specialist"
   }
 }
 ```
@@ -57,7 +60,7 @@ harnessx progress next
 Marks a stage's status as `completed`.
 
 ```bash
-harnessx progress complete intake
+harnessx progress complete intake_onboarding
 ```
 
 ## `progress update <stage> <status>`
