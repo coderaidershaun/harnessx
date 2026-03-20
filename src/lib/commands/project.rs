@@ -17,7 +17,7 @@ pub enum ProjectCommand {
     Active,
     /// Activate an inactive project.
     Activate { id: String },
-    /// Remove a project and its metadata folder (projects/<id>/).
+    /// Remove a project and its metadata folder (harnessx/<id>/).
     Remove { id: String },
 }
 

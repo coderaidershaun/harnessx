@@ -19,7 +19,7 @@ if [ -z "$PROJECT_ID" ]; then
   exit 0
 fi
 
-INIT_SCRIPT="$HARNESS_DIR/projects/$PROJECT_ID/init.sh"
+INIT_SCRIPT="$HARNESS_DIR/harnessx/$PROJECT_ID/init.sh"
 if [ -f "$INIT_SCRIPT" ]; then
   echo "Running init.sh for project: $PROJECT_ID"
   bash "$INIT_SCRIPT"

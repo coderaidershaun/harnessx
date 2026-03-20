@@ -27,7 +27,7 @@ Used across intake and progress tracking. Serialised as snake_case in JSON.
 
 #### `project create <id>`
 
-Creates a new project, its `projects/<id>/` metadata directory, and sets it as active.
+Creates a new project, its `harnessx/<id>/` metadata directory, and sets it as active.
 
 ```bash
 harnessx project create my-project
@@ -83,7 +83,7 @@ harnessx project activate other-project
 
 #### `project remove <id>`
 
-Removes a project from the registry and deletes its `projects/<id>/` metadata folder (intake_progress.json, progress.json, etc.). Does **not** touch the project's own working directory.
+Removes a project from the registry and deletes its `harnessx/<id>/` metadata folder (intake_progress.json, progress.json, etc.). Does **not** touch the project's own working directory.
 
 ```bash
 harnessx project remove my-project
@@ -105,7 +105,7 @@ harnessx project remove my-project
 
 ### Intake
 
-Tracks progress through intake sections for the active project. Stored at `projects/<id>/intake_progress.json`.
+Tracks progress through intake sections for the active project. Stored at `harnessx/<id>/intake_progress.json`.
 
 Each section has `status` (a Status value), `agent` (defaults to `"opus"`), and `skills` (string array).
 
@@ -166,7 +166,7 @@ harnessx intake complete goal
 
 ### Progress
 
-Tracks progress through pipeline stages for the active project. Stored at `projects/<id>/progress.json`.
+Tracks progress through pipeline stages for the active project. Stored at `harnessx/<id>/progress.json`.
 
 Each stage has `status` (a Status value) and `command` (string).
 
@@ -258,7 +258,7 @@ Exit code is `0` on success, `1` on error.
 ## Data Layout
 
 ```
-projects/
+harnessx/
   projects.json          # Project registry (active + inactive)
   <project-id>/
     intake_progress.json # Intake section tracking

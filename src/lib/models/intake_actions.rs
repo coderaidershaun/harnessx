@@ -23,7 +23,7 @@ pub struct ActionItem {
 }
 
 fn file_path(project_id: &str) -> String {
-    format!("projects/{project_id}/intake/{ACTIONS_FILE}")
+    format!("harnessx/{project_id}/intake/{ACTIONS_FILE}")
 }
 
 /// Returns `max(numeric ids) + 1`, or `"1"` if the list is empty.

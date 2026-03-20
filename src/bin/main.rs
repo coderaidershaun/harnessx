@@ -2,6 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
+use harnessx::commands::init::InitArgs;
 use harnessx::commands::intake::IntakeCommand;
 use harnessx::commands::intake_actions::IntakeActionsCommand;
 use harnessx::commands::progress::ProgressCommand;
@@ -16,6 +17,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Scaffold the harnessx harness in the current directory.
+    Init(InitArgs),
     /// Manage projects.
     Project {
         #[command(subcommand)]
@@ -41,6 +44,7 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
+        Command::Init(args) => args.run(),
         Command::Project { command } => command.run(),
         Command::Intake { command } => command.run(),
         Command::Progress { command } => command.run(),

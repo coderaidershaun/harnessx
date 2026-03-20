@@ -75,7 +75,7 @@ impl ProjectProgress {
     }
 
     fn file_path(project_id: &str) -> String {
-        format!("projects/{project_id}/{PROGRESS_FILE}")
+        format!("harnessx/{project_id}/{PROGRESS_FILE}")
     }
 
     pub fn load(project_id: &str) -> ParserResult<Self> {

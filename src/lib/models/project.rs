@@ -11,7 +11,7 @@ use crate::models::intake::IntakeProgress;
 use crate::models::intake_actions;
 use crate::models::progress::ProjectProgress;
 
-const PROJECTS_FILE: &str = "projects/projects.json";
+const PROJECTS_FILE: &str = "harnessx/projects.json";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Project {
@@ -111,7 +111,7 @@ impl Project {
         }
 
         let project = Self::new(id.clone());
-        fs::create_dir_all(Path::new("projects").join(id.as_str()))?;
+        fs::create_dir_all(Path::new("harnessx").join(id.as_str()))?;
 
         registry.set_active(project.clone());
         registry.save()?;
@@ -123,12 +123,12 @@ impl Project {
         Ok(project)
     }
 
-    /// Removes a project from the registry and deletes its `projects/<id>/` metadata folder only.
+    /// Removes a project from the registry and deletes its `harnessx/<id>/` metadata folder only.
     pub fn remove(id: &str) -> ParserResult<Self> {
         let mut registry = ProjectRegistry::load_or_default()?;
         let project = registry.remove_project(id)?;
 
-        let meta_dir = Path::new("projects").join(id);
+        let meta_dir = Path::new("harnessx").join(id);
         if meta_dir.exists() {
             fs::remove_dir_all(&meta_dir)?;
         }
