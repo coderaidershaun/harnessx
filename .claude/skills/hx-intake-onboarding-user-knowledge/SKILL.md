@@ -124,3 +124,30 @@ You're done when you have a solid picture of:
 Not every project needs deep coverage of all four. A solo developer building a side project might just need #1 and #2. A complex enterprise project with multiple stakeholders needs all four explored thoroughly.
 
 When you've covered the relevant ground, give a brief summary of the key insights captured, then mark the section complete.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the user knowledge discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/user_knowledge.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **Professional background** — the user's role, experience level, and primary expertise
+- **Domain insights** — industry-specific knowledge, patterns, constraints, or regulations the user shared
+- **Technical preferences** — tools, frameworks, libraries, and architectural patterns the user favors or avoids, with reasons
+- **Past experience** — relevant projects they've built before, lessons learned, what they'd do differently
+- **Working style preferences** — how they like to receive updates, their involvement level, quality vs. speed trade-offs
+- **Tacit knowledge surfaced** — insights the user didn't initially think to mention but emerged through probing
+- **Risk insights** — things the user has seen go wrong in similar projects
+- **Key decisions and reasoning** — how the user's knowledge should shape project execution
+- **Action items created** during this section (titles and brief descriptions)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later gets the full picture of who the user is professionally and what expertise they bring, without needing access to the original conversation.

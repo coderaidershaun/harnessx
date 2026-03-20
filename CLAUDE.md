@@ -1,6 +1,6 @@
 # How harnessx Works
 
-harnessx is a Rust CLI + Claude Code agent system that orchestrates software projects from intake through delivery. The CLI manages state (projects, progress, actions) via JSON files on disk, while a fleet of specialized agents and skills handle the actual conversations, decisions, and code work.
+harnessx is a Rust CLI + Claude Code skill system that orchestrates software projects from intake through delivery. The CLI manages state (projects, progress, actions) via JSON files on disk, while a fleet of specialized skills handle the actual conversations, decisions, and code work.
 
 ---
 
@@ -9,19 +9,18 @@ harnessx is a Rust CLI + Claude Code agent system that orchestrates software pro
 ```
 User
   ↓
-/hx:operator (skill) ─── routes to ───→ @specialist-agent
-                                              ↓
-                                     loads skill(s) from SKILL.md
-                                              ↓
-                                     runs harnessx CLI for state
-                                              ↓
-                                     creates action items, marks progress
+/hx:operator (skill) ─── reads progress ───→ invokes /skill-name directly
+                                                       ↓
+                                              skill runs in main conversation
+                                                       ↓
+                                              runs harnessx CLI for state
+                                                       ↓
+                                              creates action items, marks progress
 ```
 
-Three layers:
+Two layers:
 1. **CLI** (`harnessx` binary) — stateless Rust tool that reads/writes JSON files
-2. **Skills** (`.claude/skills/`) — prompt instructions that teach agents how to do specific work
-3. **Agents** (`.claude/agents/`) — specialist personas with scoped tool access that execute skills
+2. **Skills** (`.claude/skills/`) — prompt instructions that teach Claude how to do specific work
 
 ---
 
@@ -38,7 +37,7 @@ Built with clap, serde, smol_str, thiserror, and include_dir. All commands outpu
 
 | Command | Purpose |
 |---------|---------|
-| `harnessx init` | Scaffold the full harnessx directory structure (agents, skills, hooks, docs, Obsidian vault) |
+| `harnessx init` | Scaffold the full harnessx directory structure (skills, hooks, docs, Obsidian vault) |
 | `harnessx project <sub>` | Create, list, activate, remove, and update projects |
 | `harnessx intake-onboarding <sub>` | Track progress through 6 intake onboarding sections |
 | `harnessx intake-completion <sub>` | Track progress through 3 intake completion sections |
@@ -54,9 +53,9 @@ Built with clap, serde, smol_str, thiserror, and include_dir. All commands outpu
 
 **Status** (shared) — `not_started | in_progress | completed | rework`
 
-**IntakeItem** — status + agent tier + skills array (per intake section)
+**IntakeItem** — status + skills array (per intake section)
 
-**Stage** — status + agent name (per pipeline stage)
+**Stage** — status + skill name (per pipeline stage)
 
 **ActionItem** — id, title, category, origin, detail, tags, input_docs, complexity, mode, notes[]
 
@@ -81,10 +80,8 @@ harnessx/
 │   └── integration-tests/
 │       └── failing.md                     # Failure reports for user input
 ├── .claude/
-│   ├── agents/                            # 8 specialist agents
 │   ├── skills/                            # 16+ skills with SKILL.md files
 │   ├── hooks/                             # session-start.sh, commit-and-push.sh
-│   ├── agent-memory/                      # Persistent agent knowledge
 │   └── settings.local.json               # Permission whitelist
 ├── .obsidian/                             # Obsidian vault config
 ├── docs/                                  # CLI reference docs
@@ -125,9 +122,9 @@ user_input_required → intake_onboarding → intake_team → intake_exploration
         → planning → review → execution → user_acceptance → complete
 ```
 
-Each stage has an assigned agent. `harnessx progress next` returns the first incomplete stage + its agent, which the operator skill uses to route work.
+Each stage has an assigned skill. `harnessx progress next` returns the first incomplete stage + its skill, which the operator skill uses to route work.
 
-Stages with `"hx-TODO-WARN-USER"` as agent are not yet implemented.
+Stages with `"hx:TODO-WARN-USER"` as skill are not yet implemented.
 
 ---
 
@@ -135,20 +132,20 @@ Stages with `"hx-TODO-WARN-USER"` as agent are not yet implemented.
 
 6 sections, each with a dedicated skill:
 
-| # | Section | Skill | Agent Tier |
-|---|---------|-------|------------|
-| 1 | goal | hx:intake-onboarding-goal | opus |
-| 2 | scope | hx:intake-onboarding-scope | opus |
-| 3 | user_knowledge | hx:intake-onboarding-user-knowledge | opus |
-| 4 | resources | hx:intake-onboarding-resources | opus |
-| 5 | success_measures | hx:intake-onboarding-success-measures | opus |
-| 6 | user_acceptance_testing | hx:intake-onboarding-uat | opus |
+| # | Section | Skill |
+|---|---------|-------|
+| 1 | goal | hx:intake-onboarding-goal |
+| 2 | scope | hx:intake-onboarding-scope |
+| 3 | user_knowledge | hx:intake-onboarding-user-knowledge |
+| 4 | resources | hx:intake-onboarding-resources |
+| 5 | success_measures | hx:intake-onboarding-success-measures |
+| 6 | user_acceptance_testing | hx:intake-onboarding-uat |
 
 ### How Each Section Works
 
-The `@hx-intake-onboarding-specialist` agent runs the loop:
+The `hx:intake-onboarding` skill runs the loop directly in the main conversation:
 
-1. `harnessx intake-onboarding next` → gets section name, agent tier, required skills
+1. `harnessx intake-onboarding next` → gets section name and required skills
 2. Reads the skill's SKILL.md to learn how to conduct that section
 3. Has a conversation with the user, asking probing questions
 4. Creates action items in real-time as they emerge (`harnessx intake-actions create`)
@@ -168,13 +165,13 @@ The `@hx-intake-onboarding-specialist` agent runs the loop:
 
 ## Intake Completion Flow
 
-3 sections tracked separately from onboarding (skills/agents not yet implemented):
+3 sections tracked separately from onboarding (skills not yet implemented):
 
-| # | Section | Skill | Agent Tier |
-|---|---------|-------|------------|
-| 1 | exploration | *(not yet implemented)* | opus |
-| 2 | ideation | *(not yet implemented)* | opus |
-| 3 | project_risk_manager | *(not yet implemented)* | opus |
+| # | Section | Skill |
+|---|---------|-------|
+| 1 | exploration | *(not yet implemented)* |
+| 2 | ideation | *(not yet implemented)* |
+| 3 | project_risk_manager | *(not yet implemented)* |
 
 Same CLI pattern as onboarding: `harnessx intake-completion init|status|list|next|complete <section>`.
 
@@ -184,13 +181,13 @@ Stored at `harnessx/<id>/intake/intake_completion.json`.
 
 ## Intake Team Flow
 
-3 sections for team intake (skills/agents not yet implemented):
+3 sections for team intake (skills not yet implemented):
 
-| # | Section | Skill | Agent Tier |
-|---|---------|-------|------------|
-| 1 | team_define | *(not yet implemented)* | opus |
-| 2 | team_build | *(not yet implemented)* | opus |
-| 3 | team_interview | *(not yet implemented)* | opus |
+| # | Section | Skill |
+|---|---------|-------|
+| 1 | team_define | *(not yet implemented)* |
+| 2 | team_build | *(not yet implemented)* |
+| 3 | team_interview | *(not yet implemented)* |
 
 Same CLI pattern: `harnessx intake-team init|status|list|next|complete <section>`.
 
@@ -203,14 +200,14 @@ Stored at `harnessx/<id>/intake/intake_team.json`.
 Actions are created throughout intake with:
 - **origin**: `intake:<section>` for traceability
 - **detail**: includes *why*, not just *what*
-- **notes**: agent observations and user context
+- **notes**: skill observations and user context
 - Captured in **real-time**, never batched
 
 ---
 
 ## The Operator — Entry Point
 
-The `hx-operator` skill is how everything starts:
+The `hx:operator` skill is how everything starts:
 
 ```
 /hx:operator
@@ -219,56 +216,49 @@ The `hx-operator` skill is how everything starts:
     │   → Ask user for project description
     │   → Create project (kebab-case ID)
     │   → /compact
-    │   → Launch @hx-intake-onboarding-specialist
+    │   → Invoke /hx:intake-onboarding skill
     │
     └─ Active project exists?
         → harnessx progress next
         │
-        ├─ Agent field present → Launch @{agent}
-        └─ Agent field empty → Project pipeline complete
+        ├─ skill starts with "hx:" → Invoke skill directly (interactive)
+        ├─ skill starts with "rust-" → Invoke directly or delegate to subagent
+        └─ skill field empty → Project pipeline complete
 ```
 
 ---
 
-## The Agent Fleet
+## The Skill Fleet
 
-### HX Agents (Project Orchestration)
+### HX Skills (Project Orchestration)
 
-| Agent | Purpose | Model | Key Tools |
-|-------|---------|-------|-----------|
-| **hx-intake-onboarding-specialist** | Guide intake conversations section by section | opus | Read, Bash(harnessx:*) |
-| **hx-user-troubleshooting-specialist** | Diagnose and resolve pipeline blockages | opus | Read, Edit, Write, Skill, Bash(harnessx:*, git, cargo) |
+| Skill | Purpose |
+|-------|---------|
+| **hx:operator** | Entry point — routes to the right skill based on pipeline state |
+| **hx:intake-onboarding** | Guide intake conversations section by section |
+| **hx:user-troubleshooting** | Diagnose and resolve pipeline blockages |
 
-### Rust Agents (Development)
+### Rust Skills (Development)
 
-| Agent | Purpose | Model | Read-Only? |
-|-------|---------|-------|-----------|
-| **rust-navigator** | Explore codebase, produce implementation plans | opus | Yes |
-| **rust-senior-architect** | Performance-critical architecture decisions | opus | No |
-| **rust-ergonomics-specialist** | Make code idiomatic and readable | opus | No |
-| **rust-unit-testing-specialist** | Write minimal unit tests, then clean up | sonnet | No |
-| **rust-integration-testing-specialist** | Write production-grade integration tests | opus | No |
-| **rust-commenting-specialist** | Add minimal, consistent comments | sonnet | No |
-
-### Agent → Skill Mapping
-
-Each agent loads specific skills:
-- `rust-navigator` → `rust-exploration-and-planning`
-- `rust-senior-architect` → `rust-planning-and-architecture`
-- `rust-ergonomics-specialist` → `rust-ergonomic-refactoring`
-- `rust-unit-testing-specialist` → `rust-unit-testing`
-- `rust-integration-testing-specialist` → `rust-integration-testing`
-- `rust-commenting-specialist` → `rust-commenting`
+| Skill | Purpose |
+|-------|---------|
+| **rust-exploration-and-planning** | Explore codebase, produce implementation plans (read-only) |
+| **rust-planning-and-architecture** | Performance-critical architecture decisions |
+| **rust-developing** | Execute implementation from a plan |
+| **rust-ergonomic-refactoring** | Make code idiomatic and readable |
+| **rust-unit-testing** | Write minimal unit tests, then clean up |
+| **rust-integration-testing** | Write production-grade integration tests |
+| **rust-commenting** | Add minimal, consistent comments |
 
 ### The Failure → Troubleshooting Loop
 
 When integration tests fail and need user input:
 
 ```
-@rust-integration-testing-specialist
+/rust-integration-testing skill
     → writes failure report to harnessx/<id>/integration-tests/failing.md
     → runs: harnessx progress update user_input_required not_started
-    → pipeline reroutes to @hx-user-troubleshooting-specialist
+    → pipeline reroutes to /hx:user-troubleshooting skill
     → user provides input/decision
     → runs: harnessx progress complete user_input_required
     → pipeline continues
@@ -280,19 +270,19 @@ When integration tests fail and need user input:
 
 | Hook | Trigger | Behavior |
 |------|---------|----------|
-| `session-start.sh` | Agent session starts | Outputs project.json, runs project-specific init.sh |
-| `commit-and-push.sh` | Agent session ends | Stages all changes, auto-commits with timestamp, pushes |
+| `session-start.sh` | Session starts | Outputs project.json, runs project-specific init.sh |
+| `commit-and-push.sh` | Session ends | Stages all changes, auto-commits with timestamp, pushes |
 
 ---
 
 ## Obsidian Integration
 
-The CLI scaffolds a `.obsidian/` vault with preconfigured plugins (file explorer, search, graph, backlinks, tags, outline, etc.). Combined with the Obsidian CLI (`obsidian`), agents can:
+The CLI scaffolds a `.obsidian/` vault with preconfigured plugins (file explorer, search, graph, backlinks, tags, outline, etc.). Combined with the Obsidian CLI (`obsidian`), skills can:
 
 - Search by tags/wikilinks: `obsidian search query="tag:#your-tag" format=json`
 - Search with context: `obsidian search:context query="/\[\[some_wikilink\]\]/" format=json`
-- Set properties: `obsidian property:set file="about" name="agent-status" value="analyzed"`
-- Query by properties: `obsidian search query="[agent-status:analyzed]" format=json`
+- Set properties: `obsidian property:set file="about" name="status" value="analyzed"`
+- Query by properties: `obsidian search query="[status:analyzed]" format=json`
 
 Purpose: reduce token usage by allowing local indexing and structured vault-based documentation.
 
@@ -302,27 +292,21 @@ Purpose: reduce token usage by allowing local indexing and structured vault-base
 
 `harnessx init` bootstraps everything:
 
-1. Detect agent platform (Claude or Cursor) from CLAUDE.md/AGENTS.md
+1. Detect platform (Claude or Cursor) from CLAUDE.md/AGENTS.md
 2. Detect Obsidian CLI on PATH
-3. Embed template files (agents, hooks, skills, docs, Obsidian config) compiled into the binary via `include_dir!`
+3. Embed template files (hooks, skills, docs, Obsidian config) compiled into the binary via `include_dir!`
 4. Write files to disk, respecting `--force` and `--no-obsidian` flags
 5. Set executable permissions on shell scripts
 6. Create root markdown file (CLAUDE.md or AGENTS.md)
 
 ---
 
-## Agent Memory
-
-Agents accumulate institutional knowledge in `.claude/agent-memory/<agent-name>/`. Currently the `rust-ergonomics-specialist` has stored patterns about the CLI's command architecture (JSON commands use `exit_with()`, interactive commands use internal `execute()`).
-
----
-
 ## Key Design Principles
 
 1. **JSON files as database** — no external dependencies, everything is files on disk
-2. **Stateless CLI** — the binary reads/writes JSON and exits; agents drive the workflow
-3. **Skills as prompts** — skills are markdown instructions, not code; they teach agents procedures
-4. **Real-time action capture** — action items are created as they emerge, not batched
-5. **Failure routing** — integration test failures automatically route to the troubleshooting agent
-6. **Read-only exploration** — the `rust-navigator` never writes code, only produces plans
-7. **Agent tier selection** — some sections use `sonnet` (cheaper/faster) for simpler tasks like commenting
+2. **Stateless CLI** — the binary reads/writes JSON and exits; skills drive the workflow
+3. **Skills as prompts** — skills are markdown instructions, not code; they teach Claude procedures
+4. **Skills run in the main conversation** — interactive skills (hx:*) talk directly to the user, no relay
+5. **Real-time action capture** — action items are created as they emerge, not batched
+6. **Failure routing** — integration test failures automatically route to the troubleshooting skill
+7. **Read-only exploration** — the `rust-exploration-and-planning` skill never writes code, only produces plans

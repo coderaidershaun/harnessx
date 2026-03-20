@@ -2,7 +2,7 @@
 
 Tracks progress through intake completion sections for the active project. Stored at `harnessx/<id>/intake/intake_completion.json`.
 
-Each section has `status` (a Status value), `agent` (defaults to `"opus"`), and `skills` (string array).
+Each section has `status` (a Status value) and `skills` (string array).
 
 Sections (in order): `exploration`, `ideation`, `project_risk_manager`.
 
@@ -18,9 +18,9 @@ harnessx intake-completion init
 {
   "success": true,
   "data": {
-    "exploration": { "status": "not_started", "agent": "opus", "skills": [] },
-    "ideation": { "status": "not_started", "agent": "opus", "skills": [] },
-    "project_risk_manager": { "status": "not_started", "agent": "opus", "skills": [] }
+    "exploration": { "status": "not_started", "skills": [] },
+    "ideation": { "status": "not_started", "skills": [] },
+    "project_risk_manager": { "status": "not_started", "skills": [] }
   }
 }
 ```
@@ -35,7 +35,7 @@ harnessx intake-completion status
 
 ## `intake-completion list`
 
-Lists all intake completion sections with their current status, agent, and skills.
+Lists all intake completion sections with their current status and skills.
 
 ```bash
 harnessx intake-completion list
@@ -45,9 +45,9 @@ harnessx intake-completion list
 {
   "success": true,
   "data": [
-    { "section": "exploration", "status": "not_started", "agent": "opus", "skills": [] },
-    { "section": "ideation", "status": "not_started", "agent": "opus", "skills": [] },
-    { "section": "project_risk_manager", "status": "not_started", "agent": "opus", "skills": [] }
+    { "section": "exploration", "status": "not_started", "skills": [] },
+    { "section": "ideation", "status": "not_started", "skills": [] },
+    { "section": "project_risk_manager", "status": "not_started", "skills": [] }
   ]
 }
 ```
@@ -65,7 +65,6 @@ harnessx intake-completion next
   "success": true,
   "data": {
     "section": "exploration",
-    "agent": "opus",
     "skills": []
   }
 }

@@ -61,7 +61,7 @@ fn next_incomplete_stage() -> ParserResult<serde_json::Value> {
     Ok(serde_json::to_value(NextStageResponse {
         stage: name.to_string(),
         status: stage.status.clone(),
-        agent: stage.agent.clone(),
+        skill: stage.skill.clone(),
     })?)
 }
 

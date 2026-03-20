@@ -124,7 +124,7 @@ harnessx intake-actions create \
   --tags "performance,uat-blocking" \
   --complexity low \
   --mode plan \
-  --note-agent "hx-intake-specialist" \
+  --note-author "hx-intake-specialist" \
   --note-text "User emphasized this is the single most important metric — their team currently waits 30+ seconds for SSH-based checks."
 ```
 
@@ -143,3 +143,29 @@ You're done when:
 - All measures are captured as action items with appropriate tags
 
 Summarize: "We've defined X must-have and Y nice-to-have success measures. The must-haves will be the gate for UAT sign-off." Then mark the section complete.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the success measures discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/success_measures.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **Initial proposals** — the success measures you suggested based on the goal and scope, and the user's reaction
+- **Questions asked and responses** — how measures were refined, what thresholds were debated, any conflicts surfaced
+- **The confirmed must-have measures** — the full list of blocking success criteria the user approved, each with its observable/measurable definition
+- **The confirmed nice-to-have measures** — non-blocking measures that would improve the project
+- **Key decisions and reasoning** — why specific measures were classified as must-have vs. nice-to-have, any trade-offs discussed
+- **Measures that were considered and rejected** — ideas that came up but were dropped, and why
+- **Relationship to UAT** — how these measures will be verified during user acceptance testing
+- **Action items created** during this section (titles and brief descriptions)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later knows exactly what success looks like for this project and why those criteria were chosen, without needing access to the original conversation.

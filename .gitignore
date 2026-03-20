@@ -2,5 +2,4 @@ target
 .DS_Store
 .git
 Cargo.lock
-agent-memory
 harnessx

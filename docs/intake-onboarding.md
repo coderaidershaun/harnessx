@@ -2,7 +2,7 @@
 
 Tracks progress through intake onboarding sections for the active project. Stored at `harnessx/<id>/intake_progress.json`.
 
-Each section has `status` (a Status value), `agent` (defaults to `"opus"`), and `skills` (string array).
+Each section has `status` (a Status value) and `skills` (string array).
 
 Sections (in order): `goal`, `scope`, `user_knowledge`, `resources`, `success_measures`, `user_acceptance_testing`.
 
@@ -31,12 +31,12 @@ harnessx intake-onboarding init
 {
   "success": true,
   "data": {
-    "goal": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-goal"] },
-    "scope": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-scope"] },
-    "user_knowledge": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-user-knowledge"] },
-    "resources": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-resources"] },
-    "success_measures": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-success-measures"] },
-    "user_acceptance_testing": { "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-uat"] },
+    "goal": { "status": "not_started", "skills": ["hx:intake-onboarding-goal"] },
+    "scope": { "status": "not_started", "skills": ["hx:intake-onboarding-scope"] },
+    "user_knowledge": { "status": "not_started", "skills": ["hx:intake-onboarding-user-knowledge"] },
+    "resources": { "status": "not_started", "skills": ["hx:intake-onboarding-resources"] },
+    "success_measures": { "status": "not_started", "skills": ["hx:intake-onboarding-success-measures"] },
+    "user_acceptance_testing": { "status": "not_started", "skills": ["hx:intake-onboarding-uat"] },
     ...
   }
 }
@@ -52,7 +52,7 @@ harnessx intake-onboarding status
 
 ## `intake-onboarding list`
 
-Lists all intake onboarding sections with their current status, agent, and skills.
+Lists all intake onboarding sections with their current status and skills.
 
 ```bash
 harnessx intake-onboarding list
@@ -62,12 +62,12 @@ harnessx intake-onboarding list
 {
   "success": true,
   "data": [
-    { "section": "goal", "status": "completed", "agent": "opus", "skills": ["hx:intake-onboarding-goal"] },
-    { "section": "scope", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-scope"] },
-    { "section": "user_knowledge", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-user-knowledge"] },
-    { "section": "resources", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-resources"] },
-    { "section": "success_measures", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-success-measures"] },
-    { "section": "user_acceptance_testing", "status": "not_started", "agent": "opus", "skills": ["hx:intake-onboarding-uat"] },
+    { "section": "goal", "status": "completed", "skills": ["hx:intake-onboarding-goal"] },
+    { "section": "scope", "status": "not_started", "skills": ["hx:intake-onboarding-scope"] },
+    { "section": "user_knowledge", "status": "not_started", "skills": ["hx:intake-onboarding-user-knowledge"] },
+    { "section": "resources", "status": "not_started", "skills": ["hx:intake-onboarding-resources"] },
+    { "section": "success_measures", "status": "not_started", "skills": ["hx:intake-onboarding-success-measures"] },
+    { "section": "user_acceptance_testing", "status": "not_started", "skills": ["hx:intake-onboarding-uat"] },
     ...
   ]
 }
@@ -86,7 +86,6 @@ harnessx intake-onboarding next
   "success": true,
   "data": {
     "section": "goal",
-    "agent": "opus",
     "skills": ["hx:intake-onboarding-goal"]
   }
 }

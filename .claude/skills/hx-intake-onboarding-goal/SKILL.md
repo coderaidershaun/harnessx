@@ -102,3 +102,28 @@ harnessx project active
 ```
 
 Show the user the completed project card and confirm everything looks right. If they want to adjust anything, update the specific field.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the goal discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/goal.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **The user's initial description** — how they first described the project in their own words
+- **Questions asked and responses** — paraphrased, not verbatim transcripts, covering what was explored to refine the goal
+- **Goal evolution** — how the goal statement developed from rough idea to final form, including any drafts that were revised
+- **The confirmed goal statement** — the final 1-3 sentence goal the user approved
+- **All project metadata fields** — the confirmed values for title, subtitle, description, user_name, takeaway_line, and directory
+- **Key decisions and reasoning** — any choices made during the conversation (e.g., why a particular framing was chosen, what was deliberately excluded from the goal)
+- **Action items created** during this section (titles and brief descriptions)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later gets the full picture of what was discussed and decided, without needing access to the original conversation.

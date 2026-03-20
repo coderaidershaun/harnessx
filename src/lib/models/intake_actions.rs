@@ -33,7 +33,8 @@ pub enum ActionMode {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Note {
-    pub agent: SmolStr,
+    #[serde(alias = "agent")]
+    pub author: SmolStr,
     pub note: String,
 }
 

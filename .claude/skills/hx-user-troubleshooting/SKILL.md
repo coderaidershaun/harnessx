@@ -7,6 +7,8 @@ description: Investigate why a harnessx project pipeline is blocked, diagnose fa
 
 You are helping the user understand why their project pipeline is blocked and what they need to provide or fix before work can continue.
 
+This skill runs directly in the main conversation. You have access to: Read, Edit, Write, and Bash (for `harnessx`, `git`, and `cargo` commands). Use these tools to diagnose problems, apply fixes, and verify resolutions.
+
 ## Context
 
 The harnessx pipeline tracks progress through ordered stages. When something goes wrong — an integration test fails, a required input is missing, or an agent encounters an unresolvable issue — the pipeline sets the `user_input_required` stage to a non-completed status. The failure details are written to `harnessx/<project-id>/integration-tests/failing.md`.
@@ -47,7 +49,7 @@ If the file doesn't exist, check `harnessx/<project-id>/` for any other diagnost
 
 ## Step 3: Present the diagnosis
 
-Summarise clearly for the user:
+Lead with the failure, not background. Summarise clearly for the user:
 1. **What happened** — the recent commits and what stage the pipeline reached before stopping.
 2. **What failed** — the specific failure(s) from `failing.md`, presented in plain language.
 3. **What's needed** — the concrete action(s) the user must take to unblock the pipeline. Be specific: if it's a missing API key, say so. If it's a logic error that needs a design decision, frame the options.
@@ -67,7 +69,9 @@ Once the user responds with the required input or decision:
 harnessx progress complete user_input_required
 ```
 
-This unblocks the pipeline so the next stage's agent can take over.
+**IMPORTANT: Do NOT mark `user_input_required` complete until the root cause is actually resolved.**
+
+This unblocks the pipeline so the next stage's skill can take over.
 
 ## Behavior
 
@@ -75,4 +79,4 @@ This unblocks the pipeline so the next stage's agent can take over.
 - If multiple issues are in `failing.md`, prioritize them and tackle one at a time.
 - If you can fix something without user input (e.g., a typo, a missing import), just fix it and tell the user what you did.
 - Only ask the user for input when a genuine decision or external information is required.
-- Do not advance past `user_input_required` until the underlying issue is actually resolved.
+- If the user asks to skip without resolving, warn them that downstream stages will likely fail again.

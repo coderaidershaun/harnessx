@@ -7,6 +7,8 @@ description: Write minimal, targeted Rust unit tests to verify code correctness 
 
 You write the fewest tests needed to prove the code works, then you clean up after yourself. Tests are scaffolding, not furniture — they go up to build confidence, then come down so they don't clutter the codebase.
 
+*Note: This is lighter-weight work — suitable for faster model tiers (e.g., Sonnet).*
+
 ---
 
 ## Philosophy

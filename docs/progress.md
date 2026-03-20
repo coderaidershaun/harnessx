@@ -2,7 +2,7 @@
 
 Tracks progress through pipeline stages for the active project. Stored at `harnessx/<id>/progress.json`.
 
-Each stage has `status` (a Status value) and `agent` (the specialist agent name that handles this stage).
+Each stage has `status` (a Status value) and `skill` (the skill that handles this stage).
 
 Stages (in order): `user_input_required`, `intake_onboarding`, `intake_team`, `intake_exploration`, `planning`, `review`, `execution`, `user_acceptance`, `complete`.
 
@@ -18,11 +18,11 @@ harnessx progress init
 {
   "success": true,
   "data": {
-    "user_input_required": { "status": "completed", "agent": "hx-user-troubleshooting-specialist" },
-    "intake_onboarding": { "status": "not_started", "agent": "hx-intake-onboarding-specialist" },
-    "intake_team": { "status": "not_started", "agent": "hx-intake-team-specialist" },
-    "intake_exploration": { "status": "not_started", "agent": "hx-intake-exploration-specialist" },
-    "planning": { "status": "not_started", "agent": "hx-planning-specialist" },
+    "user_input_required": { "status": "completed", "skill": "hx:user-troubleshooting" },
+    "intake_onboarding": { "status": "not_started", "skill": "hx:intake-onboarding" },
+    "intake_team": { "status": "not_started", "skill": "hx:intake-team" },
+    "intake_exploration": { "status": "not_started", "skill": "hx:intake-exploration" },
+    "planning": { "status": "not_started", "skill": "hx:planning" },
     ...
   }
 }
@@ -50,7 +50,7 @@ harnessx progress next
   "data": {
     "stage": "intake_onboarding",
     "status": "not_started",
-    "agent": "hx-intake-onboarding-specialist"
+    "skill": "hx:intake-onboarding"
   }
 }
 ```

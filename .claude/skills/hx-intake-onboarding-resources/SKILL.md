@@ -93,7 +93,7 @@ harnessx intake-actions create \
   --input-docs "https://github.com/user/repo" \
   --complexity medium \
   --mode plan \
-  --note-agent "hx-intake-specialist" \
+  --note-author "hx-intake-specialist" \
   --note-text "User mentioned the auth module has a non-standard token rotation pattern — agents should document this before proposing changes."
 ```
 
@@ -131,3 +131,27 @@ You're done when:
 - The user confirms there's nothing else they want to add
 
 Give a brief summary: "I've captured X resources with follow-up actions. The main ones are [quick list]." Then mark the section complete.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the resources discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/resources.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **All resources collected** — for each resource: the URL/path, what it is, why it matters to the project, and the planned follow-up action
+- **User notes and context** — any caveats, warnings, or insider knowledge the user shared about specific resources (e.g., "the API docs are outdated", "the auth module is non-standard")
+- **Resources from earlier sections** — any links or materials previously mentioned during goal, scope, or user knowledge that were captured here
+- **Resource gaps identified** — types of resources that would be useful but the user doesn't have yet
+- **Key decisions and reasoning** — how resources should be prioritized for follow-up, any sequencing decisions
+- **Action items created** during this section (titles and brief descriptions, with the follow-up action for each)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later gets the complete inventory of project resources and knows exactly what to do with each one, without needing access to the original conversation.

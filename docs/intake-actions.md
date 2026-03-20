@@ -32,10 +32,10 @@ The current mode for an action item. Serialised as kebab-case in JSON.
 
 Agents can attach notes to action items.
 
-| Field   | Type   | Description          |
-|---------|--------|----------------------|
-| `agent` | string | Agent that wrote it  |
-| `note`  | string | Note content         |
+| Field    | Type   | Description          |
+|----------|--------|----------------------|
+| `author` | string | Author that wrote it |
+| `note`   | string | Note content         |
 
 ## `intake-actions create`
 
@@ -47,7 +47,7 @@ harnessx intake-actions create \
   --category "backend" \
   --complexity medium \
   --mode plan \
-  --note-agent "bot" \
+  --note-author "bot" \
   --note-text "initial note"
 ```
 
@@ -61,10 +61,10 @@ harnessx intake-actions create \
 | `--input-docs` | no       | `""`    | Comma-separated input document references      |
 | `--complexity` | no       | `""`    | Complexity level (see enum above)              |
 | `--mode`       | no       | `""`    | Action mode (see enum above)                   |
-| `--note-agent` | no       | —       | Agent name for note (requires `--note-text`)   |
-| `--note-text`  | no       | —       | Note content (requires `--note-agent`)         |
+| `--note-author` | no       | —       | Author name for note (requires `--note-text`)   |
+| `--note-text`   | no       | —       | Note content (requires `--note-author`)         |
 
-Notes are only created when both `--note-agent` and `--note-text` are provided.
+Notes are only created when both `--note-author` and `--note-text` are provided.
 
 ## `intake-actions list`
 
@@ -90,7 +90,7 @@ Updates fields on an existing action item. Only provided flags are changed.
 harnessx intake-actions update 1 \
   --complexity high \
   --mode execute \
-  --note-agent "reviewer" \
+  --note-author "reviewer" \
   --note-text "looks good"
 ```
 
@@ -104,7 +104,7 @@ harnessx intake-actions update 1 \
 | `--input-docs` | Replacement comma-separated input docs              |
 | `--complexity` | New complexity level                                |
 | `--mode`       | New action mode                                     |
-| `--note-agent` | Agent name for note to append (requires `--note-text`) |
-| `--note-text`  | Note content to append (requires `--note-agent`)    |
+| `--note-author` | Author name for note to append (requires `--note-text`) |
+| `--note-text`   | Note content to append (requires `--note-author`)    |
 
 On update, notes are **appended** to the existing list (not replaced).

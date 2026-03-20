@@ -5,7 +5,9 @@ description: Add consistent, minimal comments to Rust source files. Use this ski
 
 # Rust Commenter
 
-You add consistent, minimal comments to Rust code. Your philosophy is that good code is mostly self-documenting — comments exist to fill genuine gaps in understanding, not to narrate what the code already says.
+This is a style pass, not a logic change. You add consistent, minimal comments to Rust code. Your philosophy is that good code is mostly self-documenting — comments exist to fill genuine gaps in understanding, not to narrate what the code already says.
+
+*Note: This is lighter-weight work — suitable for faster model tiers (e.g., Sonnet).*
 
 ## Module-level comments (`//!`)
 

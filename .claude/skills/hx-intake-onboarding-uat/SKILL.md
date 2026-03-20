@@ -135,7 +135,7 @@ harnessx intake-actions create \
   --tags "uat-scenario,must-have" \
   --complexity medium \
   --mode plan \
-  --note-agent "hx-intake-specialist" \
+  --note-author "hx-intake-specialist" \
   --note-text "User wants to see this live, not as a recording. They want to be able to trigger the signal themselves during the demo."
 ```
 
@@ -164,3 +164,30 @@ You're done when:
 - The user confirms: "Yes, if all of this passes, I'd consider this done"
 
 Summarize the UAT plan briefly, then mark the section complete.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the UAT discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/user_acceptance_testing.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **Initial UAT proposals** — the scenarios and deliverables you suggested, and the user's reaction
+- **Questions asked and responses** — what the user wants to see, try, and verify, including their testing instincts and priorities
+- **The confirmed test scenarios** — each with what to test, expected result, and linked success measure
+- **The confirmed deliverables** — documentation, recordings, test results, or other artifacts expected alongside the code
+- **Handover process** — how the project will be delivered for testing, environment setup, time needed, other reviewers
+- **Sign-off criteria** — what constitutes a pass, what happens on failure
+- **Edge cases and failure modes** — specific scenarios the user wants to see handled gracefully
+- **Key decisions and reasoning** — any trade-offs in UAT scope, priority ordering of scenarios
+- **Action items created** during this section (titles and brief descriptions)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later knows exactly what the user expects to see at handover and how sign-off will work, without needing access to the original conversation.

@@ -1,11 +1,29 @@
 ---
 name: hx:intake-onboarding
-description: Guide users through intake onboarding by asking smart probing questions, capturing follow-up actions, and completing the current intake section. Use this skill when the hx-intake-specialist agent needs to conduct an intake session — gathering requirements, extracting context from the user, and recording action items for later planning. Trigger whenever an intake conversation begins, the agent is onboarding a user, or needs to work through their next intake topic. Also trigger if the user mentions intake, onboarding, project kickoff, or requirements gathering.
+description: Guide users through intake onboarding by asking smart probing questions, capturing follow-up actions, and completing the current intake section. Use this skill to conduct an intake session — gathering requirements, extracting context from the user, and recording action items for later planning. Trigger whenever an intake conversation begins, when onboarding a user, or when working through their next intake topic. Also trigger if the user mentions intake, onboarding, project kickoff, or requirements gathering.
 ---
 
 # Intake Onboarding
 
 You help users work through their project intake one section at a time. Your job is to ask the right questions, extract rich context, and capture follow-up actions that will feed into milestones, epics, stories, and tasks during planning.
+
+This skill runs directly in the main conversation — you can interact with the user naturally, ask questions, and wait for responses. Present one intake step at a time and wait for user input before advancing to the next step.
+
+## Startup
+
+Before beginning, confirm there is an active project:
+
+```bash
+harnessx project active
+```
+
+If no active project exists, tell the user to run `/hx:operator` first and stop.
+
+Then mark the intake stage as in-progress:
+
+```bash
+harnessx progress update intake_onboarding in_progress
+```
 
 ## Step 1: Get the current intake task
 
@@ -22,7 +40,6 @@ This returns JSON like:
   "success": true,
   "data": {
     "section": "goal",
-    "agent": "opus",
     "skills": ["hx:some-skill"]
   }
 }
@@ -32,7 +49,7 @@ If `success` is `false` or there's no next section, tell the user all intake sec
 
 ## Step 2: Load required skills
 
-Check the `skills` array in the response. If it contains skill names, read each skill's instructions from `.claude/skills/<skill-name>/SKILL.md` (where `<skill-name>` is the skill identifier — e.g., `hx:foo` lives at `.claude/skills/hx-foo/SKILL.md`). Follow those instructions alongside these ones. The `agent` field indicates the intended model tier for this section.
+Check the `skills` array in the response. If it contains skill names, read each skill's instructions from `.claude/skills/<skill-name>/SKILL.md` (where `<skill-name>` is the skill identifier — e.g., `hx:foo` lives at `.claude/skills/hx-foo/SKILL.md`). Follow those instructions alongside these ones.
 
 ## Step 3: Read the actions reference
 
@@ -71,19 +88,25 @@ Use `harnessx intake-actions create` with the flags from the docs you read in St
 
 - **Title**: Clear and specific. "Design auth token rotation strategy" beats "Auth stuff".
 - **Category**: Group by area (e.g., `backend`, `frontend`, `infrastructure`, `design`, `research`).
-- **Origin**: Use the format `intake:<section>` (e.g., `intake:goal`) so future agents can trace where this came from.
-- **Detail**: Include the *why*, not just the *what*. Future agents reading these won't have the conversation context.
+- **Origin**: Use the format `intake:<section>` (e.g., `intake:goal`) so future skills can trace where this came from.
+- **Detail**: Include the *why*, not just the *what*. Future skills reading these won't have the conversation context.
 - **Tags**: These are tags based on what triggered this discussion and are in obsidian notation. For example [tag:#goal, #tag:scope]
 
-Attach notes (if the CLI supports `--note-agent` and `--note-text`) with agent name `hx-intake-specialist` and context from the conversation that won't be obvious later.
+Attach notes (using `--note-author` and `--note-text`) with author `hx-intake-onboarding` and context from the conversation that won't be obvious later.
 
 **Do NOT run `harnessx intake-actions list`** unless the user explicitly asks to see their actions or you need to check for a specific duplicate. It loads the entire action list into context, which is wasteful and distracting. Trust that your in-conversation tracking is sufficient.
 
 Capturing actions is CRITICAL to the success of this project. If you feel that an action would need to be taken, including even an investigation, then log it using this method. DO NOT FORGET TO DO THIS. Keep it at the front of your memory.
 
-## Step 6: Complete the section
+## Step 6: Document the discussion
 
-When the topic has been thoroughly covered and you've captured the relevant actions, mark it done:
+Before marking a section complete, you MUST save a comprehensive markdown document capturing the full discussion to `harnessx/<project-id>/intake/<section_name>.md`. Each section-specific skill (goal, scope, user_knowledge, resources, success_measures, user_acceptance_testing) contains a "Document the Discussion" section with the exact format and content requirements for that section's document. Follow those instructions — they specify what to include for each section type.
+
+This is non-negotiable. Every intake discussion must be preserved so that no context is lost between conversations. The document should be a readable narrative, not a chat log.
+
+## Step 7: Complete the section
+
+When the topic has been thoroughly covered, you've captured the relevant actions, and you've saved the discussion document, mark it done:
 
 ```bash
 harnessx intake-onboarding complete <section>
@@ -91,12 +114,18 @@ harnessx intake-onboarding complete <section>
 
 Give the user a brief wrap-up — what ground was covered and roughly how many actions were recorded. Don't enumerate every action; a sentence or two is enough.
 
-## Step 7: Loop — advance to the next section
+## Step 8: Loop — advance to the next section
 
 After completing a section, immediately run `harnessx intake-onboarding next` again to get the next incomplete section. If there is one:
 
 1. Load any skills listed in the new response's `skills` array (same as Step 2).
-2. Conduct the conversation for this new section (Steps 4-6).
+2. Conduct the conversation for this new section (Steps 4-7).
 3. Mark it complete and loop back here.
 
-Continue this cycle until `harnessx intake-onboarding next` returns no remaining sections — then tell the user the full intake is complete.
+Continue this cycle until `harnessx intake-onboarding next` returns no remaining sections. When that happens:
+
+1. Mark the pipeline stage complete:
+   ```bash
+   harnessx progress complete intake_onboarding
+   ```
+2. Tell the user the full intake onboarding is complete.

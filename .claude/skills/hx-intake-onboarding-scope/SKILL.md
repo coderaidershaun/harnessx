@@ -182,3 +182,28 @@ The scope conversation generates rich context that should be captured as intake 
 - Detailed descriptions that include the *why* — future agents won't have this conversation context
 
 The scope summary itself doesn't get written to a project metadata field (unlike the goal, which becomes the description). Instead, it lives in the action items and will be shaped into milestones and epics during planning.
+
+---
+
+## Document the Discussion
+
+Before marking this section complete, write a comprehensive markdown file that captures the full substance of the scope discussion. Get the active project ID:
+
+```bash
+harnessx project active
+```
+
+Then save the document to `harnessx/<project-id>/intake/scope.md`.
+
+The document should include:
+
+- **Date** of the discussion
+- **The user's initial sense of scope** — what they said when first asked about boundaries
+- **Questions asked and responses** — paraphrased, covering each scope dimension explored (feature, user, technical, quality, timeline)
+- **The confirmed scope summary** — the full In Scope / Out of Scope / Deferred / Key Constraints breakdown the user approved
+- **Key decisions and reasoning** — why specific items were placed in scope vs. deferred vs. excluded, any trade-offs discussed
+- **Proactive suggestions made** — scope items you raised that the user hadn't considered, and their response
+- **Areas of uncertainty** — scope questions that remain open or need further exploration
+- **Action items created** during this section (titles and brief descriptions)
+
+Write this as a readable narrative document, not a raw chat log. The goal is that any agent or person reading this file later gets the full picture of what was discussed and decided, without needing access to the original conversation.

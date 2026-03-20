@@ -14,7 +14,6 @@ const INTAKE_ONBOARDING_FILE: &str = "intake_progress.json";
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntakeItem {
     pub status: Status,
-    pub agent: String,
     pub skills: Vec<String>,
 }
 
@@ -22,7 +21,6 @@ impl Default for IntakeItem {
     fn default() -> Self {
         Self {
             status: Status::NotStarted,
-            agent: String::from("opus"),
             skills: Vec::new(),
         }
     }
@@ -170,6 +168,5 @@ impl IntakeOnboardingProgress {
 #[derive(Serialize)]
 pub struct NextItemResponse {
     pub section: String,
-    pub agent: String,
     pub skills: Vec<String>,
 }

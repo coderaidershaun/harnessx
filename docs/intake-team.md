@@ -2,7 +2,7 @@
 
 Tracks progress through intake team sections for the active project. Stored at `harnessx/<id>/intake/intake_team.json`.
 
-Each section has `status` (a Status value), `agent` (defaults to `"opus"`), and `skills` (string array).
+Each section has `status` (a Status value) and `skills` (string array).
 
 Sections (in order): `team_define`, `team_build`, `team_interview`.
 
@@ -18,9 +18,9 @@ harnessx intake-team init
 {
   "success": true,
   "data": {
-    "team_define": { "status": "not_started", "agent": "opus", "skills": [] },
-    "team_build": { "status": "not_started", "agent": "opus", "skills": [] },
-    "team_interview": { "status": "not_started", "agent": "opus", "skills": [] }
+    "team_define": { "status": "not_started", "skills": [] },
+    "team_build": { "status": "not_started", "skills": [] },
+    "team_interview": { "status": "not_started", "skills": [] }
   }
 }
 ```
@@ -35,7 +35,7 @@ harnessx intake-team status
 
 ## `intake-team list`
 
-Lists all intake team sections with their current status, agent, and skills.
+Lists all intake team sections with their current status and skills.
 
 ```bash
 harnessx intake-team list
@@ -45,9 +45,9 @@ harnessx intake-team list
 {
   "success": true,
   "data": [
-    { "section": "team_define", "status": "not_started", "agent": "opus", "skills": [] },
-    { "section": "team_build", "status": "not_started", "agent": "opus", "skills": [] },
-    { "section": "team_interview", "status": "not_started", "agent": "opus", "skills": [] }
+    { "section": "team_define", "status": "not_started", "skills": [] },
+    { "section": "team_build", "status": "not_started", "skills": [] },
+    { "section": "team_interview", "status": "not_started", "skills": [] }
   ]
 }
 ```
@@ -65,7 +65,6 @@ harnessx intake-team next
   "success": true,
   "data": {
     "section": "team_define",
-    "agent": "opus",
     "skills": []
   }
 }

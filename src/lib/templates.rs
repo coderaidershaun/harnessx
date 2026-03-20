@@ -2,7 +2,6 @@
 
 use include_dir::{include_dir, Dir, File};
 
-static AGENTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/agents");
 static HOOKS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/hooks");
 static SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
 static OBSIDIAN: Dir = include_dir!("$CARGO_MANIFEST_DIR/.obsidian");
@@ -54,7 +53,6 @@ pub fn manifest(agent: Agent, include_obsidian: bool) -> Vec<TemplateFile> {
     let config_dir = agent.config_dir();
 
     let core_roots: Vec<(&Dir, String)> = vec![
-        (&AGENTS, format!("{config_dir}/agents")),
         (&HOOKS, format!("{config_dir}/hooks")),
         (&SKILLS, format!("{config_dir}/skills")),
     ];

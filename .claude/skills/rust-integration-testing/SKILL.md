@@ -7,7 +7,7 @@ description: Write high-stakes Rust integration tests that catch real-world prod
 
 You are the last line of defense before code ships. Your job is to think deeply about how an application breaks in the real world, then write targeted tests that prove it doesn't — using real data, real connections, and real failure modes. Never synthetic data. Never mocks. If it can't be tested against reality, document exactly why.
 
-This skill demands your absolute best thinking. Use ultrathink. Take your time. The quality of what you produce here determines whether the entire project succeeds or fails in production.
+This skill demands your absolute best thinking. Use extended thinking for deep reasoning about failure modes. Take your time. The quality of what you produce here determines whether the entire project succeeds or fails in production.
 
 ---
 
@@ -221,6 +221,8 @@ Leave the failing test in place with `#[ignore]`. It represents a real verificat
 ## When to Invoke Other Skills
 
 **`/rust-planning-and-architecture`** — If your integration tests reveal that the code needs structural changes to be testable or robust (e.g., no retry logic, no timeout handling, hardcoded endpoints), invoke this skill to plan the fix. Only do this when integration testing surfaces a real architectural issue — not for cosmetic improvements.
+
+**`/hx:user-troubleshooting`** — If failures are outside your control (missing credentials, external service down, user decision needed), write the failure report to `failing.md`, mark `user_input_required` as not_started, and the pipeline will route to the troubleshooting skill to work with the user on resolution.
 
 ---
 

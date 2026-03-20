@@ -14,7 +14,8 @@ const PROGRESS_FILE: &str = "progress.json";
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Stage {
     pub status: Status,
-    pub agent: String,
+    #[serde(alias = "agent")]
+    pub skill: String,
 }
 
 /// Ordered list of all pipeline stage names, defining the progression order.
@@ -151,35 +152,35 @@ impl Default for ProjectProgress {
         Self {
             user_input_required: Stage {
                 status: Status::Completed,
-                agent: "hx-user-troubleshooting-specialist".into(),
+                skill: "hx:user-troubleshooting".into(),
                 ..Default::default()
             },
             intake_onboarding: Stage {
-                agent: "hx-intake-onboarding-specialist".into(),
+                skill: "hx:intake-onboarding".into(),
                 ..Default::default()
             },
             intake_team: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             intake_exploration: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             planning: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             review: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             execution: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             user_acceptance: Stage {
-                agent: "hx-TODO-WARN-USER".into(),
+                skill: "hx:TODO-WARN-USER".into(),
                 ..Default::default()
             },
             complete: Stage::default(),
@@ -192,5 +193,5 @@ impl Default for ProjectProgress {
 pub struct NextStageResponse {
     pub stage: String,
     pub status: Status,
-    pub agent: String,
+    pub skill: String,
 }

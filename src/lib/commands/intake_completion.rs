@@ -45,7 +45,6 @@ fn list_all_items() -> ParserResult<serde_json::Value> {
             serde_json::json!({
                 "section": name,
                 "status": item.status,
-                "agent": item.agent,
                 "skills": item.skills,
             })
         })
@@ -71,7 +70,6 @@ fn next_incomplete_section() -> ParserResult<serde_json::Value> {
 
     Ok(serde_json::to_value(NextItemResponse {
         section: name.to_string(),
-        agent: item.agent.clone(),
         skills: item.skills.clone(),
     })?)
 }
