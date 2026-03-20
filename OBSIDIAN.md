@@ -13,3 +13,6 @@ obsidian property:set file="about" name="agent-status" value="analyzed"
 obsidian search query="-[agent-status:analyzed]" format="json"
 
 obsidian search query="[agent-status:analyzed]" format="json"
+
+1. cargo doc --no-deps — builds your crate's docs and catches any doc warnings
+2. cargo publish --dry-run — simulates publishing without actually uploading, catches most issues
