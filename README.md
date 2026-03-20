@@ -1,6 +1,18 @@
 # harnessx CLI
 
+[Crate](https://crates.io/crates/harnessx) | [GitHub](https://github.com/coderaidershaun/harnessx)
+
 Command-line interface for harnessx project management. All output is JSON.
+
+> **Note:** This README is embedded inside the `harnessx/` folder that is created when you run `harnessx init`.
+
+## Installation
+
+You need [Rust](https://www.rust-lang.org/tools/install) installed first, then run:
+
+```bash
+cargo install harnessx
+```
 
 ## Usage
 

@@ -7,6 +7,8 @@ static HOOKS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/hooks");
 static SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
 static OBSIDIAN: Dir = include_dir!("$CARGO_MANIFEST_DIR/.obsidian");
 
+static README_CONTENT: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"));
+
 /// A template file to be written during `harnessx init`, with a project-root-relative path.
 pub struct TemplateFile {
     pub path: String,
@@ -25,10 +27,17 @@ const TEMPLATE_ROOTS: &[(&Dir, &str)] = &[
 
 /// Returns every template file that `harnessx init` should write.
 pub fn manifest() -> Vec<TemplateFile> {
-    TEMPLATE_ROOTS
+    let mut files: Vec<TemplateFile> = TEMPLATE_ROOTS
         .iter()
         .flat_map(|(dir, prefix)| collect_recursive(dir, prefix))
-        .collect()
+        .collect();
+
+    files.push(TemplateFile {
+        path: "harnessx/README.md".to_string(),
+        content: README_CONTENT,
+    });
+
+    files
 }
 
 fn collect_recursive(dir: &'static Dir, prefix: &str) -> Vec<TemplateFile> {
