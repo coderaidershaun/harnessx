@@ -2,6 +2,11 @@
 name = "harnessx"
 version = "0.1.0"
 edition = "2024"
+authors = ["Shaun McDonogh"]
+description = "CLI for project management"
+license = "MIT"
+repository = "https://github.com/coderaidershaun/harnessx"
+readme = "README.md"
 
 [lib]
 path = "src/lib/lib.rs"
