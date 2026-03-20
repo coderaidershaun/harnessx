@@ -2,7 +2,7 @@
 name: rust-commenting-specialist
 description: "Only use when requested by the user or another agent"
 model: sonnet
-color: blue
+color: cyan
 permissionMode: acceptEdits
 tools:
   - Read
