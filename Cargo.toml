@@ -7,6 +7,11 @@ description = "CLI for project management"
 license = "MIT"
 repository = "https://github.com/coderaidershaun/harnessx"
 readme = "README.md"
+exclude = [
+    "harnessx/",
+    ".claude/agent-memory/",
+    "OBSIDIAN.md",
+]
 
 [lib]
 path = "src/lib/lib.rs"
