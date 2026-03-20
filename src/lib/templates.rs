@@ -18,16 +18,28 @@ pub struct TemplateFile {
 /// Host-specific; replaced with an empty JSON object so local layout isn't shipped.
 const EMPTY_WORKSPACE: &str = ".obsidian/workspace.json";
 
-const TEMPLATE_ROOTS: &[(&Dir, &str)] = &[
+const CORE_ROOTS: &[(&Dir, &str)] = &[
     (&AGENTS, ".claude/agents"),
     (&HOOKS, ".claude/hooks"),
     (&SKILLS, ".claude/skills"),
-    (&OBSIDIAN, ".obsidian"),
 ];
 
+const OBSIDIAN_ROOT: (&Dir, &str) = (&OBSIDIAN, ".obsidian");
+
 /// Returns every template file that `harnessx init` should write.
-pub fn manifest() -> Vec<TemplateFile> {
-    let mut files: Vec<TemplateFile> = TEMPLATE_ROOTS
+///
+/// When `include_obsidian` is `true`, the `.obsidian/` vault configuration is
+/// included in the manifest; otherwise only the core harness files are emitted.
+pub fn manifest(include_obsidian: bool) -> Vec<TemplateFile> {
+    let roots: Vec<(&Dir, &str)> = if include_obsidian {
+        let mut r: Vec<_> = CORE_ROOTS.to_vec();
+        r.push(OBSIDIAN_ROOT);
+        r
+    } else {
+        CORE_ROOTS.to_vec()
+    };
+
+    let mut files: Vec<TemplateFile> = roots
         .iter()
         .flat_map(|(dir, prefix)| collect_recursive(dir, prefix))
         .collect();
