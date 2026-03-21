@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-uat
 description: Define exactly what the user wants to see, test, and verify during user acceptance testing — the concrete handover checklist that determines whether the project ships. Use this skill when the intake process reaches the "user_acceptance_testing" section, when the user needs to define UAT criteria, or when planning what gets tested before sign-off. Also trigger when the user says "what should UAT look like", "how will I test this", "what do I need to verify", "acceptance criteria", "sign-off checklist", or anything about defining the handover process, demo requirements, or final verification steps.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake User Acceptance Testing

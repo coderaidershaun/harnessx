@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-resources
 description: Collect links, repos, documents, codebases, and any other resources the user has for the project, then store each as a well-documented action item with planned follow-up work. Use this skill when the intake process reaches the "resources" section, when the user shares links or references, mentions an existing codebase, points to documentation or repos, or says things like "here's the repo", "I have some links", "check out this doc", "the code is at", or "I found this resource". Also trigger when gathering materials that agents will need to research, explore, or extract from later.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Resources

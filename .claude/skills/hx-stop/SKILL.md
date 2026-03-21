@@ -1,6 +1,8 @@
 ---
 name: hx:stop
 description: Halt all agent activity at a natural breakpoint in the intake process. Use this skill when the intake process reaches the "stop" section, signaling that all running agents should stop, context should be cleared, and the user should re-enter via /hx:operator. This is an automatic checkpoint — do not skip it or continue past it.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # HX Stop

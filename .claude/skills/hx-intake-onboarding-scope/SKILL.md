@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-scope
 description: Define clear, thorough project scope boundaries from a confirmed goal. Use this skill when the intake process reaches the "scope" section, when the user needs help defining what's in and out of scope, or when project boundaries feel vague or unbounded. Also trigger when the user says "define scope", "what should be in scope", "help me scope this", "what are the boundaries", or asks about MVP vs full version, feature prioritization for scope, or what to cut or defer.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Scope

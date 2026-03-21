@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-success-measures
 description: Define concrete, measurable success criteria that determine whether a project has achieved its goal. Use this skill when the intake process reaches the "success_measures" section, when the user needs help articulating what "done and successful" looks like, or when success criteria are vague or missing. Also trigger when the user says "how will we know this worked", "what does success look like", "define success criteria", "what metrics matter", or when establishing KPIs, acceptance thresholds, or completion benchmarks for a project.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Success Measures

@@ -1,6 +1,8 @@
 ---
 name: hx:user-troubleshooting
 description: Investigate why a harnessx project pipeline is blocked, diagnose failures from integration test results, and work with the user to resolve them. Use this skill when the pipeline hits `user_input_required`, when the user asks "why did my project fail", "what went wrong", "what's blocking my project", "troubleshoot", "debug the pipeline", or when an agent needs to understand and resolve a project failure before work can continue.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # HX User Troubleshooting

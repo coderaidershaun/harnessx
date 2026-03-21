@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-goal
 description: Craft exceptionally well-written project goals from user input, then populate all project metadata fields (title, subtitle, description, user_name, takeaway_line, directory). Use this skill when the intake process reaches the "goal" section, when the user wants to define or refine a project goal, or when project metadata fields need to be filled in. Also trigger when the user says "set my goal", "what's my project about", "help me define this project", or asks to update project details like title, subtitle, or description.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Goal

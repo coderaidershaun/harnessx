@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding
 description: Guide users through intake onboarding by asking smart probing questions, capturing follow-up actions, and completing the current intake section. Use this skill to conduct an intake session — gathering requirements, extracting context from the user, and recording action items for later planning. Trigger whenever an intake conversation begins, when onboarding a user, or when working through their next intake topic. Also trigger if the user mentions intake, onboarding, project kickoff, or requirements gathering.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Onboarding

@@ -1,6 +1,8 @@
 ---
 name: hx:intake-onboarding-user-knowledge
 description: Extract the user's background, expertise, and domain insights to inform project execution. Use this skill when the intake process reaches the "user_knowledge" section, when you need to understand what the user brings to the table professionally, or when their expertise should shape how the project is approached. Also trigger when the user says "here's my background", "I know a lot about", "in my experience", or when you need to capture domain-specific recommendations, technical preferences, or professional insights that should influence project decisions.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake User Knowledge
