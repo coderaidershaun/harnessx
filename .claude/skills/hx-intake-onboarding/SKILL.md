@@ -59,9 +59,11 @@ harnessx intake-onboarding update <section> in_progress
 
 Check the `skills` array in the response. If it contains skill names, read each skill's instructions from `.claude/skills/<skill-name>/SKILL.md` (where `<skill-name>` is the skill identifier — e.g., `hx:foo` lives at `.claude/skills/hx-foo/SKILL.md`). Follow those instructions alongside these ones.
 
-## Step 3: Read the actions reference
+## Step 3: Load the actions writing skill
 
-Read `docs/intake-actions.md` to understand how to create action items. This is your reference for the exact CLI flags and field types available on `harnessx intake-actions create`. Use only the flags documented there — they reflect the current state of the CLI.
+Read `.claude/skills/hx-intake-actions-writing/SKILL.md`. This is your guide for creating action items — it covers the CLI commands, tagging protocol, blindspot-aware action design, and the bidirectional linking workflow (create action → get ID → tag source markdown). Follow its instructions whenever you create or update actions throughout the intake conversation.
+
+Also read `docs/intake-actions.md` for the exact CLI flags and field types. Use only the flags documented there.
 
 ## Step 4: Conduct the intake conversation
 
@@ -92,19 +94,19 @@ As the conversation surfaces things that need to happen — decisions, research,
 
 Create actions in real time as they come up, not in a batch at the end. This lets the user see what's being captured and correct course.
 
-Use `harnessx intake-actions create` with the flags from the docs you read in Step 3. Aim for well-structured actions:
+**Follow the `hx:intake-actions-writing` skill instructions you loaded in Step 3.** That skill is your authority on:
 
-- **Title**: Clear and specific. "Design auth token rotation strategy" beats "Auth stuff".
-- **Category**: Group by area (e.g., `backend`, `frontend`, `infrastructure`, `design`, `research`).
-- **Origin**: Use the format `intake:<section>` (e.g., `intake:goal`) so future skills can trace where this came from.
-- **Detail**: Include the *why*, not just the *what*. Future skills reading these won't have the conversation context.
-- **Tags**: These are tags based on what triggered this discussion and are in obsidian notation. For example [tag:#goal, #tag:scope]
+- How to structure each field (title, category, origin, detail, tags, complexity, mode, notes)
+- The tagging protocol — section tags (`#goal`, `#scope`, etc.), type tags (`#research`, `#verification`, etc.), and blindspot tags (`#blindspot-context-loss`, etc.)
+- The bidirectional linking workflow — after each action is created and you receive an ID back, tag the relevant paragraph in the intake markdown with `#project-id::action-N` (inline, end of the line, never on its own line)
+- Agent blindspot awareness — think about what could go wrong when an agent picks up this action with zero context. Create defensive actions for context loss, API drift, missing exploration, scope creep, test gaps, integration assumptions, and dependency compatibility.
+- Process awareness — what to create actions for vs. what later pipeline stages handle naturally
 
-Attach notes (using `--note-author` and `--note-text`) with author `hx-intake-onboarding` and context from the conversation that won't be obvious later.
+Use `--note-author "hx-intake-onboarding"` for notes on actions you create during intake conversations.
 
 **Do NOT run `harnessx intake-actions list`** unless the user explicitly asks to see their actions or you need to check for a specific duplicate. It loads the entire action list into context, which is wasteful and distracting. Trust that your in-conversation tracking is sufficient.
 
-Capturing actions is CRITICAL to the success of this project. If you feel that an action would need to be taken, including even an investigation, then log it using this method. DO NOT FORGET TO DO THIS. Keep it at the front of your memory.
+Capturing actions is CRITICAL to the success of this project. If you feel that an action would need to be taken, including even an investigation, then log it. Think beyond what the user explicitly asks for — consider what an agent working autonomously will need to verify, explore, or validate before it can do good work. DO NOT FORGET TO DO THIS. Keep it at the front of your memory.
 
 ## Step 6: Document the discussion
 
