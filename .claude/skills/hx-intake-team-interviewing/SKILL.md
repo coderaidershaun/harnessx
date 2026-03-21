@@ -202,11 +202,12 @@ As the interview surfaces things the executing agent (yourself or others) will n
 | Field | Value |
 |---|---|
 | `--origin` | `intake:agent-interview` |
-| `--tags` | `#agent-interview,#interview-<skill-kebab>` + category tag + blindspot tag |
-| `--detail` inline tag | `#intake-agent-interview` |
+| `--tags` | Only traceable tags — omit if none apply. See note below. |
 | `--note-author` | `hx-agent-interview` |
 
-The `#interview-<skill-kebab>` tag (e.g., `#interview-rust-team-coordinator`) is critical — it lets the agent find all actions from its own interview when it later starts executing.
+**Tags must be traceable.** Do not invent categorical tags like `#agent-interview` or `#verification` — these don't exist in any project document. The `category` and `origin` fields already capture this information. Only use `--tags` for cross-referencing other actions (`#action-N`) or tags that exist in actual project markdown files. If no traceable tags apply, omit `--tags` entirely.
+
+After creating actions, tag the interview document (`interview-<skill-kebab>.md`) with `#action-N` on the relevant paragraphs. This creates the bidirectional link — agents can search `#action-N` and find the interview context.
 
 ### What to capture as actions
 
@@ -225,8 +226,7 @@ harnessx intake-actions create \
   --title "Validate existing orderbook matching handles partial fills before adding market orders" \
   --category "verification" \
   --origin "intake:agent-interview" \
-  --detail "During architect interview, user confirmed partial fills are common in their DEX. The current matching engine may or may not handle them correctly — user said 'I think it works but I never tested edge cases.' Agent MUST verify this before designing market order extensions, as the matching algorithm is the foundation everything builds on. #intake-agent-interview" \
-  --tags "#agent-interview,#interview-rust-planning-and-architecture,#verification,#blindspot-missing-exploration" \
+  --detail "During architect interview, user confirmed partial fills are common in their DEX. The current matching engine may or may not handle them correctly — user said 'I think it works but I never tested edge cases.' Agent MUST verify this before designing market order extensions, as the matching algorithm is the foundation everything builds on." \
   --complexity medium \
   --mode plan \
   --note-author "hx-agent-interview" \
@@ -293,7 +293,7 @@ For example: `harnessx/<project-id>/intake/interview-rust-team-coordinator.md`
 
 After writing the document, tag it with references to the action items created during the interview. Follow the `hx:tag-context-writing` protocol — tags go at the end of the line carrying the most meaning, never on their own line.
 
-Also tag references back to relevant intake sections when the interview discussion connects to them (e.g., `#intake-goal`, `#intake-scope`).
+Only use `#action-N` tags that reference real action items created during the interview. Do not add untraceable categorical tags.
 
 ---
 

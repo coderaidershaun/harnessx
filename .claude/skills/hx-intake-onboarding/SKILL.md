@@ -97,9 +97,9 @@ Create actions in real time as they come up, not in a batch at the end. This let
 **Follow the `hx:intake-actions-writing` skill instructions you loaded in Step 3.** That skill is your authority on:
 
 - How to structure each field (title, category, origin, detail, tags, complexity, mode, notes)
-- The tagging protocol — section tags (`#goal`, `#scope`, etc.), type tags (`#research`, `#verification`, etc.), and blindspot tags (`#blindspot-context-loss`, etc.)
+- The tagging protocol — tags must be traceable to real documents or paragraphs. Do NOT invent categorical tags (section origin, action type, blindspot labels) — those are already captured by the `category`, `origin`, and `note-text` fields. Only use `--tags` for cross-referencing other actions (`#action-N`) or tags that exist in actual project markdown files.
 - The bidirectional linking workflow — after each action is created and you receive an ID back (e.g., `action-7`), tag the relevant paragraph in the intake markdown with `#action-7` (inline, end of the line, never on its own line)
-- Agent blindspot awareness — think about what could go wrong when an agent picks up this action with zero context. Create defensive actions for context loss, API drift, missing exploration, scope creep, test gaps, integration assumptions, and dependency compatibility.
+- Agent blindspot awareness — think about what could go wrong when an agent picks up this action with zero context. Capture blindspot reasoning in the `note-text` field.
 - Process awareness — what to create actions for vs. what later pipeline stages handle naturally
 
 Use `--note-author "hx-intake-onboarding"` for notes on actions you create during intake conversations.

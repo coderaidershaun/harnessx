@@ -30,12 +30,11 @@ Common tag patterns:
 
 | Pattern | Purpose | Example |
 |---|---|---|
-| `#action-N` | References action item N | `#action-3` |
-| `#intake-section` | References an intake section | `#intake-goal` |
-| `#agent-name` | Traces which agent produced content | `#intake-specialist` |
-| `#custom-label` | Any project-specific label | `#auth-concerns` |
+| `#action-N` | References action item N — creates a bidirectional link between a paragraph and an action | `#action-3` |
 
-Wikilinks follow `[[link-name]]` — use these when you want bidirectional linking between documents. In practice, tags are used far more often because they're lighter and don't imply a target document exists.
+**Only use tags that are traceable.** Every tag you write must reference something that actually exists in the project — an action item, another document, or a paragraph. Do not invent categorical tags (`#exploration`, `#blindspot-api-drift`, `#goal`) that don't exist as searchable content elsewhere. Categorical information belongs in dedicated fields (`category`, `origin`, `note-text`) on action items, not as tags in markdown files.
+
+Wikilinks follow `[[link-name]]` — use these when you want bidirectional linking between documents.
 
 ---
 
@@ -68,7 +67,7 @@ If a heading describes a topic that should be findable, tag the heading line dir
 
 **Correct:**
 ```markdown
-## Authentication concerns #action-7 #intake-scope
+## Authentication concerns #action-7
 ```
 
 When someone searches for `#action-7`, they get back "Authentication concerns" — immediately useful.
@@ -89,7 +88,7 @@ The ops team confirmed this accounts for ~30% of support tickets.
 When content relates to multiple things, stack the tags:
 
 ```markdown
-## API rate limiting strategy #action-5 #intake-scope #auth-concerns
+## API rate limiting strategy #action-5
 ```
 
 ### Rule 5: Every cross-reference goes both ways
@@ -97,9 +96,9 @@ When content relates to multiple things, stack the tags:
 When tagging intake documents with action item references, also tag the action item's source material with the intake section reference. This creates a two-way link:
 
 - **In `goal.md`**: The sentence that led to action-3 gets `#action-3`
-- **In action-3's detail or notes**: The origin gets `#intake-goal`
+- **In action-3**: The `origin` field (`intake:goal`) traces back to the source section
 
-Both directions need to be searchable for agents to trace provenance.
+The markdown tag (`#action-3`) is searchable via `harnessx context search-context`, and the action's `origin` field provides the reverse link.
 
 ---
 
@@ -122,15 +121,16 @@ This way, when an agent picks up action-2, it can search `#action-2` and immedia
 
 ### Tagging action item notes with source references
 
-When creating or updating action items, include the source tag in the `--detail` or `--note-text` so the action carries a pointer back:
+When creating or updating action items, the `origin` field (`intake:scope`, `intake:goal`, etc.) traces back to the source section. Use the action's dedicated fields for categorization — not inline tags in `--detail` or `--note-text`:
 
 ```bash
 harnessx intake-actions create \
   --title "Extend order engine to support market orders" \
+  --category "implementation" \
   --origin "intake:scope" \
-  --detail "User needs market order support added to existing Rust trading engine. See scope discussion for boundaries. #intake-scope" \
+  --detail "User needs market order support added to existing Rust trading engine. See scope discussion for boundaries." \
   --note-author "hx-intake-specialist" \
-  --note-text "Derived from scope discussion about order types. #intake-scope"
+  --note-text "Derived from scope discussion about order types."
 ```
 
 ### Tagging headings as section anchors
@@ -138,11 +138,11 @@ harnessx intake-actions create \
 Tag section headings in intake docs so agents can find the right section fast:
 
 ```markdown
-## Project goal #intake-goal
+## Project goal
 
 Build a real-time ops dashboard that replaces SSH-based monitoring. #action-1
 
-## Scope boundaries #intake-scope
+## Scope boundaries
 
 MVP covers the 5 core metrics only. #action-6
 Mobile support is explicitly out of scope for this phase.
@@ -171,4 +171,5 @@ The `search-context` result should return a meaningful paragraph, not just the t
 - **Don't put tags in frontmatter** — YAML frontmatter is for properties, not inline tags. Tags in frontmatter won't be found by paragraph-level context search.
 - **Don't cluster tags in a "tags section"** at the bottom of a file — this divorces them from their context. Every tag belongs next to the content it describes.
 - **Don't use tags as decoration** — only tag content that an agent or person will actually need to find later. Tagging everything is the same as tagging nothing.
+- **Don't invent untraceable categorical tags** — tags like `#exploration`, `#blindspot-api-drift`, `#goal`, or `#verification` are categories, not links to real content. They create noise. Use dedicated fields (`category`, `origin`, `note-text`) on action items for categorical information instead.
 - **Don't invent new tag prefixes** without checking the project's existing conventions — consistency matters for search.

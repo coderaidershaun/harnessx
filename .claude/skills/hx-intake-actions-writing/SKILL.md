@@ -34,7 +34,7 @@ Your actions make these failures structurally impossible — not by constraining
 
 If you haven't read the CLI reference for action creation in this session, read `docs/intake-actions.md` to confirm the exact flags available.
 
-Tags do not need a project prefix — all searches are scoped to the active project's folder automatically. Use simple tags like `#action-1`, `#intake-goal`, etc.
+Tags do not need a project prefix — all searches are scoped to the active project's folder automatically.
 
 ---
 
@@ -47,8 +47,7 @@ harnessx intake-actions create \
   --title "Explore existing orderbook module — map matching algorithm and event patterns" \
   --category "exploration" \
   --origin "intake:goal" \
-  --detail "User has an existing Rust orderbook they want to extend with market orders. Agent MUST map the current Order struct, matching algorithm, and event emission pattern before writing anything new. The user described the code as 'working but not clean' — don't assume standard patterns. #intake-goal" \
-  --tags "#goal,#exploration,#blindspot-missing-exploration" \
+  --detail "User has an existing Rust orderbook they want to extend with market orders. Agent MUST map the current Order struct, matching algorithm, and event emission pattern before writing anything new. The user described the code as 'working but not clean' — don't assume standard patterns." \
   --complexity medium \
   --mode plan \
   --note-author "hx-intake-actions" \
@@ -62,8 +61,8 @@ harnessx intake-actions create \
 | **title** | Verb-first, specific. "Verify current solana-client API for RPC calls" not "Solana stuff" | Agents scan titles first to decide relevance. Vague titles get skipped or misunderstood. |
 | **category** | One of: `research`, `verification`, `implementation`, `testing`, `exploration`, `extraction`, `integration`, `documentation` | Groups related work so planning stages can sequence correctly. |
 | **origin** | `intake:<section>` — e.g., `intake:goal`, `intake:scope`, `intake:resources` | Creates traceability back to the conversation that surfaced this action. |
-| **detail** | The *why*, the *what*, and the *watch-out-for*. Include inline tags like `#intake-goal` for context search. Make it self-contained — a fresh agent with no conversation history reads only this field. | This is the action's primary payload. If the detail is vague, the action is useless. |
-| **tags** | Section tag + type tag + blindspot tag when applicable. Comma-separated. e.g., `#goal,#verification,#blindspot-api-drift` | Enables filtering, cross-referencing, and gives agents a quick read on why this action exists. |
+| **detail** | The *why*, the *what*, and the *watch-out-for*. Make it self-contained — a fresh agent with no conversation history reads only this field. | This is the action's primary payload. If the detail is vague, the action is useless. |
+| **tags** | Only tags that are traceable to real documents or paragraphs in the project folder. See the tagging protocol below. If no traceable tags exist, omit this field entirely. | Tags exist for bidirectional linking — if a tag can't be found in an actual file via `harnessx context search-context`, it's noise. |
 | **input-docs** | URLs, file paths, or doc references the agent will need | Saves agents from hunting for resources. Reduces the chance they'll use wrong/outdated sources. |
 | **complexity** | `super-low`, `low`, `medium`, `high`, `super-high`, `uncertain` | Helps planning stages estimate effort and sequence work. Use `uncertain` honestly — it's better than a wrong guess. |
 | **mode** | Almost always `plan`. Use `execute` only when the path is crystal clear and no exploration is needed. | Starting at `plan` forces agents to think before they code. This single field prevents more bugs than any amount of testing. |
@@ -74,24 +73,29 @@ harnessx intake-actions create \
 
 ## The tagging protocol
 
-After creating an action, you create bidirectional links between the action and its source material. This is a two-step process.
+Tags exist for one purpose: **bidirectional traceability between real artifacts**. A tag that can't be found in an actual project file via `harnessx context search-context` is noise — it duplicates information already captured by the `category`, `origin`, and `note-text` fields.
 
-### Step 1: Tags inside the action item
+### What NOT to put in `--tags`
 
-When creating the action, embed tags in two fields:
+Do not invent categorical tags. These are all redundant:
+- Section origin tags (`#goal`, `#scope`, `#uat`) — already captured by the `origin` field
+- Action type tags (`#exploration`, `#verification`, `#research`) — already captured by the `category` field
+- Blindspot tags (`#blindspot-context-loss`, `#blindspot-api-drift`) — already captured by the `note-text` field
 
-**`--tags` field** (for filtering and categorization):
-- Section origin: `#goal`, `#scope`, `#user-knowledge`, `#resources`, `#success-measures`, `#uat`
-- Action type: `#research`, `#verification`, `#testing`, `#exploration`, `#implementation`, `#integration`, `#documentation`, `#extraction`
-- Blindspot tag (when the action addresses a specific agent failure mode): `#blindspot-context-loss`, `#blindspot-api-drift`, `#blindspot-missing-exploration`, `#blindspot-scope-creep`, `#blindspot-test-gap`, `#blindspot-integration-assumptions`, `#blindspot-dependency-compat`
+None of these exist in any project document. Searching for `#blindspot-api-drift` only finds the action item itself — circular and useless.
 
-**`--detail` field** (for context search):
-- Include `#intake-<section>` inline so agents can search for all actions related to a section
-- Example: `"...needs WebSocket reconnection. #intake-scope"`
+### What DOES go in `--tags`
 
-### Step 2: Tag the source markdown
+Only tags that reference real, searchable content in the project folder:
 
-After the CLI returns the action ID (e.g., `"id": "action-7"`), add `#action-7` to the relevant paragraph in the source intake markdown file.
+- **`#action-N`** — cross-references another action item. Use when two actions are related and an agent working on one should know about the other. Both are findable via `harnessx context search-context`.
+- **Any tag that exists in a project markdown file** — if you wrote `#auth-concerns` into a paragraph in `scope.md`, then using `#auth-concerns` in a related action's `--tags` creates a real bidirectional link. But only do this if the tag actually exists in a file.
+
+If no traceable tags apply, **omit the `--tags` field entirely**. An action with no tags but a good `title`, `category`, `origin`, and `detail` is far more useful than one with untraceable tags.
+
+### Tag the source markdown
+
+After the CLI returns the action ID (e.g., `"id": "action-7"`), add `#action-7` to the relevant paragraph in the source intake markdown file. This is the primary traceability mechanism — it creates a searchable link from the document to the action.
 
 The tag goes at the **end of the line** that carries the most meaning — never on its own line. This follows the `hx:tag-context-writing` convention: `harnessx context search-context` returns paragraphs, so tags must be embedded in content to return useful results.
 
@@ -101,7 +105,7 @@ The tag goes at the **end of the line** that carries the most meaning — never 
 The user needs real-time PnL tracking across multiple DEX positions. #action-7
 ```
 
-Now an agent searching `#action-7` gets the full context paragraph, and the action's detail contains `#intake-goal` pointing back.
+Now an agent searching `#action-7` gets the full context paragraph, and the action's `origin` field (`intake:goal`) points back to the section.
 
 ### When the markdown file doesn't exist yet
 
@@ -242,7 +246,7 @@ When new information changes an existing action's scope, complexity, or priority
 harnessx intake-actions update action-7 \
   --complexity high \
   --note-author "hx-intake-actions" \
-  --note-text "Complexity upgraded: user revealed the auth system uses non-standard token rotation. See scope discussion. #intake-scope"
+  --note-text "Complexity upgraded: user revealed the auth system uses non-standard token rotation. See scope discussion."
 ```
 
 Notes are appended (not replaced), so each update adds context without losing history.
@@ -266,12 +270,11 @@ harnessx intake-actions create \
   --title "Explore existing swap tracking codebase — map architecture before extending" \
   --category "exploration" \
   --origin "intake:goal" \
-  --detail "User has a Rust codebase for swap tracking written ~6 months ago. They said it is messy and they barely remember how it works. An agent MUST explore and document the architecture before planning extensions. Map: data models, async task structure, Solana RPC integration, error handling patterns. Do not assume standard patterns — map what actually exists. #intake-goal" \
-  --tags "#goal,#exploration,#blindspot-missing-exploration" \
+  --detail "User has a Rust codebase for swap tracking written ~6 months ago. They said it is messy and they barely remember how it works. An agent MUST explore and document the architecture before planning extensions. Map: data models, async task structure, Solana RPC integration, error handling patterns. Do not assume standard patterns — map what actually exists." \
   --complexity medium \
   --mode plan \
   --note-author "hx-intake-actions" \
-  --note-text "Critical: user said 'barely remember' and 'it's a mess'. Agents must explore thoroughly before proposing changes. Assuming clean architecture here will lead to broken integrations."
+  --note-text "Blindspot: user said 'barely remember' and 'it's a mess'. Agents must explore thoroughly before proposing changes. Assuming clean architecture here will lead to broken integrations."
 ```
 
 Returns `"id": "action-1"`.
@@ -283,8 +286,7 @@ harnessx intake-actions create \
   --title "Verify current tokio and solana-client API — check for breaking changes since codebase was written" \
   --category "verification" \
   --origin "intake:goal" \
-  --detail "Project uses tokio for async and solana-client for RPC. Codebase is 6 months old — dependency versions may be outdated. Agent must check current API surfaces before writing new async code or RPC calls. Specifically verify: tokio channel API (bounded/unbounded changed), solana RpcClient method signatures, and any deprecated features in use. #intake-goal" \
-  --tags "#goal,#verification,#blindspot-api-drift" \
+  --detail "Project uses tokio for async and solana-client for RPC. Codebase is 6 months old — dependency versions may be outdated. Agent must check current API surfaces before writing new async code or RPC calls. Specifically verify: tokio channel API (bounded/unbounded changed), solana RpcClient method signatures, and any deprecated features in use." \
   --input-docs "https://docs.rs/tokio,https://docs.rs/solana-client" \
   --complexity low \
   --mode plan \
@@ -301,8 +303,7 @@ harnessx intake-actions create \
   --title "Document real-time PnL requirements — define latency, accuracy, and price source expectations" \
   --category "documentation" \
   --origin "intake:goal" \
-  --detail "User wants 'real-time' PnL tracking for DEX trades. This is ambiguous and must be pinned down: does real-time mean sub-second, per-block, or per-transaction? What is the price source — on-chain oracle, off-chain API, or derived from swap data? What constitutes a 'position'? These details will emerge during scope but must be captured explicitly so implementing agents don't guess. #intake-goal" \
-  --tags "#goal,#documentation,#blindspot-context-loss" \
+  --detail "User wants 'real-time' PnL tracking for DEX trades. This is ambiguous and must be pinned down: does real-time mean sub-second, per-block, or per-transaction? What is the price source — on-chain oracle, off-chain API, or derived from swap data? What constitutes a 'position'? These details will emerge during scope but must be captured explicitly so implementing agents don't guess." \
   --complexity low \
   --mode plan \
   --note-author "hx-intake-actions" \
@@ -325,17 +326,21 @@ There is an existing Rust codebase for swap tracking that needs thorough explora
 The codebase uses tokio for async and communicates with a Solana RPC node, both of which need API verification given the age of the dependencies. #action-2
 ```
 
-Now any agent can search `#action-1` and immediately find the context paragraph, and action-1's detail contains `#intake-goal` pointing back.
+Now any agent can search `#action-1` and immediately find the context paragraph, and action-1's `origin` field (`intake:goal`) traces back to the source section.
 
----
+### Cross-referencing related actions
 
-## Section-to-tag quick reference
+When two actions are related (e.g., action-5 depends on the results of action-2), use `--tags "#action-2"` on action-5. This creates a traceable link — searching for `#action-2` returns both the source markdown paragraph AND the related action item.
 
-| Intake section | `--tags` value | Inline tag for `--detail` |
-|---|---|---|
-| goal | `#goal` | `#intake-goal` |
-| scope | `#scope` | `#intake-scope` |
-| user_knowledge | `#user-knowledge` | `#intake-user-knowledge` |
-| resources | `#resources` | `#intake-resources` |
-| success_measures | `#success-measures` | `#intake-success-measures` |
-| user_acceptance_testing | `#uat` | `#intake-uat` |
+```bash
+harnessx intake-actions create \
+  --title "Design market order matching — depends on orderbook exploration results" \
+  --category "implementation" \
+  --origin "intake:scope" \
+  --detail "Cannot design market order matching until the existing orderbook architecture is mapped. Depends on the exploration action that maps the current matching algorithm." \
+  --tags "#action-1" \
+  --complexity medium \
+  --mode plan \
+  --note-author "hx-intake-actions" \
+  --note-text "Blocked by action-1 (orderbook exploration). Do not start until action-1 is complete."
+```
