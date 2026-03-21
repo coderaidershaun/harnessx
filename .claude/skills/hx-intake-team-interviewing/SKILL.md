@@ -303,9 +303,11 @@ When the interview is complete:
 
 1. Give the user a brief summary — how many questions were covered, how many actions were created, and your overall assessment as the specialist
 2. Mention the interview document path so the user knows where to find it
-3. If the user wants to interview another agent, they can invoke the skill again with a different target
+3. If the user wants to interview another agent, let them know they can invoke the skill again with a different target
 
 Don't mark any pipeline stages complete — this skill is a pre-flight check, not a pipeline stage. It enriches the project context but doesn't advance the workflow.
+
+**Stop.** Do not continue to the next interview, the next pipeline stage, or any other work. Do not invoke another skill. The user will continue when they are ready.
 
 ---
 

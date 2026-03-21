@@ -305,7 +305,8 @@ Continue this cycle until `harnessx intake-team next` returns no remaining secti
    harnessx progress complete intake_team
    ```
 2. Tell the user the full intake team process is complete — team has been defined, built, and interviewed.
-3. **Stop.** Confirm what the next pipeline stage will be and let the user know they can continue via `/hx:operator`.
+3. Confirm what the next pipeline stage will be and let the user know they can continue via `/hx:operator`.
+4. **Stop.** Do not continue to the next pipeline stage. Do not invoke another skill. Do not start new work. The user will re-enter via `/hx:operator` when they are ready.
 
 ---
 
