@@ -1,8 +1,9 @@
 //! JSON response envelope and process exit helpers.
 
 use serde::Serialize;
-use std::fmt;
 use std::process;
+
+use crate::errors::ParserError;
 
 /// JSON envelope wrapping every CLI response; `success` is set by the constructor used.
 #[derive(Serialize)]
@@ -31,17 +32,8 @@ impl<T: Serialize> Response<T> {
         }
     }
 
-    /// Builds a response from a `Result`, converting the error via `Display`.
-    pub fn from_result<E: fmt::Display>(result: Result<T, E>) -> Self {
-        match result {
-            Ok(data) => Self::ok(data),
-            Err(e) => Self::err(e.to_string()),
-        }
-    }
-
-    /// Prints pretty JSON to stdout and exits with 0 (success) or 1 (error).
-    pub fn print_and_exit(self) -> ! {
-        let exit_code = i32::from(!self.success);
+    /// Prints pretty JSON to stdout and exits with the given code.
+    pub fn print_and_exit(self, exit_code: i32) -> ! {
         match serde_json::to_string_pretty(&self) {
             Ok(json) => println!("{json}"),
             Err(serialize_err) => eprintln!("failed to serialize response: {serialize_err}"),
@@ -51,6 +43,16 @@ impl<T: Serialize> Response<T> {
 }
 
 /// Converts a `Result` into a `Response`, prints JSON, and exits.
-pub fn exit_with<T: Serialize>(result: Result<T, impl fmt::Display>) -> ! {
-    Response::from_result(result).print_and_exit()
+///
+/// Expected-state errors (like "no active project") exit with code 0
+/// so the calling skill doesn't see a shell error for normal conditions.
+/// Genuine failures exit with code 1.
+pub fn exit_with<T: Serialize>(result: Result<T, ParserError>) -> ! {
+    match result {
+        Ok(data) => Response::ok(data).print_and_exit(0),
+        Err(e) => {
+            let exit_code = if e.is_expected_state() { 0 } else { 1 };
+            Response::<T>::err(e.to_string()).print_and_exit(exit_code)
+        }
+    }
 }

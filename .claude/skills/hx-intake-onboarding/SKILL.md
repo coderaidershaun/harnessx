@@ -47,6 +47,12 @@ This returns JSON like:
 
 If `success` is `false` or there's no next section, tell the user all intake sections are complete.
 
+Mark the section as in-progress so the status reflects reality:
+
+```bash
+harnessx intake-onboarding update <section> in_progress
+```
+
 ## Step 2: Load required skills
 
 Check the `skills` array in the response. If it contains skill names, read each skill's instructions from `.claude/skills/<skill-name>/SKILL.md` (where `<skill-name>` is the skill identifier — e.g., `hx:foo` lives at `.claude/skills/hx-foo/SKILL.md`). Follow those instructions alongside these ones.
@@ -118,9 +124,10 @@ Give the user a brief wrap-up — what ground was covered and roughly how many a
 
 After completing a section, immediately run `harnessx intake-onboarding next` again to get the next incomplete section. If there is one:
 
-1. Load any skills listed in the new response's `skills` array (same as Step 2).
-2. Conduct the conversation for this new section (Steps 4-7).
-3. Mark it complete and loop back here.
+1. Mark it as in-progress: `harnessx intake-onboarding update <section> in_progress`
+2. Load any skills listed in the new response's `skills` array (same as Step 2).
+3. Conduct the conversation for this new section (Steps 4-7).
+4. Mark it complete and loop back here.
 
 Continue this cycle until `harnessx intake-onboarding next` returns no remaining sections. When that happens:
 

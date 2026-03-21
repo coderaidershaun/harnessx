@@ -1,4 +1,4 @@
-//! Intake onboarding subcommands: init, status, next, complete, list.
+//! Intake onboarding subcommands: init, status, next, complete, update, list.
 
 use clap::Subcommand;
 
@@ -20,6 +20,8 @@ pub enum IntakeOnboardingCommand {
     Next,
     /// Mark an intake onboarding section as complete.
     Complete { section: String },
+    /// Update a section's status (`not_started`, `in_progress`, `completed`, `rework`).
+    Update { section: String, status: String },
 }
 
 impl IntakeOnboardingCommand {
@@ -30,6 +32,7 @@ impl IntakeOnboardingCommand {
             Self::List => exit_with(list_all_items()),
             Self::Next => exit_with(next_incomplete_section()),
             Self::Complete { section } => exit_with(complete_section(&section)),
+            Self::Update { section, status } => exit_with(update_section(&section, &status)),
         }
     }
 }
@@ -71,6 +74,28 @@ fn next_incomplete_section() -> ParserResult<serde_json::Value> {
         section: name.to_string(),
         skills: item.skills.clone(),
     })?)
+}
+
+fn update_section(section: &str, status_str: &str) -> ParserResult<IntakeOnboardingProgress> {
+    if !INTAKE_ONBOARDING_SECTIONS.contains(&section) {
+        return Err(ParserError::IntakeOnboardingNotFound(format!(
+            "unknown section '{section}'"
+        )));
+    }
+
+    let new_status: Status = status_str
+        .parse()
+        .map_err(ParserError::IntakeOnboardingNotFound)?;
+
+    let mut progress = IntakeOnboardingProgress::for_active_project()?;
+
+    let item = progress
+        .item_mut(section)
+        .expect("section was validated against INTAKE_ONBOARDING_SECTIONS");
+    item.status = new_status;
+
+    progress.save_for_active_project()?;
+    Ok(progress)
 }
 
 fn complete_section(section: &str) -> ParserResult<IntakeOnboardingProgress> {

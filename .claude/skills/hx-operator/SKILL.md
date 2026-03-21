@@ -43,7 +43,43 @@ Stop here — the intake onboarding skill takes over.
 
 ## If active project exists (`"success": true`)
 
-The `data` field contains the project. Now find out what's next:
+The `data` field contains the project object. Before checking pipeline progress, inspect the project for missing metadata.
+
+### Check for incomplete fields
+
+Look at these fields in the project `data`: `title`, `subtitle`, `description`, `takeaway_line`, `directory`, `user_name`. Any field that is an empty string `""` is incomplete.
+
+If **all fields are populated** (non-empty), skip ahead to "Check pipeline progress" below.
+
+If **any fields are empty**, tell the user which fields are missing and work through them conversationally — the same way the intake goal skill would. The goal is to not let a half-filled project slip through into the pipeline.
+
+For each missing field, ask the user for the value. Use these as guidance:
+
+| Field | What to ask |
+|---|---|
+| `title` | "What should we call this project? A short name, 2-5 words." |
+| `subtitle` | "Give me a one-line elevator pitch — what does this project do?" |
+| `description` | "Can you describe the project in 2-4 sentences? What it does, who it's for, and why it exists." |
+| `takeaway_line` | "If someone reads one sentence about this project, what should they remember?" |
+| `directory` | "Where does the project code live on disk? Give me an absolute path." |
+| `user_name` | "What's your name?" |
+
+You can gather multiple fields in a single conversational turn if natural — don't force one question per message. Once you have the values, update each field:
+
+```bash
+harnessx project update-title "Project Title"
+harnessx project update-subtitle "Short elevator pitch"
+harnessx project update-description "Full description."
+harnessx project update-takeaway "The one thing to remember."
+harnessx project update-directory "/absolute/path"
+harnessx project update-username "their-name"
+```
+
+Only run the update commands for fields that were actually missing. Verify with `harnessx project active` and show the user the completed project card before continuing.
+
+### Check pipeline progress
+
+Now find out what's next:
 
 ```bash
 harnessx progress next

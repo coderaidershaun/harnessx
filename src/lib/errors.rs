@@ -54,4 +54,13 @@ pub enum ParserError {
     InvalidEnumValue(String),
 }
 
+impl ParserError {
+    /// Returns `true` for errors that represent expected empty state rather
+    /// than genuine failures (e.g. "no active project" is a normal condition
+    /// that the calling skill uses to decide what to do next).
+    pub fn is_expected_state(&self) -> bool {
+        matches!(self, Self::NoActiveProject)
+    }
+}
+
 pub type ParserResult<T> = Result<T, ParserError>;
