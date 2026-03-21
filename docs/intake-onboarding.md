@@ -1,6 +1,6 @@
 # Intake Onboarding Commands
 
-Tracks progress through intake onboarding sections for the active project. Stored at `harnessx/<id>/intake_progress.json`.
+Tracks progress through intake onboarding sections for the active project. Stored at `harnessx/<id>/intake/intake_onboarding.json`.
 
 Each section has `status` (a Status value) and `skills` (string array).
 

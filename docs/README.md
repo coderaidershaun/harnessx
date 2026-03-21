@@ -36,7 +36,7 @@ The operator skill runs `harnessx project active` to check if a project exists.
    harnessx/<id>/
    ├── progress.json              # 9 pipeline stages (all not_started except user_input_required = completed)
    └── intake/
-       ├── intake_progress.json   # 6 onboarding sections
+       ├── intake_onboarding.json # 6 onboarding sections
        ├── intake_completion.json # 3 completion sections
        ├── intake_team.json       # 3 team sections
        └── intake_actions.json    # Empty action items list

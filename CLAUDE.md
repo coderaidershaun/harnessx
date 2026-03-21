@@ -73,7 +73,7 @@ harnessx/
 ├── <project-id>/
 │   ├── progress.json                      # Pipeline stage tracking
 │   └── intake/
-│       ├── intake_progress.json           # Intake onboarding tracking
+│       ├── intake_onboarding.json          # Intake onboarding tracking
 │       ├── intake_completion.json         # Intake completion tracking
 │       ├── intake_actions.json            # Action items
 │       └── intake_team.json              # Team intake tracking

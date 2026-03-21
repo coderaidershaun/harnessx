@@ -61,7 +61,7 @@ harnessx project activate other-project
 
 ## `project remove <id>`
 
-Removes a project from the registry and deletes its `harnessx/<id>/` metadata folder (intake_progress.json, progress.json, etc.). Does **not** touch the project's own working directory.
+Removes a project from the registry and deletes its `harnessx/<id>/` metadata folder (intake_onboarding.json, progress.json, etc.). Does **not** touch the project's own working directory.
 
 ```bash
 harnessx project remove my-project

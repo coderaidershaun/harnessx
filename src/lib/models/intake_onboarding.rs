@@ -9,7 +9,7 @@ use crate::errors::{ParserError, ParserResult};
 use crate::models::project::ProjectRegistry;
 use crate::models::status::Status;
 
-const INTAKE_ONBOARDING_FILE: &str = "intake_progress.json";
+const INTAKE_ONBOARDING_FILE: &str = "intake_onboarding.json";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntakeItem {
