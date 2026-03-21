@@ -174,7 +174,7 @@ The `search-context` result should return a meaningful paragraph, not just the t
 
 ## What not to do
 
-- **Don't put tags in frontmatter** — YAML frontmatter is for properties (`obsidian property:set`), not inline tags. Tags in frontmatter won't be found by paragraph-level context search.
+- **Don't put tags in frontmatter** — YAML frontmatter is for properties, not inline tags. Tags in frontmatter won't be found by paragraph-level context search.
 - **Don't cluster tags in a "tags section"** at the bottom of a file — this divorces them from their context. Every tag belongs next to the content it describes.
 - **Don't use tags as decoration** — only tag content that an agent or person will actually need to find later. Tagging everything is the same as tagging nothing.
 - **Don't invent new tag prefixes** without checking the project's existing conventions — consistency matters for search.

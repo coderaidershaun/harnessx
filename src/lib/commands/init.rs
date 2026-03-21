@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::process::{self, Command};
+use std::process;
 
 use crate::templates::{self, Agent};
 
@@ -17,10 +17,6 @@ pub struct InitArgs {
     /// Overwrite existing files without prompting.
     #[arg(long)]
     force: bool,
-
-    /// Skip Obsidian vault scaffolding.
-    #[arg(long)]
-    no_obsidian: bool,
 }
 
 /// How to handle files that already exist on disk.
@@ -41,13 +37,7 @@ impl InitArgs {
     fn execute(self) -> io::Result<()> {
         let agent = self.resolve_agent()?;
 
-        let include_obsidian = if self.no_obsidian {
-            false
-        } else {
-            self.resolve_obsidian()?
-        };
-
-        let manifest = templates::manifest(agent, include_obsidian);
+        let manifest = templates::manifest(agent);
 
         let conflicts: Vec<&str> = manifest
             .iter()
@@ -151,59 +141,6 @@ impl InitArgs {
                 io::ErrorKind::InvalidInput,
                 format!("unknown selection '{other}' — expected 1 or 2"),
             )),
-        }
-    }
-
-    /// Decide whether to include `.obsidian/` in the scaffold.
-    ///
-    /// 1. If `.obsidian/` already exists on disk → skip (already set up).
-    /// 2. If `obsidian` CLI is on PATH → include it.
-    /// 3. Otherwise → prompt the user.
-    fn resolve_obsidian(&self) -> io::Result<bool> {
-        if Path::new(".obsidian").is_dir() {
-            println!("  .obsidian/ already exists, skipping vault scaffolding.");
-            return Ok(false);
-        }
-
-        // Reject the macOS desktop app (lives inside a .app bundle).
-        let has_cli = Command::new("which")
-            .arg("obsidian")
-            .output()
-            .map(|out| {
-                out.status.success()
-                    && !String::from_utf8_lossy(&out.stdout)
-                        .trim()
-                        .contains(".app/")
-            })
-            .unwrap_or(false);
-
-        if has_cli {
-            println!("  obsidian-cli detected — including .obsidian/ vault config.");
-            return Ok(true);
-        }
-
-        println!("obsidian-cli was not detected on your PATH.");
-        println!();
-        println!("  [y] I want Obsidian CLI support and will install it");
-        println!("  [n] Continue without Obsidian (may lead to higher token usage)");
-        println!();
-        print!("Include .obsidian/ config? [y/n]: ");
-        io::stdout().flush()?;
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        match input.trim() {
-            "y" | "yes" => {
-                println!();
-                println!("  Including .obsidian/ config.");
-                println!("  Install obsidian-cli: https://github.com/obsidianmd/obsidian-cli");
-                Ok(true)
-            }
-            _ => {
-                println!("  Skipping .obsidian/ vault scaffolding.");
-                Ok(false)
-            }
         }
     }
 

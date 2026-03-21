@@ -1,14 +1,11 @@
 //! `harnessx context` — search for tags and wikilinks across markdown files.
 //!
 //! Automatically scopes searches to `harnessx/<active-project-id>/`.
-//! Checks for the Obsidian CLI on each invocation. If available, delegates to
-//! `obsidian search` / `obsidian search:context`. Otherwise, falls back to a
-//! built-in recursive search over `.md` files.
+//! Uses a built-in recursive search over `.md` and `.json` files.
 
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::process::Command;
 
 use clap::Subcommand;
 use serde::Serialize;
@@ -74,105 +71,14 @@ fn active_project_path() -> ParserResult<String> {
     Ok(format!("harnessx/{id}"))
 }
 
-/// Check whether the Obsidian **CLI** (`obsidian-cli`) is on PATH.
-///
-/// On macOS the Obsidian *desktop app* installs a binary at
-/// `/Applications/Obsidian.app/…/obsidian` which `which` will find, but
-/// that binary is not the CLI tool and will hang when called with search
-/// arguments.  We filter it out by rejecting paths inside `.app` bundles.
-fn obsidian_available() -> bool {
-    let output = Command::new("which")
-        .arg("obsidian")
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let path = String::from_utf8_lossy(&out.stdout);
-            !path.trim().contains(".app/")
-        }
-        _ => false,
-    }
-}
-
 fn run_search(query: &str, with_context: bool) -> ParserResult<ContextResponse> {
     let search_path = active_project_path()?;
-
-    if obsidian_available() {
-        run_obsidian_search(query, &search_path, with_context)
-    } else {
-        run_fallback_search(query, &search_path, with_context)
-    }
+    run_builtin_search(query, &search_path, with_context)
 }
 
-// ── Obsidian backend ──
+// ── Built-in search backend ──
 
-/// Translate a user-facing query into the Obsidian CLI query syntax.
-///
-/// - `#tag`       → `tag:#tag` (search) or `section:(#tag)` (search:context)
-/// - `[[link]]`   → `/\[\[link\]\]/` (regex match)
-/// - plain text   → passed through unchanged
-fn build_obsidian_query(query: &str, with_context: bool) -> String {
-    if let Some(inner) = query
-        .strip_prefix("[[")
-        .and_then(|s| s.strip_suffix("]]"))
-    {
-        format!("/\\[\\[{inner}\\]\\]/")
-    } else if query.starts_with('#') {
-        if with_context {
-            format!("section:({query})")
-        } else {
-            format!("tag:{query}")
-        }
-    } else {
-        query.to_owned()
-    }
-}
-
-fn run_obsidian_search(
-    query: &str,
-    search_path: &str,
-    with_context: bool,
-) -> ParserResult<ContextResponse> {
-    let obsidian_query = build_obsidian_query(query, with_context);
-    let subcommand = if with_context {
-        "search:context"
-    } else {
-        "search"
-    };
-
-    let mut cmd = Command::new("obsidian");
-    cmd.arg(subcommand);
-    cmd.arg(format!("path={search_path}"));
-    cmd.arg(format!("query={obsidian_query}"));
-    cmd.arg("format=json");
-
-    let output = cmd.output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(ParserError::Io(io::Error::new(
-            io::ErrorKind::Other,
-            format!("obsidian CLI failed: {}", stderr.trim()),
-        )));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    let results: serde_json::Value = serde_json::from_str(&stdout)
-        .unwrap_or_else(|_| serde_json::Value::String(stdout.trim().to_string()));
-
-    Ok(ContextResponse {
-        backend: "obsidian",
-        query: query.to_string(),
-        path: search_path.to_string(),
-        results,
-        json_results: Vec::new(),
-    })
-}
-
-// ── Fallback backend (no Obsidian CLI) ──
-
-fn run_fallback_search(
+fn run_builtin_search(
     query: &str,
     search_path: &str,
     with_context: bool,
@@ -195,7 +101,7 @@ fn run_fallback_search(
     let results = serde_json::to_value(&matches)?;
 
     Ok(ContextResponse {
-        backend: "fallback",
+        backend: "builtin",
         query: query.to_string(),
         path: search_path.to_string(),
         results,
@@ -340,84 +246,6 @@ fn collect_json_matches(
 mod tests {
     use super::*;
     use std::path::PathBuf;
-
-    // ── build_obsidian_query ──
-
-    #[test]
-    fn tag_search_uses_tag_prefix() {
-        assert_eq!(build_obsidian_query("#my-tag", false), "tag:#my-tag");
-    }
-
-    #[test]
-    fn tag_context_uses_section_wrapper() {
-        assert_eq!(
-            build_obsidian_query("#my-tag", true),
-            "section:(#my-tag)"
-        );
-    }
-
-    #[test]
-    fn wikilink_becomes_regex() {
-        assert_eq!(
-            build_obsidian_query("[[some_link]]", false),
-            "/\\[\\[some_link\\]\\]/"
-        );
-    }
-
-    #[test]
-    fn wikilink_context_also_becomes_regex() {
-        assert_eq!(
-            build_obsidian_query("[[link]]", true),
-            "/\\[\\[link\\]\\]/"
-        );
-    }
-
-    #[test]
-    fn plain_text_passes_through() {
-        assert_eq!(build_obsidian_query("hello world", false), "hello world");
-        assert_eq!(build_obsidian_query("hello world", true), "hello world");
-    }
-
-    #[test]
-    fn partial_brackets_are_plain_text() {
-        assert_eq!(build_obsidian_query("[[no-close", false), "[[no-close");
-        assert_eq!(build_obsidian_query("no-open]]", false), "no-open]]");
-    }
-
-    #[test]
-    fn tag_with_colons_preserves_namespacing() {
-        assert_eq!(
-            build_obsidian_query("#project::scope", false),
-            "tag:#project::scope"
-        );
-        assert_eq!(
-            build_obsidian_query("#project::scope", true),
-            "section:(#project::scope)"
-        );
-    }
-
-    #[test]
-    fn wikilink_with_colons_preserves_namespacing() {
-        assert_eq!(
-            build_obsidian_query("[[project::some_link]]", false),
-            "/\\[\\[project::some_link\\]\\]/"
-        );
-    }
-
-    #[test]
-    fn empty_wikilink_becomes_regex() {
-        assert_eq!(build_obsidian_query("[[]]", false), "/\\[\\[\\]\\]/");
-    }
-
-    #[test]
-    fn hash_only_treated_as_tag() {
-        assert_eq!(build_obsidian_query("#", false), "tag:#");
-    }
-
-    #[test]
-    fn empty_string_passes_through() {
-        assert_eq!(build_obsidian_query("", false), "");
-    }
 
     // ── extract_matching_paragraphs ──
 
@@ -609,16 +437,16 @@ mod tests {
         cleanup(&dir);
     }
 
-    // ── run_fallback_search ──
+    // ── run_builtin_search ──
 
     #[test]
-    fn fallback_search_returns_files() {
+    fn builtin_search_returns_files() {
         let dir = test_dir("fallback_files");
         fs::write(dir.join("note.md"), "has #find-me tag").unwrap();
 
-        let resp = run_fallback_search("#find-me", dir.to_str().unwrap(), false).unwrap();
+        let resp = run_builtin_search("#find-me", dir.to_str().unwrap(), false).unwrap();
 
-        assert_eq!(resp.backend, "fallback");
+        assert_eq!(resp.backend, "builtin");
         assert_eq!(resp.query, "#find-me");
         let arr = resp.results.as_array().unwrap();
         assert_eq!(arr.len(), 1);
@@ -629,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn fallback_search_context_returns_paragraphs() {
+    fn builtin_search_context_returns_paragraphs() {
         let dir = test_dir("fallback_context");
         fs::write(
             dir.join("doc.md"),
@@ -637,7 +465,7 @@ mod tests {
         )
         .unwrap();
 
-        let resp = run_fallback_search("[[link]]", dir.to_str().unwrap(), true).unwrap();
+        let resp = run_builtin_search("[[link]]", dir.to_str().unwrap(), true).unwrap();
 
         let arr = resp.results.as_array().unwrap();
         assert_eq!(arr.len(), 1);
@@ -650,17 +478,17 @@ mod tests {
     }
 
     #[test]
-    fn fallback_search_nonexistent_dir_errors() {
-        let result = run_fallback_search("#tag", "/tmp/harnessx_does_not_exist_xyz", false);
+    fn builtin_search_nonexistent_dir_errors() {
+        let result = run_builtin_search("#tag", "/tmp/harnessx_does_not_exist_xyz", false);
         assert!(result.is_err());
     }
 
     #[test]
-    fn fallback_search_path_included_in_response() {
+    fn builtin_search_path_included_in_response() {
         let dir = test_dir("fallback_path_field");
         fs::write(dir.join("a.md"), "content").unwrap();
 
-        let resp = run_fallback_search("content", dir.to_str().unwrap(), false).unwrap();
+        let resp = run_builtin_search("content", dir.to_str().unwrap(), false).unwrap();
         assert_eq!(resp.path, dir.to_str().unwrap());
 
         cleanup(&dir);
@@ -806,12 +634,12 @@ mod tests {
     }
 
     #[test]
-    fn fallback_search_includes_json_results() {
+    fn builtin_search_includes_json_results() {
         let dir = test_dir("fallback_json_integration");
         fs::write(dir.join("note.md"), "has #target tag").unwrap();
         fs::write(dir.join("data.json"), r##"{"tag": "#target"}"##).unwrap();
 
-        let resp = run_fallback_search("#target", dir.to_str().unwrap(), false).unwrap();
+        let resp = run_builtin_search("#target", dir.to_str().unwrap(), false).unwrap();
 
         let md_arr = resp.results.as_array().unwrap();
         assert_eq!(md_arr.len(), 1);

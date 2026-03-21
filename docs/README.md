@@ -195,7 +195,7 @@ Each action item has:
 | `category` | Area: `backend`, `frontend`, `infrastructure`, `design`, `research`, etc. |
 | `origin` | Traceability: `intake:goal`, `intake:scope`, etc. |
 | `detail` | The *why*, not just the *what* — downstream skills won't have conversation context |
-| `tags` | Obsidian-format tags for searchability |
+| `tags` | Inline tags for searchability (e.g. `#project-id::action-1`) |
 | `input_docs` | URLs or paths to relevant resources |
 | `complexity` | `super-low`, `low`, `medium`, `high`, `super-high`, or `uncertain` |
 | `mode` | Current phase: `plan`, `execute`, `review`, or `rework` |
@@ -440,7 +440,7 @@ harnessx context search --query "[[wikilink]]"      # Find files matching a wiki
 harnessx context search-context --query "#tag"      # Get the paragraph containing a match
 ```
 
-Uses the Obsidian CLI as backend if available, otherwise falls back to built-in recursive search scoped to `harnessx/<project-id>/`.
+Uses a built-in recursive search scoped to `harnessx/<project-id>/`.
 
 ### Tagging
 
@@ -486,7 +486,6 @@ Running `harnessx init` scaffolds the full system:
 - `.claude/skills/` with 20+ skill definitions
 - `.claude/hooks/` with session lifecycle scripts
 - `.claude/settings.local.json` with permission whitelist
-- `.obsidian/` vault config (if Obsidian CLI is available)
 - `docs/` with CLI reference documentation
 - Root `CLAUDE.md` (or `AGENTS.md` for Cursor) with system instructions
 

@@ -37,7 +37,7 @@ Built with clap, serde, smol_str, thiserror, and include_dir. All commands outpu
 
 | Command | Purpose |
 |---------|---------|
-| `harnessx init` | Scaffold the full harnessx directory structure (skills, hooks, docs, Obsidian vault) |
+| `harnessx init` | Scaffold the full harnessx directory structure (skills, hooks, docs) |
 | `harnessx project <sub>` | Create, list, activate, remove, and update projects |
 | `harnessx intake-onboarding <sub>` | Track progress through 6 intake onboarding sections |
 | `harnessx intake-completion <sub>` | Track progress through 3 intake completion sections |
@@ -83,7 +83,6 @@ harnessx/
 │   ├── skills/                            # 16+ skills with SKILL.md files
 │   ├── hooks/                             # session-start.sh, commit-and-push.sh
 │   └── settings.local.json               # Permission whitelist
-├── .obsidian/                             # Obsidian vault config
 ├── docs/                                  # CLI reference docs
 └── src/                                   # Rust source code
     ├── bin/main.rs                         # CLI entry point
@@ -275,29 +274,15 @@ When integration tests fail and need user input:
 
 ---
 
-## Obsidian Integration
-
-The CLI scaffolds a `.obsidian/` vault with preconfigured plugins (file explorer, search, graph, backlinks, tags, outline, etc.). Combined with the Obsidian CLI (`obsidian`), skills can:
-
-- Search by tags/wikilinks: `obsidian search query="tag:#your-tag" format=json`
-- Search with context: `obsidian search:context query="/\[\[some_wikilink\]\]/" format=json`
-- Set properties: `obsidian property:set file="about" name="status" value="analyzed"`
-- Query by properties: `obsidian search query="[status:analyzed]" format=json`
-
-Purpose: reduce token usage by allowing local indexing and structured vault-based documentation.
-
----
-
 ## Init Flow
 
 `harnessx init` bootstraps everything:
 
 1. Detect platform (Claude or Cursor) from CLAUDE.md/AGENTS.md
-2. Detect Obsidian CLI on PATH
-3. Embed template files (hooks, skills, docs, Obsidian config) compiled into the binary via `include_dir!`
-4. Write files to disk, respecting `--force` and `--no-obsidian` flags
-5. Set executable permissions on shell scripts
-6. Create root markdown file (CLAUDE.md or AGENTS.md)
+2. Embed template files (hooks, skills, docs) compiled into the binary via `include_dir!`
+3. Write files to disk, respecting `--force` flag
+4. Set executable permissions on shell scripts
+5. Create root markdown file (CLAUDE.md or AGENTS.md)
 
 ---
 

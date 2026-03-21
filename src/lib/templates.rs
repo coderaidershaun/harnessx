@@ -4,7 +4,6 @@ use include_dir::{include_dir, Dir, File};
 
 static HOOKS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/hooks");
 static SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
-static OBSIDIAN: Dir = include_dir!("$CARGO_MANIFEST_DIR/.obsidian");
 static DOCS: Dir = include_dir!("$CARGO_MANIFEST_DIR/docs");
 
 const HARNESSX_README: &[u8] = b"# harnessx\n\nProject management data and documentation for this workspace.\n\nSee [docs/](docs/) for the full command reference.\n";
@@ -42,14 +41,10 @@ impl Agent {
     }
 }
 
-/// Host-specific; replaced with an empty JSON object so local layout isn't shipped.
-const EMPTY_WORKSPACE: &str = ".obsidian/workspace.json";
-
 /// Returns every template file that `harnessx init` should write.
 ///
 /// The `agent` determines whether the config directory is `.claude/` or `.cursor/`.
-/// When `include_obsidian` is `true`, the `.obsidian/` vault configuration is included.
-pub fn manifest(agent: Agent, include_obsidian: bool) -> Vec<TemplateFile> {
+pub fn manifest(agent: Agent) -> Vec<TemplateFile> {
     let config_dir = agent.config_dir();
 
     let core_roots: Vec<(&Dir, String)> = vec![
@@ -61,10 +56,6 @@ pub fn manifest(agent: Agent, include_obsidian: bool) -> Vec<TemplateFile> {
         .iter()
         .flat_map(|(dir, prefix)| collect_recursive(dir, prefix))
         .collect();
-
-    if include_obsidian {
-        files.extend(collect_recursive(&OBSIDIAN, ".obsidian"));
-    }
 
     files.extend(collect_recursive(&DOCS, "harnessx/docs"));
 
@@ -99,11 +90,7 @@ fn template_from(file: &'static File, prefix: &str) -> Option<TemplateFile> {
     }
 
     let path = format!("{prefix}/{name}");
-    let content = if path == EMPTY_WORKSPACE {
-        b"{}".as_slice()
-    } else {
-        file.contents()
-    };
+    let content = file.contents();
 
     Some(TemplateFile { path, content })
 }

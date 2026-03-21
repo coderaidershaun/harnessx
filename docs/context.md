@@ -2,7 +2,7 @@
 
 Search for tags, wikilinks, and text across markdown files in the active project's `harnessx/<id>/` directory.
 
-The CLI automatically resolves the active project and scopes all searches to its folder. On each call it checks whether the Obsidian CLI is installed — if so it delegates to `obsidian search`; otherwise it falls back to a built-in recursive `.md` file search. The output format is identical regardless of backend.
+The CLI automatically resolves the active project and scopes all searches to its folder. It uses a built-in recursive search over `.md` and `.json` files.
 
 Requires an active project. Returns `"no active project"` if none is set.
 
@@ -20,7 +20,7 @@ harnessx context search --query "#my-tag"
 {
   "success": true,
   "data": {
-    "backend": "fallback",
+    "backend": "builtin",
     "query": "#my-tag",
     "path": "harnessx/my-project",
     "results": [
@@ -41,7 +41,7 @@ harnessx context search --query "[[some_link]]"
 {
   "success": true,
   "data": {
-    "backend": "fallback",
+    "backend": "builtin",
     "query": "[[some_link]]",
     "path": "harnessx/my-project",
     "results": [
@@ -61,7 +61,7 @@ harnessx context search --query "authentication"
 {
   "success": true,
   "data": {
-    "backend": "fallback",
+    "backend": "builtin",
     "query": "authentication",
     "path": "harnessx/my-project",
     "results": [
@@ -86,7 +86,7 @@ harnessx context search-context --query "#risk"
 {
   "success": true,
   "data": {
-    "backend": "fallback",
+    "backend": "builtin",
     "query": "#risk",
     "path": "harnessx/my-project",
     "results": [
@@ -109,7 +109,7 @@ harnessx context search-context --query "[[auth_module]]"
 {
   "success": true,
   "data": {
-    "backend": "fallback",
+    "backend": "builtin",
     "query": "[[auth_module]]",
     "path": "harnessx/my-project",
     "results": [
@@ -133,25 +133,3 @@ If no project is active, both commands return:
 }
 ```
 
-## Backend selection
-
-The `backend` field in the response indicates which search engine was used:
-
-| Value | Meaning |
-|---|---|
-| `obsidian` | Obsidian CLI was found on PATH and used for the search |
-| `fallback` | Built-in recursive `.md` search (no Obsidian CLI detected) |
-
-Both backends produce the same response shape. The fallback skips hidden directories (`.git`, `.obsidian`, etc.) and only reads `.md` files.
-
-## Query translation (Obsidian backend)
-
-When the Obsidian CLI is available, queries are automatically translated:
-
-| Input | `search` becomes | `search-context` becomes |
-|---|---|---|
-| `#tag` | `tag:#tag` | `section:(#tag)` |
-| `[[link]]` | `/\[\[link\]\]/` | `/\[\[link\]\]/` |
-| plain text | passed through | passed through |
-
-You do not need to format queries differently based on which backend is active — the CLI handles the translation.
