@@ -1,8 +1,8 @@
 ---
-name: hx:agent-interview
+name: hx:intake-team-interviewing
 description: Interview a specialist agent before it starts work on a project — the agent reads all intake documents, adopts the specialist's perspective, and asks the user targeted questions to surface risks, clarify ambiguities, and capture what that specific agent needs to succeed. Use this skill when preparing an agent for project execution, when the user says "interview the architect", "talk to the team coordinator", "let me brief the developer", "pre-flight check for rust:developing", or anything about having a conversation with a specific agent skill before it runs. Also trigger when the intake team process reaches the interview phase, or when the user wants to ensure an agent has everything it needs before starting work.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Agent Interview

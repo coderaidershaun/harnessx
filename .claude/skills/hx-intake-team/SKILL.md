@@ -1,21 +1,23 @@
 ---
 name: hx:intake-team
-description: Define and build the team of specialist agent skills required to complete a harnessx project. Reviews all intake documents and action items, catalogs available skills, recommends team composition (existing skills + new skills needed), discusses with the user, then builds missing skills using /find-skills and /skill-creator. Handles both the team_define and team_build sections of intake-team. Use this skill when the pipeline reaches intake_team, when the user says "define the team", "what skills do I need", "build my team", "assemble the agents", or anything about determining which agent skills a project requires. Also trigger when the operator routes to the intake_team stage.
+description: Define and build the team of specialist agent skills required to complete a harnessx project, then interview each agent. Reviews all intake documents and action items, catalogs available skills, recommends team composition (existing skills + new skills needed), discusses with the user, builds missing skills using /find-skills and /skill-creator, and conducts agent interviews. Handles all three intake-team sections (team_define, team_build, team_interview) in a loop. Use this skill when the pipeline reaches intake_team, when the user says "define the team", "what skills do I need", "build my team", "assemble the agents", or anything about determining which agent skills a project requires. Also trigger when the operator routes to the intake_team stage.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
-# Intake Team: Define & Build
+# Intake Team
 
-You analyze a project's intake documents and action items, determine what team of specialist agent skills is required to deliver it, and then build any missing skills. You handle two intake-team sections in sequence: `team_define` (analyze and recommend) and `team_build` (find or create missing skills).
+You guide the project through team definition, team building, and agent interviews — one section at a time. Your job is to figure out what specialist skills the project needs, build any that are missing, and then interview each agent before execution begins.
 
 The core insight driving this skill: **skills are not subagents**. Skills are markdown instruction sets that teach Claude how to do specific work. They get assigned to agents at execution time. Your job is to figure out which skill instruction sets the project needs, check what already exists, and create what's missing.
+
+This skill runs directly in the main conversation — you interact with the user naturally, ask questions, and wait for responses. Present one section at a time and wait for user input before advancing.
 
 ---
 
 ## Startup
 
-### 1. Confirm active project
+Before beginning, confirm there is an active project:
 
 ```bash
 harnessx project active
@@ -23,39 +25,61 @@ harnessx project active
 
 If no active project exists, tell the user to run `/hx:operator` first and stop.
 
-Capture the project ID — you'll need it for file paths throughout.
-
-### 2. Initialize intake-team tracking
-
-Check if intake-team is already initialized:
+Then mark the intake_team stage as in-progress:
 
 ```bash
-harnessx intake-team status
+harnessx progress update intake_team in_progress
 ```
 
-If it returns an error (not found), initialize it:
+## Step 1: Get the current intake team section
 
-```bash
-harnessx intake-team init
-```
-
-### 3. Check current position
+Run this immediately — it tells you what section to focus on:
 
 ```bash
 harnessx intake-team next
 ```
 
-This tells you which section to work on. If `team_define` is next, proceed to Phase 1. If `team_build` is next (team_define already complete), skip to Phase 2. If all sections are complete, tell the user and stop.
+This returns JSON like:
+
+```json
+{
+  "success": true,
+  "data": {
+    "section": "team_define",
+    "skills": ["hx:intake-team"]
+  }
+}
+```
+
+If `success` is `false` or there's no next section, tell the user all intake team sections are complete.
+
+Mark the section as in-progress so the status reflects reality:
+
+```bash
+harnessx intake-team update <section> in_progress
+```
+
+## Step 2: Load required skills
+
+Check the `skills` array in the response. If it contains skill names, read each skill's instructions from `.claude/skills/<skill-name>/SKILL.md` (where `<skill-name>` replaces `:` with `-` — e.g., `hx:intake-team` lives at `.claude/skills/hx-intake-team/SKILL.md`). Follow those instructions alongside these ones.
+
+For `team_define` and `team_build`, the skill points back to this file — follow the section-specific instructions below.
+
+For `team_interview`, the skill points to `hx:intake-team-interviewing` — read that skill's SKILL.md and follow its interview protocol.
+
+## Step 3: Execute the current section
+
+Based on the section name from Step 1, follow the corresponding instructions:
 
 ---
 
-## Phase 1: Team Define
+### Section: team_define
 
-The goal here is to understand what the project needs, map those needs to skills, identify gaps, and agree on a team composition with the user.
+The goal is to understand what the project needs, map those needs to skills, identify gaps, and agree on a team composition with the user.
 
-### Step 1: Gather all project context
+#### 3a. Gather all project context
 
-Read every intake document and the action items. This gives you the full picture of what's been captured about the project.
+Read every intake document and the action items. This gives you the full picture.
 
 **Read all markdown files in the intake folder:**
 
@@ -87,7 +111,7 @@ As you read, build a mental model of:
 - **What complexity level** — a single script, a multi-module system, a distributed architecture
 - **What the user explicitly mentioned** — any stated preferences about tools, approaches, or skill requirements
 
-### Step 2: Catalog all available skills
+#### 3b. Catalog all available skills
 
 List every skill currently installed:
 
@@ -101,23 +125,19 @@ For each skill directory, read its `SKILL.md` frontmatter (the `name` and `descr
 - **rust:*** — Rust development team (exploration, architecture, developing, testing, refactoring, commenting, errors, coordination)
 - **Any other prefixes** — other domain teams that may already exist
 
-Understanding the existing skill landscape is critical before recommending new ones.
+#### 3c. Analyze project needs and map to skills
 
-### Step 3: Analyze project needs and map to skills
-
-Now synthesize what you learned from the intake documents with what skills exist. Think about this in layers:
+Synthesize what you learned from the intake documents with what skills exist. Think in layers:
 
 **Layer 1: What existing skills directly apply?**
 
-Look at the project's technology stack and required work types. If the project involves Rust development, the entire `rust:*` team is immediately relevant. If it involves Python, check whether `python:*` skills exist. Map each major work area to existing skills.
+Look at the project's technology stack and required work types. If the project involves Rust development, the entire `rust:*` team is immediately relevant. Map each major work area to existing skills.
 
 **Layer 2: What gaps exist?**
 
-For each domain the project touches that doesn't have a matching skill team, note the gap. Be specific about what's missing — not "we need a research skill" but "we need a skill that can analyze on-chain liquidity pool data across multiple DEXes" or "we need a skill that builds SolidJS components with Tailwind CSS following atomic design patterns."
+For each domain the project touches that doesn't have a matching skill team, note the gap. Be specific — not "we need a research skill" but "we need a skill that can analyze on-chain liquidity pool data across multiple DEXes" or "we need a skill that builds SolidJS components with Tailwind CSS following atomic design patterns."
 
 **Layer 3: Does each gap warrant a full team or a single skill?**
-
-This is the key judgment call. Use these guidelines:
 
 | Situation | Recommendation |
 |-----------|---------------|
@@ -144,79 +164,48 @@ When a full team is needed, model it after the `rust:*` pattern. This pattern ex
 | `<prefix>:errors-management` | Architect robust error handling | `python:errors-management` |
 | `<prefix>:team-coordinator` | Triage and orchestrate the team | `python:team-coordinator` |
 
-Not every team needs all 9 roles. A simpler domain might only need exploration + developing + testing + coordinator. But for any serious coding work, the full set is recommended — it's what makes the difference between "code that works" and "code that's excellent."
+Not every team needs all 9 roles. A simpler domain might only need exploration + developing + testing + coordinator. But for any serious coding work, the full set is recommended.
 
-The team coordinator is **always** the last skill created and **always** required when there's more than one skill in a domain. It's the entry point that knows how to deploy the specialists.
+The team coordinator is **always** the last skill created and **always** required when there's more than one skill in a domain.
 
-### Step 4: Present recommendations to the user
+#### 3d. Present recommendations to the user
 
-Structure your recommendation clearly. Present it in these sections:
+Structure your recommendation clearly:
 
-**1. Existing skills that apply to this project**
+**1. Existing skills that apply to this project** — list each with a one-line explanation of how it maps to the project's needs. Group by team/prefix.
 
-List each existing skill that's relevant, with a one-line explanation of how it maps to the project's needs. Group by team/prefix.
+**2. New skills recommended** — for each: proposed name (with prefix), what it would do, why it's needed (tied to intake findings), whether it's part of a team or standalone.
 
-**2. New skills recommended**
+**3. Skills NOT needed (and why)** — briefly explain what you considered but ruled out.
 
-For each new skill or skill team needed:
-- The proposed skill name (with prefix)
-- What it would do
-- Why it's needed (tied to specific intake findings)
-- Whether it's part of a team or standalone
+**4. Complexity assessment** — overall assessment of team size needed.
 
-**3. Skills NOT needed (and why)**
+#### 3e. Discuss and confirm with the user
 
-Briefly explain what you considered but ruled out. This shows the user you've thought comprehensively and helps them catch if you've misjudged something.
-
-**4. Complexity assessment**
-
-Give your overall assessment: is this a project that needs a large multi-team operation, or can it be handled with existing skills plus one or two additions?
-
-### Step 5: Discuss and confirm with the user
-
-This is a conversation, not a report. After presenting your recommendations:
+This is a conversation, not a report. After presenting:
 
 - Ask if the team composition looks right
 - Ask if there are domains or work types you missed
-- Ask if any of the proposed new skills seem unnecessary or over-engineered
-- Listen to the user's feedback and adjust
+- Ask if any proposed skills seem unnecessary or over-engineered
+- Listen to feedback and adjust
 
-The user knows their project better than you do. They may have strong opinions about team size, skill granularity, or whether certain work even needs a dedicated skill. Respect those opinions.
-
-Common adjustments the user might request:
+Common adjustments:
 - "I don't need a full team for X, just a single development skill is fine"
 - "Actually, we also need Y which I didn't mention in intake"
 - "Don't bother with a commenting skill for this, it's a prototype"
-- "The research here needs to be very specific — it should be a `<domain>-<specialty>-researcher` not a generic researcher"
+- "The research here needs to be very specific — it should be a `<domain>-<specialty>-researcher`"
 
-Iterate until the user confirms the team composition.
-
-### Step 6: Complete team_define
-
-Once the user has confirmed the team composition:
-
-```bash
-harnessx intake-team complete team_define
-```
-
-Summarize what was agreed: which existing skills will be used, which new skills need to be created, and what teams they form.
+Iterate until the user confirms.
 
 ---
 
-## Phase 2: Team Build
+### Section: team_build
 
-Now you create the skills that don't exist yet. The team composition was agreed in Phase 1 — this phase is about execution.
+Create the skills that don't exist yet. The team composition was agreed in team_define.
 
-### Step 1: Prioritize what to build
+#### 3a. Search for existing external skills first
 
-Sort the skills to be created into two categories:
-
-1. **Skills that might exist externally** — generic or well-known domains (React, Python, testing frameworks, deployment tools)
-2. **Skills that definitely need custom creation** — project-specific or niche domains (your user's particular research area, a custom data pipeline pattern, a specialized trading strategy)
-
-### Step 2: Search for existing external skills first
-
-For each skill in category 1, use `/find-skills` to check if a suitable skill already exists in the ecosystem:
+For skills that might exist in the ecosystem, use `/find-skills`:
 
 ```
 /find-skills <domain> <specific-need>
@@ -227,40 +216,29 @@ For example:
 - `/find-skills python testing pytest` for Python testing skills
 - `/find-skills deployment kubernetes` for infrastructure skills
 
-If a high-quality external skill is found (good install count, reputable source), present it to the user. It may cover the need entirely, or it may serve as a foundation that can be customized.
+If a high-quality external skill is found, present it to the user. If not, move it to the creation queue.
 
-If no suitable external skill exists, or the user prefers a custom skill, move it to the creation queue.
+#### 3b. Create missing skills
 
-### Step 3: Create missing skills
-
-This is where the heavy lifting happens. For skills that need to be created from scratch, use the `/skill-creator:skill-creator` skill.
+For skills that need custom creation, use `/skill-creator:skill-creator`.
 
 **For coding team skills (language-specific teams):**
 
-When building a full development team for a language or framework, the most efficient approach is to use the existing `rust:*` skills as templates. They represent a battle-tested team structure. The process:
+Use the existing `rust:*` skills as templates — they're battle-tested:
 
 1. Read each relevant `rust:*` skill's SKILL.md
-2. Adapt it for the target language/framework — change Rust-specific commands, conventions, tooling, and patterns to the target's equivalents
-3. Maintain the same structural discipline — the phases, the coordinator's triage logic, the context-passing between agents
+2. Adapt for the target language/framework — change commands, conventions, tooling, patterns
+3. Maintain the same structural discipline — phases, triage logic, context-passing
 
-For example, creating a `python:*` team:
-- `python:developing` would reference `pytest` instead of `cargo test`, `ruff` instead of `clippy`, Python module patterns instead of Rust module patterns
-- `python:team-coordinator` would have the same tier system but with Python-appropriate complexity signals
-- `python:unit-testing` would follow `pytest` conventions instead of `#[cfg(test)]` modules
-
-**Use multi-agents to create skills in parallel when possible.** Independent skills (like `python:commenting` and `python:unit-testing`) have no dependencies on each other and can be created simultaneously. But the **team-coordinator must always be created last**, because it needs to reference all the specialist skills it will orchestrate.
+**Use multi-agents to create skills in parallel when possible.** Independent skills (like `python:commenting` and `python:unit-testing`) have no dependencies. But the **team-coordinator must always be created last** — it references all specialists.
 
 **For standalone skills:**
 
-Single-purpose skills are simpler to create. Give `/skill-creator:skill-creator` a clear description of:
-- What the skill should enable Claude to do
-- When it should trigger
-- What the expected workflow looks like
-- What domain expertise it needs to embody
+Give `/skill-creator:skill-creator` a clear description of what the skill enables, when it triggers, the expected workflow, and what domain expertise it embodies.
 
 **For research or analysis skills:**
 
-Be maximally specific in the skill name and scope. The name should tell you exactly what kind of specialist this is:
+Be maximally specific in the name:
 
 | Too generic | Specific and useful |
 |-------------|-------------------|
@@ -269,63 +247,65 @@ Be maximally specific in the skill name and scope. The name should tell you exac
 | `ml-engineer` | `transformer-fine-tuning-engineer` |
 | `ui-developer` | `solidjs-reactive-component-developer` |
 
-The specificity in the name carries into the skill's instructions — a `defi-liquidity-analysis-researcher` skill will contain domain knowledge about AMMs, impermanent loss, pool mechanics, and on-chain data sources that a generic `researcher` skill never would.
+#### 3c. Write the team coordinator (if applicable)
 
-### Step 4: Write the team coordinator (if applicable)
+If new skills form a team (share a prefix), the team coordinator is the capstone. Written last because it needs to:
 
-If new skills form a team (share a prefix), the team coordinator is the capstone. It must be written after all specialist skills exist because it needs to:
+1. Know every specialist by name
+2. Define the triage logic (direct dispatch vs. pipeline)
+3. Define pipeline phases and skip conditions
+4. Specify model assignments (opus, sonnet, haiku)
+5. Define context passing between phases
 
-1. **Know every specialist by name** — list them with their roles and when to deploy each
-2. **Define the triage logic** — what task types map to which specialist, and when to use the full pipeline vs. direct dispatch
-3. **Define the pipeline phases** — the sequence of specialist deployment for complex tasks, including which phases to skip for simpler work
-4. **Specify model assignments** — which model (opus, sonnet, haiku) each specialist should run on
-5. **Define context passing** — what information flows between phases
+Use `rust:team-coordinator` SKILL.md as your template.
 
-Use the `rust:team-coordinator` SKILL.md as your template. Read it thoroughly and adapt its structure for the new team's domain. The tier system (direct dispatch, lightweight pipeline, full pipeline) is universally applicable — adapt the specific signals and examples for the new domain.
-
-### Step 5: Verify all skills were created
-
-After creation is complete, verify each skill exists:
+#### 3d. Verify all skills were created
 
 ```bash
 ls .claude/skills/<skill-name>/SKILL.md
 ```
 
-Do this for every skill that was supposed to be created. If anything is missing, flag it and create it.
+Do this for every skill that was supposed to be created. Flag and create anything missing.
 
-### Step 6: Complete team_build
+#### 3e. Summarize to the user
 
-Once all skills are created and verified:
-
-```bash
-harnessx intake-team complete team_build
-```
-
-Give the user a summary:
-- How many skills were created
-- How many were found externally vs. built from scratch
-- The team(s) that are now available with their coordinators
-- Any skills that were attempted but need further refinement
+Report: how many skills created, how many found externally vs. built from scratch, team(s) now available with coordinators, any skills needing refinement.
 
 ---
 
-## After Both Phases Complete
+### Section: team_interview
 
-Once both `team_define` and `team_build` are marked complete, **stop and confirm what comes next**.
+Load the `hx:intake-team-interviewing` skill from `.claude/skills/hx-intake-team-interviewing/SKILL.md` and follow its full instructions. That skill handles the interview process — adopting the specialist's perspective, asking targeted questions, capturing action items, and writing interview documents.
 
-Check what the next intake-team section is:
+---
+
+## Step 4: Complete the section
+
+When the section has been thoroughly covered:
 
 ```bash
-harnessx intake-team next
+harnessx intake-team complete <section>
 ```
 
-This should return `team_interview`. Tell the user:
+Give the user a brief wrap-up of what was accomplished.
 
-> Team definition and building are complete. The next step is **team interviews** — where each specialist agent gets briefed on the project through a focused Q&A session. This is handled by the `hx:agent-interview` skill, which lets you interview each agent from the team before they start work.
->
-> When you're ready to continue, the operator will route you to the interview phase.
+## Step 5: Loop — advance to the next section
 
-Then stop. Do not proceed to interviews — that's a separate skill's responsibility and will be handled when the user continues.
+After completing a section, immediately run `harnessx intake-team next` again to get the next incomplete section. If there is one:
+
+1. Mark it as in-progress: `harnessx intake-team update <section> in_progress`
+2. Load any skills listed in the new response's `skills` array (same as Step 2)
+3. Execute the section (Step 3)
+4. Mark it complete and loop back here
+
+Continue this cycle until `harnessx intake-team next` returns no remaining sections. When that happens:
+
+1. Mark the pipeline stage complete:
+   ```bash
+   harnessx progress complete intake_team
+   ```
+2. Tell the user the full intake team process is complete — team has been defined, built, and interviewed.
+3. **Stop.** Confirm what the next pipeline stage will be and let the user know they can continue via `/hx:operator`.
 
 ---
 
@@ -333,49 +313,40 @@ Then stop. Do not proceed to interviews — that's a separate skill's responsibi
 
 ### When NOT to recommend a full team
 
-Not every project needs a battalion. A full skill team (9 specialists + coordinator) is warranted when:
-
-- The project involves significant original development in a language/framework
-- Quality matters — tests, error handling, and code review are expected
-- The codebase will be maintained long-term
-- Multiple people (or agents) will work in it
+A full skill team (9 specialists + coordinator) is warranted when:
+- Significant original development in a language/framework
+- Quality matters — tests, error handling, code review expected
+- Codebase will be maintained long-term
+- Multiple agents will work in it
 
 A single skill or small cluster is better when:
+- One-off script or prototype
+- Narrow, well-defined domain
+- User explicitly wants simplicity
+- Time-boxed and disposable
 
-- The work is a one-off script or prototype
-- The domain is narrow and well-defined
-- The user explicitly wants to keep things simple
-- The project is time-boxed and disposable
-
-When in doubt, ask the user. Present both options with honest tradeoffs.
+When in doubt, ask the user.
 
 ### Naming conventions
 
-All skill names follow these patterns:
+- **Team skills:** `<domain>:<role>` — e.g., `python:developing`, `ui:component-builder`
+- **Standalone skills:** `<domain>-<specialty>` — e.g., `defi-liquidity-researcher`
+- **Team coordinators:** `<domain>:team-coordinator` — e.g., `python:team-coordinator`
 
-- **Team skills:** `<domain>:<role>` — e.g., `python:developing`, `ui:component-builder`, `infra:terraform-deployer`
-- **Standalone skills:** `<domain>-<specialty>` — e.g., `defi-liquidity-researcher`, `timeseries-anomaly-detector`
-- **Team coordinators:** `<domain>:team-coordinator` — e.g., `python:team-coordinator`, `ui:team-coordinator`
-
-Skill directory names replace `:` with `-` — `python:developing` lives at `.claude/skills/python-developing/SKILL.md`.
+Skill directory names replace `:` with `-`.
 
 ### Handling uncertainty
 
-If the intake documents don't provide enough information to determine whether a skill is needed, don't guess. Ask the user specific questions:
-
-- "The intake mentions data processing but doesn't specify the scale. Are we talking about hundreds of records or millions? This affects whether we need a dedicated data pipeline skill or if it's just part of the backend work."
-- "I see references to a frontend but no mention of the framework. What UI technology are you using? This determines whether we need a generic frontend skill or a framework-specific team."
+If intake docs don't provide enough info, ask the user specific questions rather than guessing.
 
 ---
 
 ## Edge Cases
 
-**No new skills needed:** Sometimes the existing skill set is sufficient. If the project only needs Rust development and all the `rust:*` skills exist, say so — don't invent unnecessary skills just to have something to build. Mark both phases complete with a note that the existing team covers all needs.
+**No new skills needed:** If existing skills cover everything, say so — don't invent unnecessary skills. Mark sections complete with a note that the existing team covers all needs.
 
-**User wants to defer team building:** If the user agrees on the team definition but wants to build the skills later, mark `team_define` as complete but leave `team_build` as `not_started`. The pipeline will pick it up next time.
+**User wants to defer:** Mark the current section complete and leave remaining sections as `not_started`. The pipeline picks them up next time.
 
-**Skill creation fails:** If `/skill-creator:skill-creator` encounters issues creating a skill, document what went wrong, create what you can, and flag the failures to the user. Don't block the entire team build on one problematic skill — create the others and come back to the difficult one.
+**Skill creation fails:** Document failures, create what you can, flag to the user. Don't block the entire build on one problematic skill.
 
-**Mixed external and custom skills:** A team can include both installed external skills and custom-created ones. The team coordinator just needs to know about all of them regardless of origin.
-
-**Re-running this skill:** If `team_define` is already complete and the user runs this skill again, check `harnessx intake-team next` and pick up where you left off. Don't redo completed work.
+**Re-running this skill:** Check `harnessx intake-team next` and pick up where you left off. Don't redo completed work.

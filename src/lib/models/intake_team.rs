@@ -21,9 +21,18 @@ pub struct IntakeTeamProgress {
 impl Default for IntakeTeamProgress {
     fn default() -> Self {
         Self {
-            team_define: IntakeItem::default(),
-            team_build: IntakeItem::default(),
-            team_interview: IntakeItem::default(),
+            team_define: IntakeItem {
+                skills: vec![String::from("hx:intake-team")],
+                ..Default::default()
+            },
+            team_build: IntakeItem {
+                skills: vec![String::from("hx:intake-team")],
+                ..Default::default()
+            },
+            team_interview: IntakeItem {
+                skills: vec![String::from("hx:intake-team-interviewing")],
+                ..Default::default()
+            },
         }
     }
 }
