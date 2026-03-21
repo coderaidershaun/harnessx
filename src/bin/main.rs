@@ -12,7 +12,7 @@ use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
 
 #[derive(Parser)]
-#[command(name = "harnessx", about = "CLI for harnessx project management")]
+#[command(name = "harnessx", version, about = "CLI for harnessx project management")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
