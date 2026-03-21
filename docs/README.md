@@ -37,8 +37,8 @@ The operator skill runs `harnessx project active` to check if a project exists.
    ├── progress.json              # 9 pipeline stages (all not_started except user_input_required = completed)
    └── intake/
        ├── intake_onboarding.json # 6 onboarding sections
-       ├── intake_completion.json # 3 completion sections
        ├── intake_team.json       # 3 team sections
+       ├── intake_completion.json # 3 completion sections
        └── intake_actions.json    # Empty action items list
    ```
 5. The operator compacts context and invokes the `hx:intake-onboarding` skill.
@@ -190,16 +190,16 @@ Each action item has:
 
 | Field | Purpose |
 |---|---|
-| `id` | Auto-assigned sequential ID |
+| `id` | Auto-assigned sequential ID (`action-1`, `action-2`, ...) |
 | `title` | Clear, specific action (not vague categories) |
 | `category` | Area: `backend`, `frontend`, `infrastructure`, `design`, `research`, etc. |
-| `origin` | Traceability: `intake:goal`, `intake:scope`, etc. |
+| `origin` | Traceability: `intake:goal`, `intake:scope`, `intake:agent-interview`, etc. |
 | `detail` | The *why*, not just the *what* — downstream skills won't have conversation context |
-| `tags` | Inline tags for searchability (e.g. `#action-1`) |
+| `tags` | Inline tags for cross-referencing (e.g. `#action-1`). Only traceable tags — no categorical tags. |
 | `input_docs` | URLs or paths to relevant resources |
 | `complexity` | `super-low`, `low`, `medium`, `high`, `super-high`, or `uncertain` |
 | `mode` | Current phase: `plan`, `execute`, `review`, or `rework` |
-| `notes` | Skill observations and user context that won't be obvious later |
+| `notes` | Skill observations with `author` and `note` fields — context that won't be obvious later |
 
 Actions are created in real-time during conversation, never batched. The CLI command is `harnessx intake-actions create` with flags for each field.
 
@@ -207,18 +207,54 @@ Actions are created in real-time during conversation, never batched. The CLI com
 
 ---
 
-## Phase 3: Intake Team (Planned)
+## Phase 3: Intake Team
 
+**Skill:** `hx:intake-team`
 **Pipeline stage:** `intake_team`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-Three sections for multi-team projects:
+This phase determines what specialist agent skills the project needs, builds any that are missing, and interviews each agent before execution begins. Three sections, handled in sequence:
 
-1. **team_define** — Define team roles and structure
-2. **team_build** — Assemble and onboard the team
-3. **team_interview** — Get the team's perspective on the project
+### Section 1: Team Define
 
-Same CLI pattern as onboarding: `harnessx intake-team init|status|list|next|complete <section>`.
+**Skill:** `hx:intake-team`
+
+Analyzes the project to determine what skills are needed:
+
+1. **Gather context** — reads all intake documents, action items, and project metadata
+2. **Catalog available skills** — lists everything in `.claude/skills/` and categorizes by domain (`hx:*` for orchestration, `rust:*` for Rust development, etc.)
+3. **Map needs to skills** — identifies which existing skills apply, which gaps exist, and whether gaps warrant full teams (like the `rust:*` pattern with 9 specialists + coordinator) or standalone skills
+4. **Present recommendations** — shows existing skills that apply, new skills needed, skills ruled out, and overall complexity assessment
+5. **Discuss and confirm** — iterates with the user until team composition is agreed
+
+### Section 2: Team Build
+
+**Skill:** `hx:intake-team`
+
+Creates the skills that don't exist yet:
+
+1. **Search externally** — uses `/find-skills` to check if skills already exist in the ecosystem
+2. **Create missing skills** — uses `/skill-creator:skill-creator`, modeling coding team skills after the `rust:*` templates
+3. **Write team coordinators** — always last, since they reference all specialists
+4. **Verify** — confirms all skills were created
+
+Skills can be created in parallel when independent. The team coordinator is always the capstone.
+
+### Section 3: Team Interview
+
+**Skill:** `hx:intake-team-interviewing`
+
+Pre-flight interviews with each specialist agent. The interviewing skill:
+
+1. **Reads the target skill's SKILL.md** and fully adopts that specialist's perspective
+2. **Reviews all intake documents** to understand the project
+3. **Introduces itself as the specialist** with a pre-interview assessment (3-5 observations from the intake)
+4. **Asks targeted questions** that only this specialist would think to ask — not generic project management questions
+5. **Creates action items** tagged with `intake:agent-interview` origin for things the agent will need
+6. **Writes an interview document** to `harnessx/<id>/intake/interview-<skill-kebab>.md`
+
+Each agent interview is independent and produces its own document. The user can interview as many agents as needed.
+
+When all 3 sections are complete: `harnessx progress complete intake_team`.
 
 **Storage:** `harnessx/<id>/intake/intake_team.json`
 
@@ -226,16 +262,18 @@ Same CLI pattern as onboarding: `harnessx intake-team init|status|list|next|comp
 
 ## Phase 4: Intake Completion
 
-**Pipeline stage:** `intake_completion`
 **Skill:** `hx:intake-completion`
+**Pipeline stage:** `intake_completion`
 
 Technical discovery, ideation, and risk management. Three sections tracked in intake completion, each with a dedicated skill:
 
-1. **exploration** — Technical exploration and discovery (skill: `hx:intake-completion-exploration`)
-2. **ideation** — Generating alternatives, brainstorming approaches (skill: `hx:intake-completion-ideation`)
-3. **project_risk_manager** — Risk identification and mitigation planning (skill: `hx:intake-completion-project-risk`)
+1. **exploration** — Deep-dive exploration of all project resources: codebases, documents, APIs, research materials. Dispatches multi-agents to explore in parallel, then produces thorough notes and action items. (Skill: `hx:intake-completion-exploration`)
+2. **ideation** — Creative multi-agent ideation that reads all intake and exploration documents, generates novel ideas to elevate the project, and surfaces the best ones as action items — without scope creep. (Skill: `hx:intake-completion-ideation`)
+3. **project_risk_manager** — Multi-agent risk review that audits all intake documents, exploration notes, and existing action items to identify gaps — missing concurrency plans, unaddressed error handling, integration assumptions, data integrity blindspots. Creates defensive action items. (Skill: `hx:intake-completion-project-risk`)
 
 Same CLI pattern: `harnessx intake-completion init|status|list|next|complete <section>`.
+
+When all 3 sections are complete: `harnessx progress complete intake_completion`.
 
 **Storage:** `harnessx/<id>/intake/intake_completion.json`
 
@@ -264,12 +302,16 @@ Design review and approval before implementation begins.
 
 ---
 
-## Phase 7: Execution
+## Phase 7: Execution (Planned)
 
 **Pipeline stage:** `execution`
 **Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-When implemented, this is where the Rust development skills do the actual building. The skill fleet available for execution:
+When implemented, this is where the development skills do the actual building. The skill fleet available for execution includes 9 Rust specialists plus a coordinator, and any additional language/domain teams created during intake team:
+
+### rust:team-coordinator (Orchestration)
+
+Smart coordinator for all Rust development work. Triages tasks and either dispatches a single specialist agent directly or orchestrates the full team through a disciplined pipeline (exploration, TDD, architecture, implementation, testing, polish). Single entry point for all Rust work.
 
 ### rust:exploration-and-planning (Read-Only)
 
@@ -336,6 +378,10 @@ When a test fails and can't be fixed, triggers the failure loop (see below).
 ### rust:ergonomic-refactoring (Code Quality)
 
 Refactors for readability and idiomatic style with zero runtime overhead. Self-evident code over commented code.
+
+### rust:errors-management (Error Handling)
+
+Architects robust error handling using thiserror, dedicated error types, and proper propagation. Catches unwrap/expect misuse.
 
 ### rust:commenting (Documentation)
 
@@ -410,7 +456,7 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 │  2   │ intake_onboarding    │ hx:intake-       │ Implemented    │
 │      │                      │ onboarding       │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  3   │ intake_team          │ (planned)        │ Not yet        │
+│  3   │ intake_team          │ hx:intake-team   │ Implemented    │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  4   │ intake_completion    │ hx:intake-       │ Implemented    │
 │      │                      │ completion       │                │
@@ -431,7 +477,7 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 
 ## Context Search and Tagging
 
-harnessx includes a context system for searching project markdown files.
+harnessx includes a context system for searching project markdown and JSON files.
 
 ### Searching
 
@@ -441,7 +487,7 @@ harnessx context search --query "[[wikilink]]"      # Find files matching a wiki
 harnessx context search-context --query "#tag"      # Get the paragraph containing a match
 ```
 
-Uses a built-in recursive search scoped to `harnessx/<project-id>/`.
+Uses a built-in recursive search scoped to `harnessx/<project-id>/`. Searches both `.md` and `.json` files — for JSON arrays, individual matching elements are returned separately.
 
 ### Tagging
 
@@ -450,9 +496,58 @@ Tags follow the format `#tag-name` (kebab-case). No project prefix needed — se
 Common tag patterns:
 - `#action-N` — references action item N
 - `#intake-section` — references an intake section (e.g., `#intake-goal`, `#intake-scope`)
-- `#agent-name` — traces which agent produced the content
 
 When intake documents tag their action items and action items tag back to their source sections, agents can trace full provenance.
+
+---
+
+## Skills
+
+harnessx ships with 29 skill definitions organized into three groups:
+
+### Orchestration Skills (`hx:*`)
+
+| Skill | Purpose |
+|---|---|
+| `hx:operator` | Entry point — checks project state, routes to next pipeline stage |
+| `hx:intake-onboarding` | Orchestrates 6 onboarding sections in sequence |
+| `hx:intake-onboarding-goal` | Craft goal statement, populate project metadata |
+| `hx:intake-onboarding-scope` | Define project boundaries across 5 dimensions |
+| `hx:intake-onboarding-user-knowledge` | Extract user background and domain expertise |
+| `hx:intake-onboarding-resources` | Collect and document project materials |
+| `hx:intake-onboarding-success-measures` | Define measurable success criteria |
+| `hx:intake-onboarding-uat` | Define user acceptance testing plan |
+| `hx:intake-team` | Define team composition, build missing skills |
+| `hx:intake-team-interviewing` | Pre-flight interviews with specialist agents |
+| `hx:intake-completion` | Orchestrate exploration, ideation, and risk review |
+| `hx:intake-completion-exploration` | Deep-dive exploration of project resources |
+| `hx:intake-completion-ideation` | Creative multi-agent ideation |
+| `hx:intake-completion-project-risk` | Multi-agent project risk audit |
+| `hx:intake-actions-writing` | Authority on action item creation protocol |
+| `hx:tag-context-writing` | Authority on tagging and linking methodology |
+| `hx:user-troubleshooting` | Diagnose and resolve pipeline failures |
+
+### Rust Development Skills (`rust:*`)
+
+| Skill | Purpose |
+|---|---|
+| `rust:team-coordinator` | Triage tasks, orchestrate the full development pipeline |
+| `rust:exploration-and-planning` | Read-only codebase exploration, produce implementation plans |
+| `rust:planning-and-architecture` | Performance-critical design decisions |
+| `rust:developing` | Core implementation — logic, algorithms, business rules |
+| `rust:unit-testing` | Minimal unit tests, verify, clean up |
+| `rust:integration-testing` | Production-grade tests with real data and connections |
+| `rust:ergonomic-refactoring` | Idiomatic style and readability improvements |
+| `rust:errors-management` | Error type architecture and propagation |
+| `rust:commenting` | Minimal, consistent code comments |
+
+### Utility Skills
+
+| Skill | Purpose |
+|---|---|
+| `find-skills` | Discover and install skills from the ecosystem |
+| `mermaid-diagrams` | Create software diagrams using Mermaid syntax |
+| `research-reducer` | Fetch URLs and distill into structured markdown |
 
 ---
 
@@ -467,30 +562,17 @@ Two hooks manage session lifecycle:
 
 ---
 
-## The Stop Mechanism
-
-The `hx:stop` skill is a hard checkpoint. When the intake process reaches a natural breakpoint:
-
-1. The stop section is marked complete
-2. The user is told to clear context and re-enter via `/hx:operator`
-3. No further work is done
-
-This prevents context window exhaustion during long intake sessions. Progress is saved in JSON files, so the next session picks up exactly where the previous one left off.
-
----
-
 ## Initialization
 
 Running `harnessx init` scaffolds the full system:
 
-- `harnessx/` directory with `projects.json`
-- `.claude/skills/` with 20+ skill definitions
-- `.claude/hooks/` with session lifecycle scripts
-- `.claude/settings.local.json` with permission whitelist
-- `docs/` with CLI reference documentation
+- `harnessx/` directory with `projects.json` and `README.md`
+- `.claude/skills/` (or `.cursor/skills/`) with all skill definitions
+- `.claude/hooks/` (or `.cursor/hooks/`) with session lifecycle scripts
+- `harnessx/docs/` with CLI reference documentation
 - Root `CLAUDE.md` (or `AGENTS.md` for Cursor) with system instructions
 
-Template files are compiled into the binary via `include_dir!`, so the CLI is a single self-contained executable.
+Agent platform is auto-detected from existing `CLAUDE.md` or `AGENTS.md`, or prompted interactively. Template files are compiled into the binary via `include_dir!`, so the CLI is a single self-contained executable. Existing files can be skipped (merge) or overwritten (`--force`).
 
 ---
 
@@ -498,4 +580,4 @@ Template files are compiled into the binary via `include_dir!`, so the CLI is a 
 
 The harnessx process in one paragraph:
 
-The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The pipeline then advances through team intake, intake completion, planning, review, execution, and user acceptance. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
+The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The intake team phase defines what specialist skills the project needs, builds any that are missing, and interviews each agent. The intake completion phase runs deep exploration of project resources, creative ideation, and a risk audit. The pipeline then advances through planning, review, execution, and user acceptance (not yet implemented). At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
