@@ -1,5 +1,5 @@
 ---
-name: research-reducer
+name: research:reducer
 description: Fetch a URL, deeply analyze its content, and distill it into structured markdown deliverables — key-takeaways.md, key-insights.md, important-details.md, executive-summary.md, and math-notation.md (when math is present). Use this skill whenever the user shares a URL and wants it broken down, summarized, distilled, reduced, analyzed, or extracted into structured notes. Also trigger when the user says "reduce this", "break this down", "summarize this URL", "extract the key points", "research this link", "distill this article", or passes a URL with intent to understand or document its contents. This skill produces files inside the active harnessx project directory.
 disable-model-invocation: false
 user-invocable: true
