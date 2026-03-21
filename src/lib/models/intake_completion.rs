@@ -29,7 +29,10 @@ impl Default for IntakeCompletionProgress {
                 skills: vec!["hx:intake-completion-ideation".into()],
                 ..Default::default()
             },
-            project_risk_manager: IntakeItem::default(),
+            project_risk_manager: IntakeItem {
+                skills: vec!["hx:intake-completion-project-risk".into()],
+                ..Default::default()
+            },
         }
     }
 }
