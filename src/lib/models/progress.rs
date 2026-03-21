@@ -164,7 +164,7 @@ impl Default for ProjectProgress {
                 ..Default::default()
             },
             intake_exploration: Stage {
-                skill: "hx:TODO-WARN-USER".into(),
+                skill: "hx:intake-exploration".into(),
                 ..Default::default()
             },
             planning: Stage {

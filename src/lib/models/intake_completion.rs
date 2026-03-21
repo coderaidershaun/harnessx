@@ -11,11 +11,24 @@ use crate::models::project::ProjectRegistry;
 
 const INTAKE_COMPLETION_FILE: &str = "intake_completion.json";
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntakeCompletionProgress {
     pub exploration: IntakeItem,
     pub ideation: IntakeItem,
     pub project_risk_manager: IntakeItem,
+}
+
+impl Default for IntakeCompletionProgress {
+    fn default() -> Self {
+        Self {
+            exploration: IntakeItem {
+                skills: vec!["hx:intake-exploration".into()],
+                ..Default::default()
+            },
+            ideation: IntakeItem::default(),
+            project_risk_manager: IntakeItem::default(),
+        }
+    }
 }
 
 pub const INTAKE_COMPLETION_SECTIONS: [&str; 3] =
