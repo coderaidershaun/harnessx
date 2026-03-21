@@ -41,11 +41,19 @@ struct ContextMatch {
 }
 
 #[derive(Serialize)]
+struct JsonMatch {
+    file: String,
+    object: serde_json::Value,
+}
+
+#[derive(Serialize)]
 struct ContextResponse {
     backend: &'static str,
     query: String,
     path: String,
     results: serde_json::Value,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    json_results: Vec<JsonMatch>,
 }
 
 impl ContextCommand {
@@ -158,6 +166,7 @@ fn run_obsidian_search(
         query: query.to_string(),
         path: search_path.to_string(),
         results,
+        json_results: Vec::new(),
     })
 }
 
@@ -180,6 +189,9 @@ fn run_fallback_search(
     let mut matches = Vec::new();
     collect_md_matches(dir, query, with_context, &mut matches)?;
 
+    let mut json_matches = Vec::new();
+    collect_json_matches(dir, query, &mut json_matches)?;
+
     let results = serde_json::to_value(&matches)?;
 
     Ok(ContextResponse {
@@ -187,6 +199,7 @@ fn run_fallback_search(
         query: query.to_string(),
         path: search_path.to_string(),
         results,
+        json_results: json_matches,
     })
 }
 
@@ -253,6 +266,74 @@ fn extract_matching_paragraphs(content: &str, query: &str) -> Vec<String> {
         .map(|p| p.trim().to_string())
         .filter(|p| !p.is_empty())
         .collect()
+}
+
+/// Recursively walk `dir` for `.json` files that contain `query`.
+///
+/// If the file parses as a JSON array, each element whose serialized form
+/// contains `query` is returned individually.  Otherwise the entire parsed
+/// value is returned.
+fn collect_json_matches(
+    dir: &Path,
+    query: &str,
+    results: &mut Vec<JsonMatch>,
+) -> ParserResult<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            if path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with('.'))
+            {
+                continue;
+            }
+            collect_json_matches(&path, query, results)?;
+            continue;
+        }
+
+        if !path.extension().is_some_and(|e| e == "json") {
+            continue;
+        }
+
+        let Ok(content) = fs::read_to_string(&path) else {
+            continue;
+        };
+
+        if !content.contains(query) {
+            continue;
+        }
+
+        let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+
+        let file_str = path.to_string_lossy().to_string();
+
+        match parsed {
+            serde_json::Value::Array(items) => {
+                for item in items {
+                    let serialized = serde_json::to_string(&item).unwrap_or_default();
+                    if serialized.contains(query) {
+                        results.push(JsonMatch {
+                            file: file_str.clone(),
+                            object: item,
+                        });
+                    }
+                }
+            }
+            obj => {
+                results.push(JsonMatch {
+                    file: file_str,
+                    object: obj,
+                });
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -581,6 +662,164 @@ mod tests {
 
         let resp = run_fallback_search("content", dir.to_str().unwrap(), false).unwrap();
         assert_eq!(resp.path, dir.to_str().unwrap());
+
+        cleanup(&dir);
+    }
+
+    // ── collect_json_matches ──
+
+    #[test]
+    fn finds_tag_in_json_object() {
+        let dir = test_dir("json_object_tag");
+        fs::write(
+            dir.join("data.json"),
+            r##"{"note": "has #target tag", "value": 42}"##,
+        )
+        .unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].file.ends_with("data.json"));
+        assert_eq!(results[0].object["note"], "has #target tag");
+        assert_eq!(results[0].object["value"], 42);
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn returns_individual_matching_elements_from_array() {
+        let dir = test_dir("json_array_filter");
+        fs::write(
+            dir.join("items.json"),
+            r##"[
+                {"id": 1, "tags": "#target"},
+                {"id": 2, "tags": "other"},
+                {"id": 3, "tags": "#target again"}
+            ]"##,
+        )
+        .unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert_eq!(results.len(), 2);
+        let ids: Vec<i64> = results.iter().map(|r| r.object["id"].as_i64().unwrap()).collect();
+        assert!(ids.contains(&1));
+        assert!(ids.contains(&3));
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn skips_non_matching_json() {
+        let dir = test_dir("json_no_match");
+        fs::write(dir.join("data.json"), r#"{"note": "nothing here"}"#).unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert!(results.is_empty());
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn ignores_non_json_files() {
+        let dir = test_dir("json_ignores_other");
+        fs::write(dir.join("data.json"), r##"{"tag": "#target"}"##).unwrap();
+        fs::write(dir.join("data.txt"), r##"{"tag": "#target"}"##).unwrap();
+        fs::write(dir.join("data.md"), r##"{"tag": "#target"}"##).unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].file.ends_with("data.json"));
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn json_recurses_into_subdirectories() {
+        let dir = test_dir("json_recurse");
+        let sub = dir.join("nested");
+        fs::create_dir_all(&sub).unwrap();
+        fs::write(dir.join("top.json"), r##"{"tag": "#target"}"##).unwrap();
+        fs::write(sub.join("deep.json"), r##"{"tag": "#target"}"##).unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert_eq!(results.len(), 2);
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn json_skips_hidden_directories() {
+        let dir = test_dir("json_skip_hidden");
+        let hidden = dir.join(".hidden");
+        fs::create_dir_all(&hidden).unwrap();
+        fs::write(dir.join("visible.json"), r##"{"tag": "#target"}"##).unwrap();
+        fs::write(hidden.join("secret.json"), r##"{"tag": "#target"}"##).unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].file.ends_with("visible.json"));
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn json_skips_invalid_json() {
+        let dir = test_dir("json_invalid");
+        fs::write(dir.join("bad.json"), "not valid json #target").unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "#target", &mut results).unwrap();
+
+        assert!(results.is_empty());
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn json_wikilink_match() {
+        let dir = test_dir("json_wikilink");
+        fs::write(
+            dir.join("links.json"),
+            r#"{"ref": "see [[my_link]] for details"}"#,
+        )
+        .unwrap();
+
+        let mut results = Vec::new();
+        collect_json_matches(&dir, "[[my_link]]", &mut results).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].object["ref"], "see [[my_link]] for details");
+
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn fallback_search_includes_json_results() {
+        let dir = test_dir("fallback_json_integration");
+        fs::write(dir.join("note.md"), "has #target tag").unwrap();
+        fs::write(dir.join("data.json"), r##"{"tag": "#target"}"##).unwrap();
+
+        let resp = run_fallback_search("#target", dir.to_str().unwrap(), false).unwrap();
+
+        let md_arr = resp.results.as_array().unwrap();
+        assert_eq!(md_arr.len(), 1);
+        assert!(md_arr[0].get("file").unwrap().as_str().unwrap().ends_with("note.md"));
+
+        assert_eq!(resp.json_results.len(), 1);
+        assert!(resp.json_results[0].file.ends_with("data.json"));
+        assert_eq!(resp.json_results[0].object["tag"], "#target");
 
         cleanup(&dir);
     }
