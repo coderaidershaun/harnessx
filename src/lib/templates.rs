@@ -5,11 +5,11 @@ use include_dir::{include_dir, Dir, File};
 static HOOKS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/hooks");
 static SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
 static OBSIDIAN: Dir = include_dir!("$CARGO_MANIFEST_DIR/.obsidian");
-static DOCS: Dir = include_dir!("$CARGO_MANIFEST_DIR/harness");
+static DOCS: Dir = include_dir!("$CARGO_MANIFEST_DIR/docs");
 
-const HARNESSX_README: &[u8] = b"# harnessx\n\nProject management data and documentation for this workspace.\n\nSee [harness/](harness/) for the full command reference.\n";
+const HARNESSX_README: &[u8] = b"# harnessx\n\nProject management data and documentation for this workspace.\n\nSee [docs/](docs/) for the full command reference.\n";
 
-const ROOT_MD_CONTENT: &[u8] = b"# Project\n\nThis project is managed by harnessx.\n\nSee harnessx/harness/ for the full command reference.\n";
+const ROOT_MD_CONTENT: &[u8] = b"# Project\n\nThis project is managed by harnessx.\n\nSee harnessx/docs/ for the full command reference.\n";
 
 /// A template file to be written during `harnessx init`, with a project-root-relative path.
 pub struct TemplateFile {
@@ -66,7 +66,7 @@ pub fn manifest(agent: Agent, include_obsidian: bool) -> Vec<TemplateFile> {
         files.extend(collect_recursive(&OBSIDIAN, ".obsidian"));
     }
 
-    files.extend(collect_recursive(&DOCS, "harnessx/harness"));
+    files.extend(collect_recursive(&DOCS, "harnessx/docs"));
 
     files.push(TemplateFile {
         path: "harnessx/README.md".to_string(),

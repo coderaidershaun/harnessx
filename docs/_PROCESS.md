@@ -487,7 +487,7 @@ Running `harnessx init` scaffolds the full system:
 - `.claude/hooks/` with session lifecycle scripts
 - `.claude/settings.local.json` with permission whitelist
 - `.obsidian/` vault config (if Obsidian CLI is available)
-- `harness/` with CLI reference documentation
+- `docs/` with CLI reference documentation
 - Root `CLAUDE.md` (or `AGENTS.md` for Cursor) with system instructions
 
 Template files are compiled into the binary via `include_dir!`, so the CLI is a single self-contained executable.

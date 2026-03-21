@@ -84,7 +84,7 @@ harnessx/
 │   ├── hooks/                             # session-start.sh, commit-and-push.sh
 │   └── settings.local.json               # Permission whitelist
 ├── .obsidian/                             # Obsidian vault config
-├── harness/                               # CLI reference docs
+├── docs/                                  # CLI reference docs
 └── src/                                   # Rust source code
     ├── bin/main.rs                         # CLI entry point
     └── lib/
