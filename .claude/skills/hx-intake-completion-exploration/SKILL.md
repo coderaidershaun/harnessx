@@ -1,6 +1,6 @@
 ---
 name: hx-intake-completion-exploration
-description: Deep-dive exploration of all project resources collected during intake — dispatches multi-agents to explore codebases, documents, APIs, and research materials, then produces thorough notes and action items with bidirectional tagging. Use this skill when the pipeline reaches the intake_exploration stage, when intake-completion exploration needs to run, or when the user says "explore my resources", "deep dive the codebase", "analyze the repos", "review the research". Also trigger when the operator routes to the intake_exploration stage or when all intake_team sections are complete and the pipeline advances.
+description: Deep-dive exploration of all project resources collected during intake — dispatches multi-agents to explore codebases, documents, APIs, and research materials, then produces thorough notes and action items with bidirectional tagging. Use this skill when the pipeline reaches the intake_completion stage, when intake-completion exploration needs to run, or when the user says "explore my resources", "deep dive the codebase", "analyze the repos", "review the research". Also trigger when the operator routes to the intake_completion stage or when all intake_team sections are complete and the pipeline advances.
 ---
 
 # Intake Exploration
@@ -377,7 +377,7 @@ After all exploration is done, notes are written, actions are created, and tags 
 harnessx intake-completion complete exploration
 ```
 
-This marks the exploration section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_exploration` pipeline stage as complete.
+This marks the exploration section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_completion` pipeline stage as complete.
 
 ---
 

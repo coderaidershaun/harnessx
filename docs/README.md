@@ -224,16 +224,16 @@ Same CLI pattern as onboarding: `harnessx intake-team init|status|list|next|comp
 
 ---
 
-## Phase 4: Intake Exploration (Planned)
+## Phase 4: Intake Completion
 
-**Pipeline stage:** `intake_exploration`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
+**Pipeline stage:** `intake_completion`
+**Skill:** `hx:intake-completion`
 
-Technical discovery and exploration. Three sections tracked in intake completion:
+Technical discovery, ideation, and risk management. Three sections tracked in intake completion, each with a dedicated skill:
 
-1. **exploration** — Technical exploration and discovery
-2. **ideation** — Generating alternatives, brainstorming approaches
-3. **project_risk_manager** — Risk identification and mitigation planning
+1. **exploration** — Technical exploration and discovery (skill: `hx:intake-completion-exploration`)
+2. **ideation** — Generating alternatives, brainstorming approaches (skill: `hx:intake-completion-ideation`)
+3. **project_risk_manager** — Risk identification and mitigation planning (skill: `hx:intake-completion-project-risk`)
 
 Same CLI pattern: `harnessx intake-completion init|status|list|next|complete <section>`.
 
@@ -412,7 +412,8 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  3   │ intake_team          │ (planned)        │ Not yet        │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  4   │ intake_exploration   │ (planned)        │ Not yet        │
+│  4   │ intake_completion    │ hx:intake-       │ Implemented    │
+│      │                      │ completion       │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  5   │ planning             │ (planned)        │ Not yet        │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
@@ -497,4 +498,4 @@ Template files are compiled into the binary via `include_dir!`, so the CLI is a 
 
 The harnessx process in one paragraph:
 
-The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The pipeline then advances through team intake, exploration, planning, review, execution, and user acceptance. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
+The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The pipeline then advances through team intake, intake completion, planning, review, execution, and user acceptance. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.

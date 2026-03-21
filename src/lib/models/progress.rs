@@ -23,7 +23,7 @@ pub const PROGRESS_STAGES: [&str; 9] = [
     "user_input_required",
     "intake_onboarding",
     "intake_team",
-    "intake_exploration",
+    "intake_completion",
     "planning",
     "review",
     "execution",
@@ -36,7 +36,7 @@ pub struct ProjectProgress {
     pub user_input_required: Stage,
     pub intake_onboarding: Stage,
     pub intake_team: Stage,
-    pub intake_exploration: Stage,
+    pub intake_completion: Stage,
     pub planning: Stage,
     pub review: Stage,
     pub execution: Stage,
@@ -51,7 +51,7 @@ impl ProjectProgress {
             ("user_input_required", &self.user_input_required),
             ("intake_onboarding", &self.intake_onboarding),
             ("intake_team", &self.intake_team),
-            ("intake_exploration", &self.intake_exploration),
+            ("intake_completion", &self.intake_completion),
             ("planning", &self.planning),
             ("review", &self.review),
             ("execution", &self.execution),
@@ -65,7 +65,7 @@ impl ProjectProgress {
             "user_input_required" => Some(&mut self.user_input_required),
             "intake_onboarding" => Some(&mut self.intake_onboarding),
             "intake_team" => Some(&mut self.intake_team),
-            "intake_exploration" => Some(&mut self.intake_exploration),
+            "intake_completion" => Some(&mut self.intake_completion),
             "planning" => Some(&mut self.planning),
             "review" => Some(&mut self.review),
             "execution" => Some(&mut self.execution),
@@ -163,8 +163,8 @@ impl Default for ProjectProgress {
                 skill: "hx:intake-team".into(),
                 ..Default::default()
             },
-            intake_exploration: Stage {
-                skill: "hx:intake-completion-exploration".into(),
+            intake_completion: Stage {
+                skill: "hx:intake-completion".into(),
                 ..Default::default()
             },
             planning: Stage {

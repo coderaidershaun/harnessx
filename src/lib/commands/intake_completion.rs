@@ -116,7 +116,7 @@ fn complete_section(section: &str) -> ParserResult<IntakeCompletionProgress> {
     progress.save_for_active_project()?;
 
     if progress.next_item().is_none() {
-        ProjectProgress::complete_stage_for_active_project("intake_exploration")?;
+        ProjectProgress::complete_stage_for_active_project("intake_completion")?;
     }
 
     Ok(progress)

@@ -344,7 +344,7 @@ After the risk report is written, action items are created, expansions are noted
 harnessx intake-completion complete project_risk_manager
 ```
 
-This marks the project_risk_manager section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_exploration` pipeline stage as complete and the project advances to planning.
+This marks the project_risk_manager section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_completion` pipeline stage as complete and the project advances to planning.
 
 ---
 

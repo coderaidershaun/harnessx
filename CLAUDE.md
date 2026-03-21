@@ -113,17 +113,17 @@ harnessx/
 Every project moves through 9 stages tracked in `progress.json`:
 
 ```
-user_input_required → intake_onboarding → intake_team → intake_exploration
+user_input_required → intake_onboarding → intake_team → intake_completion
         ↓                    ↓                 ↓              ↓
-   (troubleshoot)     (6 sections)        (define,        (technical
-                                           build,          discovery)
-                                          interview)
+   (troubleshoot)     (6 sections)        (define,        (exploration,
+                                           build,          ideation,
+                                          interview)       risk mgmt)
         → planning → review → execution → user_acceptance → complete
 ```
 
 Each stage has an assigned skill. `harnessx progress next` returns the first incomplete stage + its skill, which the operator skill uses to route work.
 
-Stages with `"hx:TODO-WARN-USER"` as skill are not yet implemented.
+Stages with `"hx:TODO-WARN-USER"` as skill are not yet implemented (does not include `intake_completion`, which is now implemented).
 
 ---
 
@@ -164,13 +164,13 @@ The `hx:intake-onboarding` skill runs the loop directly in the main conversation
 
 ## Intake Completion Flow
 
-3 sections tracked separately from onboarding (skills not yet implemented):
+3 sections tracked separately from onboarding, each with a dedicated skill:
 
 | # | Section | Skill |
 |---|---------|-------|
-| 1 | exploration | *(not yet implemented)* |
-| 2 | ideation | *(not yet implemented)* |
-| 3 | project_risk_manager | *(not yet implemented)* |
+| 1 | exploration | hx:intake-completion-exploration |
+| 2 | ideation | hx:intake-completion-ideation |
+| 3 | project_risk_manager | hx:intake-completion-project-risk |
 
 Same CLI pattern as onboarding: `harnessx intake-completion init|status|list|next|complete <section>`.
 

@@ -280,7 +280,7 @@ After the ideation report is written, action items are created, and tags are pla
 harnessx intake-completion complete ideation
 ```
 
-This marks the ideation section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_exploration` pipeline stage as complete.
+This marks the ideation section as completed in `intake_completion.json`. When all three intake-completion sections (exploration, ideation, project_risk_manager) are done, the CLI automatically marks the `intake_completion` pipeline stage as complete.
 
 ---
 
