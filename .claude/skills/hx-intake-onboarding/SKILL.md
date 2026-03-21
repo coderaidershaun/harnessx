@@ -63,7 +63,7 @@ Check the `skills` array in the response. If it contains skill names, read each 
 
 Read `.claude/skills/hx-intake-actions-writing/SKILL.md`. This is your guide for creating action items — it covers the CLI commands, tagging protocol, blindspot-aware action design, and the bidirectional linking workflow (create action → get ID → tag source markdown). Follow its instructions whenever you create or update actions throughout the intake conversation.
 
-Also read `docs/intake-actions.md` for the exact CLI flags and field types. Use only the flags documented there.
+Also read `harness/intake-actions.md` for the exact CLI flags and field types. Use only the flags documented there.
 
 ## Step 4: Conduct the intake conversation
 

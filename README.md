@@ -42,7 +42,7 @@ harnessx <command> <subcommand> [args]
 | `progress`       | Manage project pipeline progress   |
 | `intake-actions` | Manage intake action items         |
 
-See the [docs/](docs/) folder for detailed command reference.
+See the [harness/](harness/) folder for detailed command reference.
 
 ## Output Format
 

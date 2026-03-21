@@ -40,7 +40,7 @@ harnessx project active
 
 The response contains the project `id` field. Use this ID in all tags: `#<project-id>::action-N`, `#<project-id>::intake-goal`, etc.
 
-If you haven't read the CLI reference for action creation in this session, read `docs/intake-actions.md` to confirm the exact flags available.
+If you haven't read the CLI reference for action creation in this session, read `harness/intake-actions.md` to confirm the exact flags available.
 
 ---
 
