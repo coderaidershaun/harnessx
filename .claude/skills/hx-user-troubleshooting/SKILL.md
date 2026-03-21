@@ -62,8 +62,8 @@ Once the user responds with the required input or decision:
 
 1. Apply the fix or capture the input as needed.
 2. If the fix involves code changes, use the appropriate skills:
-   - `rust-ergonomic-refactoring` for Rust code quality
-   - `rust-unit-testing` or `rust-integration-testing` to verify the fix
+   - `rust:ergonomic-refactoring` for Rust code quality
+   - `rust:unit-testing` or `rust:integration-testing` to verify the fix
 3. Re-run any failing tests if possible to confirm resolution.
 4. Once resolved, mark the stage complete:
 

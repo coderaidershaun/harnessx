@@ -221,7 +221,7 @@ The `hx:operator` skill is how everything starts:
         → harnessx progress next
         │
         ├─ skill starts with "hx:" → Invoke skill directly (interactive)
-        ├─ skill starts with "rust-" → Invoke directly or delegate to subagent
+        ├─ skill starts with "rust:" → Invoke directly or delegate to subagent
         └─ skill field empty → Project pipeline complete
 ```
 
@@ -241,20 +241,20 @@ The `hx:operator` skill is how everything starts:
 
 | Skill | Purpose |
 |-------|---------|
-| **rust-exploration-and-planning** | Explore codebase, produce implementation plans (read-only) |
-| **rust-planning-and-architecture** | Performance-critical architecture decisions |
-| **rust-developing** | Execute implementation from a plan |
-| **rust-ergonomic-refactoring** | Make code idiomatic and readable |
-| **rust-unit-testing** | Write minimal unit tests, then clean up |
-| **rust-integration-testing** | Write production-grade integration tests |
-| **rust-commenting** | Add minimal, consistent comments |
+| **rust:exploration-and-planning** | Explore codebase, produce implementation plans (read-only) |
+| **rust:planning-and-architecture** | Performance-critical architecture decisions |
+| **rust:developing** | Execute implementation from a plan |
+| **rust:ergonomic-refactoring** | Make code idiomatic and readable |
+| **rust:unit-testing** | Write minimal unit tests, then clean up |
+| **rust:integration-testing** | Write production-grade integration tests |
+| **rust:commenting** | Add minimal, consistent comments |
 
 ### The Failure → Troubleshooting Loop
 
 When integration tests fail and need user input:
 
 ```
-/rust-integration-testing skill
+/rust:integration-testing skill
     → writes failure report to harnessx/<id>/integration-tests/failing.md
     → runs: harnessx progress update user_input_required not_started
     → pipeline reroutes to /hx:user-troubleshooting skill
@@ -294,4 +294,4 @@ When integration tests fail and need user input:
 4. **Skills run in the main conversation** — interactive skills (hx:*) talk directly to the user, no relay
 5. **Real-time action capture** — action items are created as they emerge, not batched
 6. **Failure routing** — integration test failures automatically route to the troubleshooting skill
-7. **Read-only exploration** — the `rust-exploration-and-planning` skill never writes code, only produces plans
+7. **Read-only exploration** — the `rust:exploration-and-planning` skill never writes code, only produces plans

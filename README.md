@@ -20,27 +20,14 @@ cargo install harnessx
 # Scaffold the harnessx harness
 harnessx init
 
-# Create and activate a project
-harnessx project create my-project
+# Launch claude code or an agent
+claude
 
-# Initialise intake and progress tracking
-harnessx intake init
-harnessx progress init
+# Run the process
+/hx:operator
 ```
 
 ## Usage
-
-```
-harnessx <command> <subcommand> [args]
-```
-
-| Command          | Description                        |
-|------------------|------------------------------------|
-| `init`           | Scaffold the harnessx harness      |
-| `project`        | Manage projects                    |
-| `intake`         | Manage intake progress             |
-| `progress`       | Manage project pipeline progress   |
-| `intake-actions` | Manage intake action items         |
 
 See the [docs/](docs/) folder for detailed command reference.
 
@@ -62,7 +49,6 @@ Exit code is `0` on success, `1` on error.
 harnessx/
   projects.json          # Project registry (active + inactive)
   <project-id>/
-    intake_progress.json # Intake section tracking
     progress.json        # Pipeline stage tracking
     intake/
       intake_actions.json # Action items

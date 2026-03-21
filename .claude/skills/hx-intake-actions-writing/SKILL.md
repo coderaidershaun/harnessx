@@ -218,7 +218,7 @@ You know the full harnessx pipeline (9 stages from intake through completion). U
 ### Don't create actions for:
 
 - **Generic architecture decisions** — the `planning` stage handles these. Don't create "decide on database" as an action; that's planning's job.
-- **Code style and refactoring** — `rust-ergonomic-refactoring` handles this during execution
+- **Code style and refactoring** — `rust:ergonomic-refactoring` handles this during execution
 - **Writing tests generically** — the testing skills handle general test coverage. Only create testing actions for *specific* scenarios the user flagged or where blindspot analysis identified a risk.
 - **Things the current intake section will capture naturally** — if the user mentions a resource during `goal`, note it briefly but let the `resources` section handle detailed capture. Create a lightweight action only if the detail might be forgotten by then.
 - **Vague actions** — "Improve error handling" is not an action. "Add retry logic with exponential backoff for RPC connection failures, per user requirement of 3 retries with 1s/2s/4s delays" is an action.

@@ -246,7 +246,7 @@ Same CLI pattern: `harnessx intake-completion init|status|list|next|complete <se
 **Pipeline stage:** `planning`
 **Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-Architecture and task planning. When implemented, this stage will likely use the `rust-exploration-and-planning` and `rust-planning-and-architecture` skills to:
+Architecture and task planning. When implemented, this stage will likely use the `rust:exploration-and-planning` and `rust:planning-and-architecture` skills to:
 
 - Explore the target codebase (read-only)
 - Make architecture and data structure decisions
@@ -271,7 +271,7 @@ Design review and approval before implementation begins.
 
 When implemented, this is where the Rust development skills do the actual building. The skill fleet available for execution:
 
-### rust-exploration-and-planning (Read-Only)
+### rust:exploration-and-planning (Read-Only)
 
 Systematically explores a codebase to understand its architecture before writing anything. Produces a structured plan with:
 
@@ -283,7 +283,7 @@ Systematically explores a codebase to understand its architecture before writing
 
 This skill never writes code. It produces recommendations that the implementation skill executes.
 
-### rust-planning-and-architecture (Decision Making)
+### rust:planning-and-architecture (Decision Making)
 
 Senior architect for performance-critical decisions:
 
@@ -294,7 +294,7 @@ Senior architect for performance-critical decisions:
 
 Process: understand constraints, enumerate 2-3 options, evaluate against what matters, commit to a direction, flag inflection points where the answer changes at different scale.
 
-### rust-developing (Implementation)
+### rust:developing (Implementation)
 
 The implementation workhorse. Writes core logic — functions, methods, trait impls, state machines, algorithms, business rules.
 
@@ -307,7 +307,7 @@ Philosophy:
 
 Does NOT plan architecture, refactor for style, write tests, or add comments.
 
-### rust-unit-testing (Verification)
+### rust:unit-testing (Verification)
 
 Writes minimal unit tests, verifies correctness, then cleans up. Tests are scaffolding, not furniture.
 
@@ -318,7 +318,7 @@ Workflow:
 4. Decide what stays (complex logic, non-obvious correctness) vs what goes (scaffolding)
 5. Remove tests that served their purpose
 
-### rust-integration-testing (Production-Reality)
+### rust:integration-testing (Production-Reality)
 
 High-stakes tests with real data, real connections, real failure modes. Never mocks, never synthetic data.
 
@@ -333,11 +333,11 @@ Tests go in `tests/` directory, all passing tests marked `#[ignore]`, run with `
 
 When a test fails and can't be fixed, triggers the failure loop (see below).
 
-### rust-ergonomic-refactoring (Code Quality)
+### rust:ergonomic-refactoring (Code Quality)
 
 Refactors for readability and idiomatic style with zero runtime overhead. Self-evident code over commented code.
 
-### rust-commenting (Documentation)
+### rust:commenting (Documentation)
 
 Adds minimal, consistent comments. Every `.rs` file gets a `//!` module comment. Doc comments only when the name and signature don't tell the full story. Never restates what code already says.
 

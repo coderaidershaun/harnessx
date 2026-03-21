@@ -98,6 +98,6 @@ Read the `skill` field from the response:
 
 - If `skill` is **empty** (stage is `complete`): Tell the user their project pipeline is complete.
 - If `skill` starts with `hx:`: Invoke the skill directly using the Skill tool (these are interactive and need user conversation).
-- If `skill` starts with `rust-`: These can optionally be delegated to a subagent for autonomous execution, or invoked directly.
+- If `skill` starts with `rust:`: These can optionally be delegated to a subagent for autonomous execution, or invoked directly.
 
 Run `/compact` before invoking the skill to free up context, then invoke the skill and stop.

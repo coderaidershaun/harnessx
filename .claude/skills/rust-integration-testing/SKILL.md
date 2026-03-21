@@ -1,6 +1,6 @@
 ---
-name: rust-integration-testing
-description: Write high-stakes Rust integration tests that catch real-world production failures — using real data, real connections, and real failure modes. Use this skill when verifying that a system works end-to-end in production conditions, when the user says "integration test", "test against real data", "make sure this works in production", "test the websocket", "test the API connection", or when working on code that interacts with external systems (APIs, databases, websockets, file systems, networks). Also trigger when the user mentions "test for real", "production test", "end-to-end test", or when an agent needs to verify that a feature works beyond unit-level correctness. This skill is the last line of defense before shipping — it must be used with maximum thinking depth and care. Do NOT use this for synthetic/mock-based testing (that belongs to rust-unit-testing).
+name: rust:integration-testing
+description: Write high-stakes Rust integration tests that catch real-world production failures — using real data, real connections, and real failure modes. Use this skill when verifying that a system works end-to-end in production conditions, when the user says "integration test", "test against real data", "make sure this works in production", "test the websocket", "test the API connection", or when working on code that interacts with external systems (APIs, databases, websockets, file systems, networks). Also trigger when the user mentions "test for real", "production test", "end-to-end test", or when an agent needs to verify that a feature works beyond unit-level correctness. This skill is the last line of defense before shipping — it must be used with maximum thinking depth and care. Do NOT use this for synthetic/mock-based testing (that belongs to rust:unit-testing).
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -119,7 +119,7 @@ fn reconnects_after_server_drops_connection() {
 
 2. **Use real production data.** If you're testing an API client, hit the real API. If you're testing a parser, feed it real-world files. If you need credentials or endpoints, read them from environment variables — never hardcode them.
 
-3. **Keep tests short.** Setup, act, assert. If you need more than ~20 lines per test, the code under test may need a better interface — consider invoking the `/rust-planning-and-architecture` skill to redesign it.
+3. **Keep tests short.** Setup, act, assert. If you need more than ~20 lines per test, the code under test may need a better interface — consider invoking the `/rust:planning-and-architecture` skill to redesign it.
 
 4. **One failure mode per test.** Don't write a test that checks connection handling AND data parsing AND error recovery. Each test targets one specific way things break.
 
@@ -222,7 +222,7 @@ Leave the failing test in place with `#[ignore]`. It represents a real verificat
 
 ## When to Invoke Other Skills
 
-**`/rust-planning-and-architecture`** — If your integration tests reveal that the code needs structural changes to be testable or robust (e.g., no retry logic, no timeout handling, hardcoded endpoints), invoke this skill to plan the fix. Only do this when integration testing surfaces a real architectural issue — not for cosmetic improvements.
+**`/rust:planning-and-architecture`** — If your integration tests reveal that the code needs structural changes to be testable or robust (e.g., no retry logic, no timeout handling, hardcoded endpoints), invoke this skill to plan the fix. Only do this when integration testing surfaces a real architectural issue — not for cosmetic improvements.
 
 **`/hx:user-troubleshooting`** — If failures are outside your control (missing credentials, external service down, user decision needed), write the failure report to `failing.md`, mark `user_input_required` as not_started, and the pipeline will route to the troubleshooting skill to work with the user on resolution.
 
