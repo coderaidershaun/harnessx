@@ -1,5 +1,5 @@
 ---
-name: hx-intake-exploration
+name: hx-intake-completion-exploration
 description: Deep-dive exploration of all project resources collected during intake — dispatches multi-agents to explore codebases, documents, APIs, and research materials, then produces thorough notes and action items with bidirectional tagging. Use this skill when the pipeline reaches the intake_exploration stage, when intake-completion exploration needs to run, or when the user says "explore my resources", "deep dive the codebase", "analyze the repos", "review the research". Also trigger when the operator routes to the intake_exploration stage or when all intake_team sections are complete and the pipeline advances.
 ---
 
@@ -302,7 +302,7 @@ Key rules for exploration-origin actions:
 - **category**: typically `research`, `exploration`, `verification`, `implementation`, or `integration`
 - **detail**: must be self-contained — include file paths, code references, and WHY this action matters
 - **input_docs**: point to the exploration notes file(s) that led to this action
-- **note-author**: `hx-intake-exploration`
+- **note-author**: `hx-intake-completion-exploration`
 - **mode**: `plan` (almost always — force agents to think before coding)
 
 **What generates action items from exploration:**
@@ -341,7 +341,7 @@ harnessx intake-actions create \
   --input-docs "harnessx/<project-id>/intake/exploration/code-trading-engine/notes.md" \
   --complexity "medium" \
   --mode "plan" \
-  --note-author "hx-intake-exploration" \
+  --note-author "hx-intake-completion-exploration" \
   --note-text "Discovered during codebase exploration. The current implementation works for low-throughput but our success criteria require 10k msg/sec."
 ```
 

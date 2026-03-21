@@ -164,7 +164,7 @@ impl Default for ProjectProgress {
                 ..Default::default()
             },
             intake_exploration: Stage {
-                skill: "hx:intake-exploration".into(),
+                skill: "hx:intake-completion-exploration".into(),
                 ..Default::default()
             },
             planning: Stage {

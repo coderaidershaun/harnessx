@@ -22,10 +22,13 @@ impl Default for IntakeCompletionProgress {
     fn default() -> Self {
         Self {
             exploration: IntakeItem {
-                skills: vec!["hx:intake-exploration".into()],
+                skills: vec!["hx:intake-completion-exploration".into()],
                 ..Default::default()
             },
-            ideation: IntakeItem::default(),
+            ideation: IntakeItem {
+                skills: vec!["hx:intake-completion-ideation".into()],
+                ..Default::default()
+            },
             project_risk_manager: IntakeItem::default(),
         }
     }
