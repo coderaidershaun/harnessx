@@ -8,10 +8,10 @@ Find notes by content, tags, or wikilinks.
 
 ```bash
 # Search by tag
-obsidian search query="tag:#your-tag" format=json
+obsidian search path="harnessx/<insert-project-id>" query="tag:#yourproject-id::your-tag" format=json
 
 # Search by wikilink (regex)
-obsidian search query="/\[\[some_wikilink\]\]/" format=json
+obsidian search path="harnessx/<insert-project-id>" query="/\[\[yourproject-id::some_wikilink\]\]/" format=json
 ```
 
 ### Search with Context
@@ -20,10 +20,10 @@ Returns matching lines along with surrounding context, useful for understanding 
 
 ```bash
 # Wikilink search with context
-obsidian search:context query="/\[\[some_wikilink\]\]/" format=json
+obsidian search:context path="harnessx/<insert-project-id>" query="/\[\[some_wikilink\]\]/" format=json
 
 # Search within a specific section by tag
-obsidian search:context query="section:(#your-tag)" format=json
+obsidian search:context path="harnessx/<insert-project-id>" query="section:(#your-tag)" format=json
 ```
 
 ## Outline
@@ -41,17 +41,17 @@ Obsidian notes support YAML frontmatter properties. The CLI can set these progra
 ### Set a property
 
 ```bash
-obsidian property:set file="about" name="agent-status" value="analyzed"
+obsidian property:set path="harnessx/<insert-project-id>/about.md" name="agent-status" value="analyzed"
 ```
 
 ### Query by property
 
 ```bash
 # Find notes that do NOT have agent-status set to "analyzed"
-obsidian search query="-[agent-status:analyzed]" format=json
+obsidian search query="-[agent-status:analyzed]" path="harnessx/<insert-project-id>" format=json
 
 # Find notes that DO have agent-status set to "analyzed"
-obsidian search query="[agent-status:analyzed]" format=json
+obsidian search query="[agent-status:analyzed]" path="harnessx/<insert-project-id>" format=json
 ```
 
 ## Output Formats

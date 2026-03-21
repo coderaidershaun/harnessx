@@ -1,5 +1,6 @@
 //! CLI subcommand handlers.
 
+pub mod context;
 pub mod init;
 pub mod intake_completion;
 pub mod intake_onboarding;

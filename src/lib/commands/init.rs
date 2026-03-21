@@ -165,12 +165,16 @@ impl InitArgs {
             return Ok(false);
         }
 
+        // Reject the macOS desktop app (lives inside a .app bundle).
         let has_cli = Command::new("which")
             .arg("obsidian")
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .map(|s| s.success())
+            .output()
+            .map(|out| {
+                out.status.success()
+                    && !String::from_utf8_lossy(&out.stdout)
+                        .trim()
+                        .contains(".app/")
+            })
             .unwrap_or(false);
 
         if has_cli {
