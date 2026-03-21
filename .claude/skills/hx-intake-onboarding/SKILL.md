@@ -98,7 +98,7 @@ Create actions in real time as they come up, not in a batch at the end. This let
 
 - How to structure each field (title, category, origin, detail, tags, complexity, mode, notes)
 - The tagging protocol — section tags (`#goal`, `#scope`, etc.), type tags (`#research`, `#verification`, etc.), and blindspot tags (`#blindspot-context-loss`, etc.)
-- The bidirectional linking workflow — after each action is created and you receive an ID back, tag the relevant paragraph in the intake markdown with `#project-id::action-N` (inline, end of the line, never on its own line)
+- The bidirectional linking workflow — after each action is created and you receive an ID back (e.g., `action-7`), tag the relevant paragraph in the intake markdown with `#action-7` (inline, end of the line, never on its own line)
 - Agent blindspot awareness — think about what could go wrong when an agent picks up this action with zero context. Create defensive actions for context loss, API drift, missing exploration, scope creep, test gaps, integration assumptions, and dependency compatibility.
 - Process awareness — what to create actions for vs. what later pipeline stages handle naturally
 

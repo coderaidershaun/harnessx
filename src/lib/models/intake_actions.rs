@@ -57,14 +57,14 @@ fn file_path(project_id: &str) -> String {
     format!("harnessx/{project_id}/intake/{ACTIONS_FILE}")
 }
 
-/// Returns `max(numeric ids) + 1`, or `"1"` if the list is empty.
+/// Returns `"action-{max+1}"`, or `"action-1"` if the list is empty.
 pub fn next_id(items: &[ActionItem]) -> SmolStr {
     let max_existing = items
         .iter()
-        .filter_map(|item| item.id.parse::<u64>().ok())
+        .filter_map(|item| item.id.strip_prefix("action-")?.parse::<u64>().ok())
         .max()
         .unwrap_or(0);
-    SmolStr::new((max_existing + 1).to_string())
+    SmolStr::new(format!("action-{}", max_existing + 1))
 }
 
 pub fn load(project_id: &str) -> ParserResult<Vec<ActionItem>> {

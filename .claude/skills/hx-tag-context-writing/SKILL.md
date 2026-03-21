@@ -24,24 +24,18 @@ Every tag you write must be on the same line as the content it annotates. This i
 
 ## Tag format
 
-Tags follow the pattern `#project-id::tag-name` where `project-id` is the active project's ID and `tag-name` is a descriptive kebab-case identifier.
-
-Get the project ID:
-
-```bash
-harnessx project active
-```
+Tags follow the pattern `#tag-name` where `tag-name` is a descriptive kebab-case identifier. No project prefix is needed — searches are already scoped to the active project's folder.
 
 Common tag patterns:
 
 | Pattern | Purpose | Example |
 |---|---|---|
-| `#proj::action-N` | References action item #N | `#my-project::action-3` |
-| `#proj::intake-section` | References an intake section | `#my-project::intake-goal` |
-| `#proj::agent-name` | Traces which agent produced content | `#my-project::intake-specialist` |
-| `#proj::custom-label` | Any project-specific label | `#my-project::auth-concerns` |
+| `#action-N` | References action item N | `#action-3` |
+| `#intake-section` | References an intake section | `#intake-goal` |
+| `#agent-name` | Traces which agent produced content | `#intake-specialist` |
+| `#custom-label` | Any project-specific label | `#auth-concerns` |
 
-Wikilinks follow `[[project-id::link-name]]` — use these when you want bidirectional linking between documents. In practice, tags are used far more often because they're lighter and don't imply a target document exists.
+Wikilinks follow `[[link-name]]` — use these when you want bidirectional linking between documents. In practice, tags are used far more often because they're lighter and don't imply a target document exists.
 
 ---
 
@@ -53,18 +47,18 @@ Append the tag after the content, separated by a space. Never put tags on their 
 
 **Correct:**
 ```markdown
-The auth module needs a complete rewrite due to token storage compliance issues. #my-project::action-7
+The auth module needs a complete rewrite due to token storage compliance issues. #action-7
 ```
 
 **Wrong:**
 ```markdown
 The auth module needs a complete rewrite due to token storage compliance issues.
-#my-project::action-7
+#action-7
 ```
 
 **Wrong:**
 ```markdown
-#my-project::action-7
+#action-7
 The auth module needs a complete rewrite due to token storage compliance issues.
 ```
 
@@ -74,10 +68,10 @@ If a heading describes a topic that should be findable, tag the heading line dir
 
 **Correct:**
 ```markdown
-## Authentication concerns #my-project::action-7 #my-project::intake-scope
+## Authentication concerns #action-7 #intake-scope
 ```
 
-When someone searches for `#my-project::action-7`, they get back "Authentication concerns" — immediately useful.
+When someone searches for `#action-7`, they get back "Authentication concerns" — immediately useful.
 
 ### Rule 3: Tag the first or most descriptive line of a paragraph
 
@@ -85,7 +79,7 @@ For multi-line paragraphs, put the tag on the line that carries the most meaning
 
 **Correct:**
 ```markdown
-Users are churning at the password reset step because the email link expires in 60 seconds, #my-project::action-2
+Users are churning at the password reset step because the email link expires in 60 seconds, #action-2
 which isn't long enough for users on slow corporate mail systems.
 The ops team confirmed this accounts for ~30% of support tickets.
 ```
@@ -95,15 +89,15 @@ The ops team confirmed this accounts for ~30% of support tickets.
 When content relates to multiple things, stack the tags:
 
 ```markdown
-## API rate limiting strategy #my-project::action-5 #my-project::intake-scope #my-project::auth-concerns
+## API rate limiting strategy #action-5 #intake-scope #auth-concerns
 ```
 
 ### Rule 5: Every cross-reference goes both ways
 
 When tagging intake documents with action item references, also tag the action item's source material with the intake section reference. This creates a two-way link:
 
-- **In `goal.md`**: The sentence that led to action #3 gets `#proj::action-3`
-- **In action #3's detail or notes**: The origin gets `#proj::intake-goal`
+- **In `goal.md`**: The sentence that led to action-3 gets `#action-3`
+- **In action-3's detail or notes**: The origin gets `#intake-goal`
 
 Both directions need to be searchable for agents to trace provenance.
 
@@ -118,13 +112,13 @@ After creating action items during an intake section, go back to the intake mark
 ```markdown
 ## What the user described
 
-They have an existing trading engine in Rust that processes limit orders #my-project::action-1
-but needs to be extended to support market orders and stop-losses. #my-project::action-2
+They have an existing trading engine in Rust that processes limit orders #action-1
+but needs to be extended to support market orders and stop-losses. #action-2
 
-The current codebase has no test coverage, which is a risk for refactoring. #my-project::action-3 #my-project::action-4
+The current codebase has no test coverage, which is a risk for refactoring. #action-3 #action-4
 ```
 
-This way, when an agent picks up action #2, it can search `#my-project::action-2` and immediately find the user's original description of what they need.
+This way, when an agent picks up action-2, it can search `#action-2` and immediately find the user's original description of what they need.
 
 ### Tagging action item notes with source references
 
@@ -134,9 +128,9 @@ When creating or updating action items, include the source tag in the `--detail`
 harnessx intake-actions create \
   --title "Extend order engine to support market orders" \
   --origin "intake:scope" \
-  --detail "User needs market order support added to existing Rust trading engine. See scope discussion for boundaries. #my-project::intake-scope" \
+  --detail "User needs market order support added to existing Rust trading engine. See scope discussion for boundaries. #intake-scope" \
   --note-author "hx-intake-specialist" \
-  --note-text "Derived from scope discussion about order types. #my-project::intake-scope"
+  --note-text "Derived from scope discussion about order types. #intake-scope"
 ```
 
 ### Tagging headings as section anchors
@@ -144,13 +138,13 @@ harnessx intake-actions create \
 Tag section headings in intake docs so agents can find the right section fast:
 
 ```markdown
-## Project goal #my-project::intake-goal
+## Project goal #intake-goal
 
-Build a real-time ops dashboard that replaces SSH-based monitoring. #my-project::action-1
+Build a real-time ops dashboard that replaces SSH-based monitoring. #action-1
 
-## Scope boundaries #my-project::intake-scope
+## Scope boundaries #intake-scope
 
-MVP covers the 5 core metrics only. #my-project::action-6
+MVP covers the 5 core metrics only. #action-6
 Mobile support is explicitly out of scope for this phase.
 ```
 
@@ -162,10 +156,10 @@ After tagging, verify searchability:
 
 ```bash
 # Find all files containing a tag
-harnessx context search --query "#my-project::action-3"
+harnessx context search --query "#action-3"
 
 # Get the actual paragraph context (this is the real test)
-harnessx context search-context --query "#my-project::action-3"
+harnessx context search-context --query "#action-3"
 ```
 
 The `search-context` result should return a meaningful paragraph, not just the tag. If it returns only the tag, you've placed it on its own line — fix it.

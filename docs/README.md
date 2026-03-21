@@ -195,7 +195,7 @@ Each action item has:
 | `category` | Area: `backend`, `frontend`, `infrastructure`, `design`, `research`, etc. |
 | `origin` | Traceability: `intake:goal`, `intake:scope`, etc. |
 | `detail` | The *why*, not just the *what* — downstream skills won't have conversation context |
-| `tags` | Inline tags for searchability (e.g. `#project-id::action-1`) |
+| `tags` | Inline tags for searchability (e.g. `#action-1`) |
 | `input_docs` | URLs or paths to relevant resources |
 | `complexity` | `super-low`, `low`, `medium`, `high`, `super-high`, or `uncertain` |
 | `mode` | Current phase: `plan`, `execute`, `review`, or `rework` |
@@ -444,12 +444,12 @@ Uses a built-in recursive search scoped to `harnessx/<project-id>/`.
 
 ### Tagging
 
-Tags follow the format `#project-id::tag-name` (kebab-case). They must be placed on the same line as the content they annotate — never on their own line — so that `search-context` returns useful surrounding paragraphs.
+Tags follow the format `#tag-name` (kebab-case). No project prefix needed — searches are scoped to the active project's folder. Tags must be placed on the same line as the content they annotate — never on their own line — so that `search-context` returns useful surrounding paragraphs.
 
 Common tag patterns:
-- `#proj::action-N` — references action item N
-- `#proj::intake-section` — references an intake section
-- `#proj::agent-name` — traces which agent produced the content
+- `#action-N` — references action item N
+- `#intake-section` — references an intake section (e.g., `#intake-goal`, `#intake-scope`)
+- `#agent-name` — traces which agent produced the content
 
 When intake documents tag their action items and action items tag back to their source sections, agents can trace full provenance.
 
