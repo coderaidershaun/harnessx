@@ -64,6 +64,8 @@ pub enum PlanningEpicsCommand {
     },
     /// List all epics.
     List,
+    /// Get a single epic by ID.
+    Get { id: String },
     /// Show the next incomplete epic (by order).
     Next,
     /// Show the milestone this epic belongs to.
@@ -157,6 +159,7 @@ impl PlanningEpicsCommand {
             )),
 
             Self::List => exit_with(planning_epics::for_active_project()),
+            Self::Get { id } => exit_with(get_epic(&id)),
             Self::Next => exit_with(next_epic()),
             Self::Parent { id } => exit_with(epic_parent(&id)),
             Self::Children { id } => exit_with(epic_children(&id)),
@@ -171,6 +174,15 @@ impl PlanningEpicsCommand {
 /// Strips a leading `#` from a reference if present.
 fn strip_hash(s: &str) -> &str {
     s.strip_prefix('#').unwrap_or(s)
+}
+
+fn get_epic(id: &str) -> ParserResult<serde_json::Value> {
+    let items = planning_epics::for_active_project()?;
+    let item = items
+        .into_iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| ParserError::EpicNotFound(id.to_string()))?;
+    Ok(serde_json::to_value(item)?)
 }
 
 fn next_epic() -> ParserResult<serde_json::Value> {

@@ -64,6 +64,8 @@ pub enum PlanningStoriesCommand {
     },
     /// List all stories.
     List,
+    /// Get a single story by ID.
+    Get { id: String },
     /// Show the next incomplete story (by order).
     Next,
     /// Show the epic this story belongs to.
@@ -166,6 +168,7 @@ impl PlanningStoriesCommand {
             )),
 
             Self::List => exit_with(planning_stories::for_active_project()),
+            Self::Get { id } => exit_with(get_story(&id)),
             Self::Next => exit_with(next_story()),
             Self::Parent { id } => exit_with(story_parent(&id)),
             Self::Children { id } => exit_with(story_children(&id)),
@@ -180,6 +183,15 @@ impl PlanningStoriesCommand {
 /// Strips a leading `#` from a reference if present.
 fn strip_hash(s: &str) -> &str {
     s.strip_prefix('#').unwrap_or(s)
+}
+
+fn get_story(id: &str) -> ParserResult<serde_json::Value> {
+    let items = planning_stories::for_active_project()?;
+    let item = items
+        .into_iter()
+        .find(|s| s.id == id)
+        .ok_or_else(|| ParserError::StoryNotFound(id.to_string()))?;
+    Ok(serde_json::to_value(item)?)
 }
 
 fn next_story() -> ParserResult<serde_json::Value> {

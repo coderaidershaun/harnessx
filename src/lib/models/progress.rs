@@ -168,15 +168,15 @@ impl Default for ProjectProgress {
                 ..Default::default()
             },
             planning: Stage {
-                skill: "hx:TODO-WARN-USER".into(),
+                skill: "hx:planning".into(),
                 ..Default::default()
             },
             review: Stage {
-                skill: "hx:TODO-WARN-USER".into(),
+                skill: "hx:review".into(),
                 ..Default::default()
             },
             execution: Stage {
-                skill: "hx:TODO-WARN-USER".into(),
+                skill: "hx:execution-next-task".into(),
                 ..Default::default()
             },
             user_acceptance: Stage {

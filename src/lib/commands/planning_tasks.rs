@@ -82,6 +82,8 @@ pub enum PlanningTasksCommand {
     },
     /// List all tasks.
     List,
+    /// Get a single task by ID.
+    Get { id: String },
     /// Show the next ready task (dependency-aware).
     Next,
     /// Show the story this task belongs to.
@@ -208,6 +210,7 @@ impl PlanningTasksCommand {
             )),
 
             Self::List => exit_with(planning_tasks::for_active_project()),
+            Self::Get { id } => exit_with(get_task(&id)),
             Self::Next => exit_with(next_task()),
             Self::Parent { id } => exit_with(task_parent(&id)),
         }
@@ -218,6 +221,15 @@ impl PlanningTasksCommand {
 /// `depends_on` values are stored as `"#task-1"` but IDs are `"task-1"`.
 fn strip_hash(s: &str) -> &str {
     s.strip_prefix('#').unwrap_or(s)
+}
+
+fn get_task(id: &str) -> ParserResult<serde_json::Value> {
+    let items = planning_tasks::for_active_project()?;
+    let item = items
+        .into_iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
+    Ok(serde_json::to_value(item)?)
 }
 
 fn task_parent(id: &str) -> ParserResult<serde_json::Value> {

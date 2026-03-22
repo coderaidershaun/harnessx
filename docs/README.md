@@ -279,17 +279,63 @@ When all 3 sections are complete: `harnessx progress complete intake_completion`
 
 ---
 
-## Phase 5: Planning (Planned)
+## Phase 5: Planning
 
+**Skill:** `hx:planning`
 **Pipeline stage:** `planning`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-Architecture and task planning. When implemented, this stage will likely use the `rust:exploration-and-planning` and `rust:planning-and-architecture` skills to:
+The planning stage decomposes all intake work into a four-level hierarchy: milestones, epics, stories, and tasks. It spans multiple sessions to manage context, with the `hx:planning` coordinator determining what phase to work on and loading the right specialist skill.
 
-- Explore the target codebase (read-only)
-- Make architecture and data structure decisions
-- Break action items into milestones, epics, stories, and tasks
-- Produce implementation plans
+**Section tracking:** `harnessx planning init|status|list|next|complete|update` — same pattern as intake sections.
+
+**Storage:** `harnessx/<id>/planning/planning.json` (section tracker), plus `planning_milestones.json`, `planning_epics.json`, `planning_stories.json`, `planning_tasks.json` (planning artifacts).
+
+### Session Model
+
+| Session | Section | What Happens |
+|---------|---------|-------------|
+| 1 | milestones | Create all project milestones (3-7 demonstrable checkpoints) |
+| 2 | epics | Create epics for every milestone (capability chunks) |
+| 3 | stories | Create stories for every epic (testable behavioural increments) |
+| 4+ | tasks | Create tasks for ONE story per session (atomic implementation steps) |
+
+Each session: get current section via `harnessx planning next`, do the work, mark progress, stop. The user returns via `/hx:operator` to continue.
+
+### Section 1: Milestones
+
+**Skill:** `hx:planning-milestones`
+
+Reads all intake documents, analyzes what "done" looks like at each checkpoint, and creates 3-7 milestones. Milestones are observable states, not tasks ("Live position data flowing" not "Build the pipeline"). Each milestone has success measures, UAT criteria, and full traceability back to intake.
+
+After milestones are created: `harnessx planning complete milestones`. Session ends.
+
+### Section 2: Epics
+
+**Skill:** `hx:planning-epics`
+
+Loops through milestones using `harnessx planning-milestones next-to-write` to find milestones without epics. For each milestone, creates epics (coherent capability chunks that collectively make the milestone true). After writing epics for a milestone, marks it: `harnessx planning-milestones mark-written <id>`.
+
+After all milestones have epics: `harnessx planning complete epics`. Session ends.
+
+### Section 3: Stories
+
+**Skill:** `hx:planning-stories`
+
+Loops through epics using `harnessx planning-epics next-to-write` to find epics without stories. For each epic, creates stories (testable behavioural increments) with acceptance criteria. After writing stories for an epic, marks it: `harnessx planning-epics mark-written <id>`.
+
+After all epics have stories: `harnessx planning complete stories`. Session ends.
+
+### Section 4: Tasks (one story per session)
+
+**Skill:** `hx:planning-tasks`
+
+Uses `harnessx planning-stories next-to-write` to find the next story without tasks. Creates atomic implementation tasks for that one story using a two-agent process (proposer + reviewer). Each task gets skill assignments, complexity ratings, concrete steps, and integration tests. After tasks are written, marks the story: `harnessx planning-stories mark-written <id>`.
+
+If more stories remain, session ends. If all stories have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
+
+### Resume Handling
+
+The coordinator handles mid-phase resumption gracefully. `harnessx planning next` returns the current section; `next-to-write` commands within each section return the exact item that still needs work. Already-marked items are skipped.
 
 ---
 
@@ -461,11 +507,12 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 │  4   │ intake_completion    │ hx:intake-       │ Implemented    │
 │      │                      │ completion       │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  5   │ planning             │ (planned)        │ Not yet        │
+│  5   │ planning             │ hx:planning      │ Implemented    │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  6   │ review               │ (planned)        │ Not yet        │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  7   │ execution            │ (planned)        │ Not yet        │
+│  7   │ execution            │ hx:execution-    │ Implemented    │
+│      │                      │ next-task        │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  8   │ user_acceptance      │ (planned)        │ Not yet        │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
@@ -503,7 +550,7 @@ When intake documents tag their action items and action items tag back to their 
 
 ## Skills
 
-harnessx ships with 29 skill definitions organized into three groups:
+harnessx ships with skill definitions organized into three groups:
 
 ### Orchestration Skills (`hx:*`)
 
@@ -525,6 +572,13 @@ harnessx ships with 29 skill definitions organized into three groups:
 | `hx:intake-completion-project-risk` | Multi-agent project risk audit |
 | `hx:intake-actions-writing` | Authority on action item creation protocol |
 | `hx:tag-context-writing` | Authority on tagging and linking methodology |
+| `hx:planning` | Orchestrate 4 planning sections across sessions |
+| `hx:planning-milestones` | Create project milestones with traceability |
+| `hx:planning-epics` | Decompose milestones into capability chunks |
+| `hx:planning-stories` | Decompose epics into testable behaviours |
+| `hx:planning-tasks` | Decompose stories into atomic implementation tasks |
+| `hx:tag-context-reading` | Trace tags up the hierarchy for full context |
+| `hx:execution-next-task` | Pick up and dispatch the next ready task |
 | `hx:user-troubleshooting` | Diagnose and resolve pipeline failures |
 
 ### Rust Development Skills (`rust:*`)
@@ -580,4 +634,4 @@ Agent platform is auto-detected from existing `CLAUDE.md` or `AGENTS.md`, or pro
 
 The harnessx process in one paragraph:
 
-The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The intake team phase defines what specialist skills the project needs, builds any that are missing, and interviews each agent. The intake completion phase runs deep exploration of project resources, creative ideation, and a risk audit. The pipeline then advances through planning, review, execution, and user acceptance (not yet implemented). At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
+The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The intake team phase defines what specialist skills the project needs, builds any that are missing, and interviews each agent. The intake completion phase runs deep exploration of project resources, creative ideation, and a risk audit. The planning phase then decomposes all work into milestones, epics, stories, and tasks across multiple sessions. After review, the execution phase picks up tasks one at a time and dispatches them to specialist agents. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.

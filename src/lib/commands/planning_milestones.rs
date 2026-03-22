@@ -64,6 +64,8 @@ pub enum PlanningMilestonesCommand {
     },
     /// List all milestones.
     List,
+    /// Get a single milestone by ID.
+    Get { id: String },
     /// Show the next incomplete milestone (by order).
     Next,
     /// Show all epics, stories, and tasks under a milestone.
@@ -155,6 +157,7 @@ impl PlanningMilestonesCommand {
             )),
 
             Self::List => exit_with(planning_milestones::for_active_project()),
+            Self::Get { id } => exit_with(get_milestone(&id)),
             Self::Next => exit_with(next_milestone()),
             Self::Children { id } => exit_with(milestone_children(&id)),
             Self::MarkWritten { id, value } => exit_with(mark_epics_written(&id, value)),
@@ -163,6 +166,15 @@ impl PlanningMilestonesCommand {
             Self::NextToComplete => exit_with(next_to_complete()),
         }
     }
+}
+
+fn get_milestone(id: &str) -> ParserResult<serde_json::Value> {
+    let items = planning_milestones::for_active_project()?;
+    let item = items
+        .into_iter()
+        .find(|m| m.id == id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(id.to_string()))?;
+    Ok(serde_json::to_value(item)?)
 }
 
 fn next_milestone() -> ParserResult<serde_json::Value> {

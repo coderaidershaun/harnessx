@@ -60,6 +60,8 @@ pub enum IntakeActionsCommand {
     },
     /// List all action items.
     List,
+    /// Get a single action item by ID.
+    Get { id: String },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -109,8 +111,18 @@ impl IntakeActionsCommand {
             )),
 
             Self::List => exit_with(intake_actions::for_active_project()),
+            Self::Get { id } => exit_with(get_action(&id)),
         }
     }
+}
+
+fn get_action(id: &str) -> ParserResult<serde_json::Value> {
+    let items = intake_actions::for_active_project()?;
+    let item = items
+        .into_iter()
+        .find(|a| a.id == id)
+        .ok_or_else(|| ParserError::ActionItemNotFound(id.to_string()))?;
+    Ok(serde_json::to_value(item)?)
 }
 
 fn parse_complexity(s: &str) -> ParserResult<Complexity> {

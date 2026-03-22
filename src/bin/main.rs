@@ -8,6 +8,7 @@ use harnessx::commands::intake_completion::IntakeCompletionCommand;
 use harnessx::commands::intake_onboarding::IntakeOnboardingCommand;
 use harnessx::commands::intake_actions::IntakeActionsCommand;
 use harnessx::commands::intake_team::IntakeTeamCommand;
+use harnessx::commands::planning::PlanningCommand;
 use harnessx::commands::planning_epics::PlanningEpicsCommand;
 use harnessx::commands::planning_milestones::PlanningMilestonesCommand;
 use harnessx::commands::planning_stories::PlanningStoriesCommand;
@@ -61,6 +62,11 @@ enum Command {
         #[command(subcommand)]
         command: IntakeTeamCommand,
     },
+    /// Manage planning stage progress.
+    Planning {
+        #[command(subcommand)]
+        command: PlanningCommand,
+    },
     /// Manage planning epics.
     PlanningEpics {
         #[command(subcommand)]
@@ -94,6 +100,7 @@ fn main() {
         Command::Progress { command } => command.run(),
         Command::IntakeActions { command } => command.run(),
         Command::IntakeTeam { command } => command.run(),
+        Command::Planning { command } => command.run(),
         Command::PlanningEpics { command } => command.run(),
         Command::PlanningMilestones { command } => command.run(),
         Command::PlanningStories { command } => command.run(),

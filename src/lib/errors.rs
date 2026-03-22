@@ -74,6 +74,12 @@ pub enum ParserError {
     #[error("planning task '{0}' not found")]
     PlanningTaskNotFound(String),
 
+    #[error("planning progress already initialised for project '{0}'")]
+    PlanningAlreadyExists(String),
+
+    #[error("no planning progress found for project '{0}' — run `planning init` first")]
+    PlanningNotFound(String),
+
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
 }
