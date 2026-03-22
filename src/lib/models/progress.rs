@@ -19,7 +19,7 @@ pub struct Stage {
 }
 
 /// Ordered list of all pipeline stage names, defining the progression order.
-pub const PROGRESS_STAGES: [&str; 9] = [
+pub const PROGRESS_STAGES: [&str; 10] = [
     "user_input_required",
     "intake_onboarding",
     "intake_team",
@@ -28,6 +28,7 @@ pub const PROGRESS_STAGES: [&str; 9] = [
     "review",
     "execution",
     "user_acceptance",
+    "uat_rework",
     "complete",
 ];
 
@@ -41,12 +42,21 @@ pub struct ProjectProgress {
     pub review: Stage,
     pub execution: Stage,
     pub user_acceptance: Stage,
+    #[serde(default = "default_uat_rework_stage")]
+    pub uat_rework: Stage,
     pub complete: Stage,
+}
+
+fn default_uat_rework_stage() -> Stage {
+    Stage {
+        skill: "hx:uat-rework".into(),
+        ..Default::default()
+    }
 }
 
 impl ProjectProgress {
     /// Returns an ordered snapshot of all stages.
-    pub fn items(&self) -> [(&str, &Stage); 9] {
+    pub fn items(&self) -> [(&str, &Stage); 10] {
         [
             ("user_input_required", &self.user_input_required),
             ("intake_onboarding", &self.intake_onboarding),
@@ -56,6 +66,7 @@ impl ProjectProgress {
             ("review", &self.review),
             ("execution", &self.execution),
             ("user_acceptance", &self.user_acceptance),
+            ("uat_rework", &self.uat_rework),
             ("complete", &self.complete),
         ]
     }
@@ -70,6 +81,7 @@ impl ProjectProgress {
             "review" => Some(&mut self.review),
             "execution" => Some(&mut self.execution),
             "user_acceptance" => Some(&mut self.user_acceptance),
+            "uat_rework" => Some(&mut self.uat_rework),
             "complete" => Some(&mut self.complete),
             _ => None,
         }
@@ -180,7 +192,11 @@ impl Default for ProjectProgress {
                 ..Default::default()
             },
             user_acceptance: Stage {
-                skill: "hx:TODO-WARN-USER".into(),
+                skill: "hx:user-acceptance".into(),
+                ..Default::default()
+            },
+            uat_rework: Stage {
+                skill: "hx:uat-rework".into(),
                 ..Default::default()
             },
             complete: Stage::default(),

@@ -4,7 +4,7 @@ Tracks progress through pipeline stages for the active project. Stored at `harne
 
 Each stage has `status` (a Status value) and `skill` (the skill that handles this stage).
 
-Stages (in order): `user_input_required`, `intake_onboarding`, `intake_team`, `intake_completion`, `planning`, `review`, `execution`, `user_acceptance`, `complete`.
+Stages (in order): `user_input_required`, `intake_onboarding`, `intake_team`, `intake_completion`, `planning`, `review`, `execution`, `user_acceptance`, `uat_rework`, `complete`.
 
 ## `progress init`
 
@@ -23,7 +23,11 @@ harnessx progress init
     "intake_team": { "status": "not_started", "skill": "hx:intake-team" },
     "intake_completion": { "status": "not_started", "skill": "hx:intake-completion" },
     "planning": { "status": "not_started", "skill": "hx:planning" },
-    ...
+    "review": { "status": "not_started", "skill": "hx:review" },
+    "execution": { "status": "not_started", "skill": "hx:execution-next-task" },
+    "user_acceptance": { "status": "not_started", "skill": "hx:user-acceptance" },
+    "uat_rework": { "status": "not_started", "skill": "hx:uat-rework" },
+    "complete": { "status": "not_started", "skill": "" }
   }
 }
 ```

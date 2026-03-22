@@ -595,21 +595,96 @@ The troubleshooting skill:
 
 ---
 
-## Phase 8: User Acceptance (Planned)
+## Phase 8: User Acceptance
 
+**Skill:** `hx:user-acceptance`
 **Pipeline stage:** `user_acceptance`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-The UAT phase where the user verifies the project against the criteria defined in intake section 6. Runs through the demo scenarios, hands-on testing, evidence review, and edge cases captured during intake.
+The user's moment to evaluate what was built. This skill walks the user through every UAT scenario defined during intake section 6, collects structured verdicts, and routes the pipeline based on the user's decision.
+
+### Phase 8a: Load Context
+
+Loads the UAT plan from `intake/user_acceptance_testing.md`, success measures, execution history, and the milestone list. If `uat_feedback.md` exists from a prior rework round, detects this as a re-test and loads the previous feedback for context.
+
+### Phase 8b: Present UAT Overview
+
+Presents what was built (from milestones and history), the test scenarios organized by category (live demos, hands-on testing, evidence/artifacts, edge cases), and the sign-off criteria from intake. If this is a re-test, frames it as "round N" and summarizes what was previously flagged.
+
+### Phase 8c: Walk Through Test Scenarios
+
+For each scenario from the UAT plan:
+1. Presents the scenario with expected result and linked success measure
+2. Asks the user to test it (or confirm they have)
+3. Collects their verdict: **PASS** / **FAIL** / **PARTIAL**
+4. For FAIL/PARTIAL: collects expected vs. actual, severity, and specific feedback
+
+### Phase 8d: Overall Verdict
+
+Presents a summary of results and asks the user for their decision:
+
+- **APPROVED**: Marks `user_acceptance` and `uat_rework` both complete. Pipeline advances to `complete`.
+- **REWORK NEEDED**: Writes structured feedback to `uat_feedback.md`, resets `uat_rework` to `not_started`, marks `user_acceptance` complete. Pipeline advances to `uat_rework`.
+
+The skill requires at least one specific piece of feedback before proceeding with rework. Vague feedback ("it doesn't feel right") gets probed for concrete issues.
 
 ---
 
-## Phase 9: Complete
+## Phase 9: UAT Rework
+
+**Skill:** `hx:uat-rework`
+**Pipeline stage:** `uat_rework`
+
+Takes the structured feedback from user acceptance testing and creates a rework plan with the full planning hierarchy (milestone, epics, stories, tasks). Unlike the automated milestone-level rework during execution, UAT rework is driven by the user's direct feedback.
+
+### Phase 9a: Read Feedback and Context
+
+Reads `uat_feedback.md` (written by the user_acceptance skill), intake documents, execution history, and the current milestone/task state. If no feedback file exists, reports an error and marks the stage complete (safety valve).
+
+### Phase 9b: Create Rework Milestone
+
+Creates a milestone titled "UAT Rework Round N: [summary of key issues]" with the auto-assigned ID from the CLI.
+
+### Phase 9c: Plan the Rework Hierarchy
+
+Uses the dual-agent methodology from `hx:planning-tasks`:
+
+- **Proposer agent (opus)**: Receives all context and proposes epics, stories, and tasks that address every FAIL and PARTIAL scenario
+- **Reviewer agent (opus)**: Validates feedback coverage, regression risk, task sizing, skill assignments, and acceptance criteria quality
+
+Creates the full hierarchy via CLI (`planning-epics create`, `planning-stories create`, `planning-tasks create`) and marks all `*_written` flags.
+
+### Phase 9d: Reset Pipeline
+
+```bash
+harnessx progress update execution not_started
+harnessx progress update user_acceptance not_started
+harnessx progress complete uat_rework
+```
+
+`progress next` now returns `execution` (the first incomplete stage). The execution engine picks up the new rework tasks via `planning-tasks next` — all previously completed tasks remain completed, so only the new tasks are returned.
+
+### The UAT Rework Loop
+
+```
+execution → user_acceptance → uat_rework → execution → user_acceptance → ... → complete
+```
+
+This loop can run as many times as needed. Each round:
+1. `user_acceptance` collects feedback, writes `uat_feedback.md`, resets `uat_rework`
+2. `uat_rework` creates rework plan, resets `execution` and `user_acceptance`
+3. `execution` runs the new rework tasks
+4. `user_acceptance` runs again — if the user approves, both stages are marked complete and the pipeline advances to `complete`
+
+**No companion rework milestone**: Unlike main milestones during initial planning, UAT rework milestones do NOT get automated rework companions. The user's re-testing during the next `user_acceptance` round serves as the verification mechanism.
+
+---
+
+## Phase 10: Complete
 
 **Pipeline stage:** `complete`
 **No skill assigned.**
 
-When all 8 preceding stages are complete, the pipeline reaches this terminal state. `harnessx progress next` returns a message indicating all stages are completed. The project is ready for delivery.
+When all 9 preceding stages are complete, the pipeline reaches this terminal state. `harnessx progress next` returns a message indicating all stages are completed. The project is ready for delivery.
 
 ---
 
@@ -640,9 +715,12 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 │  7   │ execution            │ hx:execution-    │ Implemented    │
 │      │                      │ next-task        │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  8   │ user_acceptance      │ (planned)        │ Not yet        │
+│  8   │ user_acceptance      │ hx:user-         │ Implemented    │
+│      │                      │ acceptance       │                │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  9   │ complete             │ (none)           │ Terminal state │
+│  9   │ uat_rework           │ hx:uat-rework    │ Implemented    │
+├──────┼──────────────────────┼──────────────────┼────────────────┤
+│  10  │ complete             │ (none)           │ Terminal state │
 └──────┴──────────────────────┴──────────────────┴────────────────┘
 ```
 
@@ -708,6 +786,8 @@ harnessx ships with skill definitions organized into three groups:
 | `hx:milestone-rework-verification` | Lightweight final test verification after rework |
 | `hx:tag-context-reading` | Trace tags up the hierarchy for full context |
 | `hx:execution-next-task` | Pick up and dispatch the next ready task |
+| `hx:user-acceptance` | Walk user through UAT, collect verdicts, route to rework or completion |
+| `hx:uat-rework` | Create rework milestone from UAT feedback, reset pipeline for re-execution |
 | `hx:user-troubleshooting` | Diagnose and resolve pipeline failures |
 
 ### Rust Development Skills (`rust:*`)
