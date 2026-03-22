@@ -61,7 +61,7 @@ If milestones already exist, you are updating/refining them — not starting fro
 
 ## Step 3: Analyze and plan milestones
 
-This is where your deep thinking matters most. Use extended thinking to work through this carefully.
+This is where your deep thinking matters most. Use extended thinking (ultrathink) to work through this carefully — the quality of your milestones determines the quality of the entire plan downstream. Take your time. Consider multiple framings. Challenge your first instinct.
 
 ### What you're looking for
 
@@ -148,13 +148,7 @@ Incorporate the reviewer's feedback. If the critique is substantive, revise your
 
 ## Step 5: Write milestones via CLI
 
-Before writing, read the CLI reference to confirm exact flags:
-
-```bash
-# Read the planning-milestones docs if you haven't this session
-```
-
-Reference: `docs/planning-milestones.md`
+Before writing, read the CLI reference to confirm exact flags. Read `docs/planning-milestones.md` if you haven't this session — the flag names and behavior (especially which flags replace vs. append) matter.
 
 ### Creating milestones
 
