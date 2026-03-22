@@ -7,7 +7,8 @@ use std::collections::HashSet;
 
 use crate::errors::{ParserError, ParserResult};
 use crate::models::intake_actions::{ActionMode, Complexity};
-use crate::models::planning_milestones::MilestoneNote;
+use crate::models::planning_epics;
+use crate::models::planning_milestones::{self, MilestoneNote};
 use crate::models::planning_stories;
 use crate::models::planning_tasks::{self, Task, TaskTraces};
 use crate::models::status::Status;
@@ -249,12 +250,49 @@ fn task_parent(id: &str) -> ParserResult<serde_json::Value> {
     Ok(serde_json::to_value(story)?)
 }
 
+/// Checks whether a task's parent milestone has all its `depends_on` milestones completed.
+///
+/// Traces task → story → epic → milestone, then checks each milestone dependency.
+/// Returns `true` if all milestone-level dependencies are satisfied (or if the
+/// parent chain can't be resolved — we don't block on missing data).
+fn milestone_deps_met(
+    task: &Task,
+    stories: &[planning_stories::Story],
+    epics: &[planning_epics::Epic],
+    milestones: &[planning_milestones::Milestone],
+) -> bool {
+    // Trace: task → story → epic → milestone
+    let story = stories
+        .iter()
+        .find(|s| format!("#{}", s.id) == task.story);
+    let epic = story.and_then(|s| {
+        epics.iter().find(|e| format!("#{}", e.id) == s.epic)
+    });
+    let ms = epic.and_then(|e| {
+        milestones
+            .iter()
+            .find(|m| format!("#{}", m.id) == e.milestone)
+    });
+
+    let Some(ms) = ms else { return true };
+
+    // Check each milestone dependency is completed
+    ms.depends_on.iter().all(|dep| {
+        let dep_id = strip_hash(dep);
+        milestones
+            .iter()
+            .find(|m| m.id.as_str() == dep_id)
+            .map(|m| m.status.is_completed())
+            .unwrap_or(true) // missing dependency → don't block
+    })
+}
+
 /// Finds the next task that is ready to work on.
 ///
 /// Algorithm:
 /// 1. Collect IDs of all completed tasks.
-/// 2. A task is "ready" if it is not completed and ALL of its dependencies
-///    are in the completed set.
+/// 2. A task is "ready" if it is not completed, ALL of its task-level dependencies
+///    are in the completed set, AND its parent milestone's dependencies are completed.
 /// 3. Among ready tasks, return the one with the lowest `order`.
 /// 4. If no tasks are ready but incomplete tasks remain, report them as blocked
 ///    with the specific unmet dependencies for each.
@@ -262,6 +300,11 @@ fn task_parent(id: &str) -> ParserResult<serde_json::Value> {
 fn next_task() -> ParserResult<serde_json::Value> {
     let mut items = planning_tasks::for_active_project()?;
     items.sort_by_key(|t| t.order);
+
+    // Load hierarchy for milestone-level dependency checks
+    let stories = planning_stories::for_active_project().unwrap_or_default();
+    let epics = planning_epics::for_active_project().unwrap_or_default();
+    let milestones = planning_milestones::for_active_project().unwrap_or_default();
 
     let completed_ids: HashSet<&str> = items
         .iter()
@@ -280,11 +323,14 @@ fn next_task() -> ParserResult<serde_json::Value> {
         }));
     }
 
-    // Find the first task whose dependencies are all satisfied.
+    // Find the first task whose task-level AND milestone-level dependencies are all satisfied.
     let ready = incomplete.iter().find(|t| {
-        t.depends_on
+        let task_deps_met = t
+            .depends_on
             .iter()
-            .all(|dep| completed_ids.contains(strip_hash(dep)))
+            .all(|dep| completed_ids.contains(strip_hash(dep)));
+        let ms_deps_met = milestone_deps_met(t, &stories, &epics, &milestones);
+        task_deps_met && ms_deps_met
     });
 
     match ready {

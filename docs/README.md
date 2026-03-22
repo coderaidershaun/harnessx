@@ -455,6 +455,28 @@ After the executing agent returns:
 
 Then stop. The user or operator invokes again for the next task.
 
+### Phase 7g: Milestone Review & Rework
+
+Every main milestone has an auto-generated companion **rework milestone** that acts as a quality gate. The dependency chain enforces ordering:
+
+```
+milestone-1 (main) → milestone-2 (rework) → milestone-3 (main) → milestone-4 (rework) → ...
+```
+
+Each rework milestone has a single pre-built epic → story → task structure. The review task is assigned to `hx:milestone-rework-assessment` and runs on full autopilot:
+
+1. **Run all tests** — `cargo test -- --test-threads=1` (unit) and `cargo test -- --ignored --test-threads=1` (integration), sequentially.
+2. **Dispatch 4 review agents** (parallel, opus) — Test Analyst, Code Quality, Cross-Component Integration, Success Measure Verifier.
+3. **Synthesize findings** — Deduplicate, rank by severity (Critical / Warning / Observation).
+4. **Create rework tasks** — For each Critical or Warning issue, create a rework task via CLI under the rework story. Then create a final verification task (`hx:milestone-rework-verification`) that depends on all rework tasks and re-runs all tests.
+5. **Clean pass** — If no issues found, the rework milestone completes with just the review task.
+
+The rework cycle is self-correcting: verification task fails → creates focused fix task → re-verification. Naturally converges as issues are resolved. After 3+ cycles, the system flags for attention.
+
+**CLI enforcement**: The `planning-tasks next` function enforces milestone-level dependencies. Tasks in a rework milestone won't be returned until the parent main milestone is completed. Tasks in the next main milestone won't be returned until the rework milestone is completed.
+
+**Planning compatibility**: Rework milestones are created during the milestone planning phase with all `*_written` flags set (`epics_written`, `stories_written`, `tasks_written`). The `next-to-write` mechanism in downstream planning skills automatically skips them.
+
 ### Available Execution Skills
 
 The skill fleet available for execution includes 9 Rust specialists plus a coordinator, and any additional language/domain teams created during intake team:
@@ -682,6 +704,8 @@ harnessx ships with skill definitions organized into three groups:
 | `hx:planning-stories` | Decompose epics into testable behaviours |
 | `hx:planning-tasks` | Decompose stories into atomic implementation tasks |
 | `hx:review` | Quality gate — 5-agent review + remediation before execution |
+| `hx:milestone-rework-assessment` | Autonomous milestone review — 4-agent assessment + rework task creation |
+| `hx:milestone-rework-verification` | Lightweight final test verification after rework |
 | `hx:tag-context-reading` | Trace tags up the hierarchy for full context |
 | `hx:execution-next-task` | Pick up and dispatch the next ready task |
 | `hx:user-troubleshooting` | Diagnose and resolve pipeline failures |

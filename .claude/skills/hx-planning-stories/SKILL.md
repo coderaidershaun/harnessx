@@ -37,6 +37,12 @@ harnessx planning-epics next
 
 You need the epic's full object — its `title`, `description`, `milestone`, `categories`, and `traces`. The description tells you what capability is being built. The traces tell you which action items feed into this epic.
 
+### Pre-built check
+
+Before proceeding, check if this epic already has its stories pre-built:
+
+If the epic has `stories_written: true`, it has pre-built structure from rework milestone generation. Report to the user: "This epic already has pre-built stories (from rework milestone setup). No additional story planning needed." Stop — do not create additional stories.
+
 ---
 
 ## Step 2: Read context

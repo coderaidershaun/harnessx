@@ -35,6 +35,14 @@ harnessx planning-milestones next
 
 You need the milestone's full object — especially its `traces` (which action items and intake sources it maps to), `success_measures`, `uat_criteria`, and `description`. This is your north star for what the epics must collectively achieve.
 
+### Pre-built check
+
+Before proceeding, check if this milestone already has its epics pre-built:
+
+If the milestone has `epics_written: true`, it has pre-built structure from rework milestone generation. Report to the user: "This milestone already has pre-built epics (from rework milestone setup). No additional epic planning needed." Stop — do not create additional epics.
+
+This check is important for rework milestones, which are auto-generated with a single pre-built epic/story/task structure that should not be modified during planning.
+
 ---
 
 ## Step 2: Read context

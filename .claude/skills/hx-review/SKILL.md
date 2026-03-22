@@ -99,6 +99,8 @@ Brief justification for the score.
 > 7. **Dead-end tasks** — Are there tasks that nothing depends on and that aren't the final task in their story?
 >
 > For each issue, specify exactly which task/story/epic IDs are affected and what the fix should be.
+>
+> **Rework milestones**: Some milestones are auto-generated "Review & rework" companions (titles start with "Review & rework:"). These have a single pre-built epic/story/task structure assigned to `hx:milestone-rework-assessment`. This is intentional — the review task dynamically creates additional tasks during execution. Do NOT flag these as under-planned, orphaned, or missing traces. Do NOT recommend adding tasks, stories, or epics to them. Evaluate them only for: correct dependency chain (depends on parent milestone), correct skill assignment, and correct ordering.
 
 **Model:** opus (needs deep reasoning about dependency graphs)
 
@@ -119,6 +121,8 @@ Brief justification for the score.
 > 7. **Output clarity** — Does the task make clear what files/code/artifacts it should produce? Will the next task in the chain know where to find what this task created?
 >
 > Flag any task where an independent agent would likely produce poor results or get stuck.
+>
+> **Rework milestones**: Some milestones are auto-generated "Review & rework" companions (titles start with "Review & rework:"). These have a single pre-built epic/story/task structure assigned to `hx:milestone-rework-assessment`. This is intentional — the review task dynamically creates additional tasks during execution. Do NOT flag these as under-planned, orphaned, or missing traces. Do NOT recommend adding tasks, stories, or epics to them. Evaluate them only for: correct dependency chain (depends on parent milestone), correct skill assignment, and correct ordering.
 
 **Model:** opus (needs to simulate agent execution mentally)
 
@@ -139,6 +143,8 @@ Brief justification for the score.
 > 7. **Over-engineering** — Are there tasks or epics that go beyond what the user asked for? Gold-plating that adds complexity without addressing a stated need?
 >
 > Be specific — cite the exact text from intake documents and the exact planning artifact IDs.
+>
+> **Rework milestones**: Some milestones are auto-generated "Review & rework" companions (titles start with "Review & rework:"). These have a single pre-built epic/story/task structure assigned to `hx:milestone-rework-assessment`. This is intentional — the review task dynamically creates additional tasks during execution. Do NOT flag these as under-planned, orphaned, or missing traces. Do NOT recommend adding tasks, stories, or epics to them. Evaluate them only for: correct dependency chain (depends on parent milestone), correct skill assignment, and correct ordering.
 
 **Model:** opus (needs to cross-reference intake text with planning artifacts)
 
@@ -159,6 +165,8 @@ Brief justification for the score.
 > 7. **Note preservation** — Do the blindspot notes on action items (often warnings from the intake-actions-writing skill about agent pitfalls) appear to be addressed by the task design?
 >
 > For each orphaned action item, recommend which planning level it should be addressed at (new task? new story? already covered implicitly?).
+>
+> **Rework milestones**: Some milestones are auto-generated "Review & rework" companions (titles start with "Review & rework:"). These have a single pre-built epic/story/task structure assigned to `hx:milestone-rework-assessment`. This is intentional — the review task dynamically creates additional tasks during execution. Do NOT flag these as under-planned, orphaned, or missing traces. Do NOT recommend adding tasks, stories, or epics to them. Evaluate them only for: correct dependency chain (depends on parent milestone), correct skill assignment, and correct ordering.
 
 **Model:** opus (needs to cross-reference two large datasets)
 
@@ -179,6 +187,8 @@ Brief justification for the score.
 > 7. **Sum-of-parts check** — If every task were completed perfectly to spec, would the result be a working system? Or are there assembly steps, configuration, deployment, or integration work that nobody owns?
 >
 > For each risk, rate severity (critical/warning/observation) and recommend a specific fix (new task, modified task, architectural decision task, etc.).
+>
+> **Rework milestones**: Some milestones are auto-generated "Review & rework" companions (titles start with "Review & rework:"). These have a single pre-built epic/story/task structure assigned to `hx:milestone-rework-assessment`. This is intentional — the review task dynamically creates additional tasks during execution. Do NOT flag these as under-planned, orphaned, or missing traces. Do NOT recommend adding tasks, stories, or epics to them. Evaluate them only for: correct dependency chain (depends on parent milestone), correct skill assignment, and correct ordering.
 
 **Model:** opus (needs holistic systems thinking)
 
