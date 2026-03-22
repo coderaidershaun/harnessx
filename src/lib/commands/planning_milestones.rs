@@ -1,4 +1,4 @@
-//! Planning milestone subcommands: create, remove, update, list.
+//! Planning milestone subcommands: create, remove, update, list, next.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -61,6 +61,8 @@ pub enum PlanningMilestonesCommand {
     },
     /// List all milestones.
     List,
+    /// Show the next incomplete milestone (by order).
+    Next,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -132,7 +134,22 @@ impl PlanningMilestonesCommand {
             )),
 
             Self::List => exit_with(planning_milestones::for_active_project()),
+            Self::Next => exit_with(next_milestone()),
         }
+    }
+}
+
+fn next_milestone() -> ParserResult<serde_json::Value> {
+    let mut items = planning_milestones::for_active_project()?;
+    items.sort_by_key(|m| m.order);
+
+    let next = items.into_iter().find(|m| !m.status.is_completed());
+
+    match next {
+        Some(milestone) => Ok(serde_json::to_value(milestone)?),
+        None => Ok(serde_json::json!({
+            "message": "All milestones completed."
+        })),
     }
 }
 

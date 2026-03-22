@@ -60,6 +60,16 @@ Links a milestone back to intake artifacts for traceability.
 |--------|--------|--------------|
 | `note` | string | Note content |
 
+## `planning-milestones next`
+
+Returns the next incomplete milestone by `order`. If all milestones are completed, returns a completion message.
+
+```bash
+harnessx planning-milestones next
+```
+
+Returns the full milestone object so the calling agent has all context needed to act on it.
+
 ## `planning-milestones create`
 
 Creates a new milestone for the active project. The `id` is auto-assigned (`milestone-1`, `milestone-2`, ...) and `order` defaults to the next sequential value.

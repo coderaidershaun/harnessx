@@ -1,4 +1,4 @@
-//! Planning epic subcommands: create, remove, update, list.
+//! Planning epic subcommands: create, remove, update, list, next.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -62,6 +62,8 @@ pub enum PlanningEpicsCommand {
     },
     /// List all epics.
     List,
+    /// Show the next incomplete epic (by order).
+    Next,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -133,7 +135,22 @@ impl PlanningEpicsCommand {
             )),
 
             Self::List => exit_with(planning_epics::for_active_project()),
+            Self::Next => exit_with(next_epic()),
         }
+    }
+}
+
+fn next_epic() -> ParserResult<serde_json::Value> {
+    let mut items = planning_epics::for_active_project()?;
+    items.sort_by_key(|e| e.order);
+
+    let next = items.into_iter().find(|e| !e.status.is_completed());
+
+    match next {
+        Some(epic) => Ok(serde_json::to_value(epic)?),
+        None => Ok(serde_json::json!({
+            "message": "All epics completed."
+        })),
     }
 }
 

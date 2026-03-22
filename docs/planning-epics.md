@@ -60,6 +60,16 @@ Links an epic back to intake artifacts for traceability.
 |--------|--------|--------------|
 | `note` | string | Note content |
 
+## `planning-epics next`
+
+Returns the next incomplete epic by `order`. If all epics are completed, returns a completion message.
+
+```bash
+harnessx planning-epics next
+```
+
+Returns the full epic object so the calling agent has all context needed to act on it.
+
 ## `planning-epics create`
 
 Creates a new epic for the active project. The `id` is auto-assigned (`epic-1`, `epic-2`, ...) and `order` defaults to the next sequential value.

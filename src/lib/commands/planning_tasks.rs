@@ -1,7 +1,9 @@
-//! Planning task subcommands: create, remove, update, list.
+//! Planning task subcommands: create, remove, update, list, next.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
+
+use std::collections::HashSet;
 
 use crate::errors::{ParserError, ParserResult};
 use crate::models::intake_actions::{ActionMode, Complexity};
@@ -79,6 +81,8 @@ pub enum PlanningTasksCommand {
     },
     /// List all tasks.
     List,
+    /// Show the next ready task (dependency-aware).
+    Next,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -201,6 +205,80 @@ impl PlanningTasksCommand {
             )),
 
             Self::List => exit_with(planning_tasks::for_active_project()),
+            Self::Next => exit_with(next_task()),
+        }
+    }
+}
+
+/// Strips a leading `#` from a dependency reference if present.
+/// `depends_on` values are stored as `"#task-1"` but IDs are `"task-1"`.
+fn strip_hash(s: &str) -> &str {
+    s.strip_prefix('#').unwrap_or(s)
+}
+
+/// Finds the next task that is ready to work on.
+///
+/// Algorithm:
+/// 1. Collect IDs of all completed tasks.
+/// 2. A task is "ready" if it is not completed and ALL of its dependencies
+///    are in the completed set.
+/// 3. Among ready tasks, return the one with the lowest `order`.
+/// 4. If no tasks are ready but incomplete tasks remain, report them as blocked
+///    with the specific unmet dependencies for each.
+/// 5. If all tasks are completed, report completion.
+fn next_task() -> ParserResult<serde_json::Value> {
+    let mut items = planning_tasks::for_active_project()?;
+    items.sort_by_key(|t| t.order);
+
+    let completed_ids: HashSet<&str> = items
+        .iter()
+        .filter(|t| t.status.is_completed())
+        .map(|t| t.id.as_str())
+        .collect();
+
+    let incomplete: Vec<&Task> = items
+        .iter()
+        .filter(|t| !t.status.is_completed())
+        .collect();
+
+    if incomplete.is_empty() {
+        return Ok(serde_json::json!({
+            "message": "All tasks completed."
+        }));
+    }
+
+    // Find the first task whose dependencies are all satisfied.
+    let ready = incomplete.iter().find(|t| {
+        t.depends_on
+            .iter()
+            .all(|dep| completed_ids.contains(strip_hash(dep)))
+    });
+
+    match ready {
+        Some(task) => Ok(serde_json::to_value((*task).clone())?),
+        None => {
+            // All remaining tasks are blocked — report what's blocking each.
+            let blocked: Vec<serde_json::Value> = incomplete
+                .iter()
+                .map(|t| {
+                    let unmet: Vec<&str> = t
+                        .depends_on
+                        .iter()
+                        .filter(|dep| !completed_ids.contains(strip_hash(dep)))
+                        .map(|s| s.as_str())
+                        .collect();
+                    serde_json::json!({
+                        "id": t.id,
+                        "title": t.title,
+                        "blocked_by": unmet,
+                    })
+                })
+                .collect();
+
+            Ok(serde_json::json!({
+                "message": "All remaining tasks are blocked by unmet dependencies.",
+                "blocked_tasks": blocked,
+            }))
         }
     }
 }

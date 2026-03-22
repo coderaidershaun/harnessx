@@ -1,4 +1,4 @@
-//! Planning story subcommands: create, remove, update, list.
+//! Planning story subcommands: create, remove, update, list, next.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -62,6 +62,8 @@ pub enum PlanningStoriesCommand {
     },
     /// List all stories.
     List,
+    /// Show the next incomplete story (by order).
+    Next,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -142,7 +144,22 @@ impl PlanningStoriesCommand {
             )),
 
             Self::List => exit_with(planning_stories::for_active_project()),
+            Self::Next => exit_with(next_story()),
         }
+    }
+}
+
+fn next_story() -> ParserResult<serde_json::Value> {
+    let mut items = planning_stories::for_active_project()?;
+    items.sort_by_key(|s| s.order);
+
+    let next = items.into_iter().find(|s| !s.status.is_completed());
+
+    match next {
+        Some(story) => Ok(serde_json::to_value(story)?),
+        None => Ok(serde_json::json!({
+            "message": "All stories completed."
+        })),
     }
 }
 

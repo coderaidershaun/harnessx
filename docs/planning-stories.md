@@ -63,6 +63,16 @@ Links a story back to intake artifacts for traceability.
 |--------|--------|--------------|
 | `note` | string | Note content |
 
+## `planning-stories next`
+
+Returns the next incomplete story by `order`. If all stories are completed, returns a completion message.
+
+```bash
+harnessx planning-stories next
+```
+
+Returns the full story object so the calling agent has all context needed to act on it.
+
 ## `planning-stories create`
 
 Creates a new story for the active project. The `id` is auto-assigned (`story-1`, `story-2`, ...) and `order` defaults to the next sequential value.

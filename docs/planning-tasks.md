@@ -94,6 +94,44 @@ Extended traces that include output sources for traceability to generated code.
 |--------|--------|--------------|
 | `note` | string | Note content |
 
+## `planning-tasks next`
+
+Returns the next task that is **ready to work on** using dependency-aware resolution.
+
+```bash
+harnessx planning-tasks next
+```
+
+### Algorithm
+
+1. Collect the IDs of all completed tasks.
+2. A task is "ready" if it is **not completed** and **all** of its `depends_on` references resolve to completed tasks. The `#` prefix on dependency references (e.g. `#task-1`) is stripped automatically when matching against task IDs.
+3. Among ready tasks, return the one with the lowest `order`.
+4. If no tasks are ready but incomplete tasks remain, return a `blocked_tasks` array listing each blocked task and its unmet dependencies.
+5. If all tasks are completed, return a completion message.
+
+### Response shapes
+
+**Ready task found** — returns the full task object:
+```json
+{ "id": "task-3", "order": 3, "title": "...", "steps": [...], ... }
+```
+
+**All blocked** — returns diagnostics:
+```json
+{
+  "message": "All remaining tasks are blocked by unmet dependencies.",
+  "blocked_tasks": [
+    { "id": "task-5", "title": "...", "blocked_by": ["#task-3", "#task-4"] }
+  ]
+}
+```
+
+**All completed:**
+```json
+{ "message": "All tasks completed." }
+```
+
 ## `planning-tasks create`
 
 Creates a new task for the active project. The `id` is auto-assigned (`task-1`, `task-2`, ...) and `order` defaults to the next sequential value.
