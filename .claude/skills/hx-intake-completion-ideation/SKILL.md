@@ -1,6 +1,8 @@
 ---
 name: hx-intake-completion-ideation
 description: Creative multi-agent ideation that reads all intake and exploration documents, generates novel ideas to elevate the project, and surfaces the best ones as action items — all without scope creep. Use this skill when the intake-completion ideation section needs to run, when the pipeline reaches ideation after exploration is complete, or when the user says "brainstorm ideas", "what could make this better", "ideate on the project", "creative improvements", "generate ideas". Also trigger when the operator routes to ideation or when the exploration section of intake-completion is done and ideation is next.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Ideation

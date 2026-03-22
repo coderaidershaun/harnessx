@@ -1,6 +1,8 @@
 ---
 name: hx-intake-completion-exploration
 description: Deep-dive exploration of all project resources collected during intake — dispatches multi-agents to explore codebases, documents, APIs, and research materials, then produces thorough notes and action items with bidirectional tagging. Use this skill when the pipeline reaches the intake_completion stage, when intake-completion exploration needs to run, or when the user says "explore my resources", "deep dive the codebase", "analyze the repos", "review the research". Also trigger when the operator routes to the intake_completion stage or when all intake_team sections are complete and the pipeline advances.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Exploration

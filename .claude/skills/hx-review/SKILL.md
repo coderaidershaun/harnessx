@@ -10,8 +10,8 @@ description: >
   "validate the plan", "sanity check", or anything about reviewing whether the planned work will actually
   achieve the project goal. Also trigger when the operator routes to the review stage, after all planning is
   complete, or when the user wants to verify that agents working independently will produce a coherent outcome.
-user-invocable: true
 disable-model-invocation: false
+user-invocable: false
 ---
 
 # Project Review

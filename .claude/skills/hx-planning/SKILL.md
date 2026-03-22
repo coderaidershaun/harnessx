@@ -1,6 +1,8 @@
 ---
 name: hx:planning
 description: Orchestrate the planning stage of the harnessx pipeline — coordinate milestones, epics, stories, and task decomposition across multiple sessions with proper progress tracking via the harnessx CLI. Use this skill when the pipeline reaches the planning stage, when the user says "start planning", "plan the project", "continue planning", "write milestones", "write epics", "write stories", "write tasks", or when the operator routes to the planning stage. Also trigger when the user wants to resume planning work from a previous session, or when they ask "what's next in planning". This is the single entry point for all planning work — it determines what needs to happen and loads the right specialist skill.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # HX Planning Coordinator

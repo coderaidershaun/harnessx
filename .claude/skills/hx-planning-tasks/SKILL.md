@@ -2,7 +2,7 @@
 name: hx:planning-tasks
 description: Define and write the atomic implementation tasks needed to deliver a specific story — bite-sized units of work that a specialist agent can complete in a single focused session without context overflow. Given a story (or auto-selecting the next one), reads all context up the full hierarchy (story → epic → milestone → intake), discovers available specialist skills, then launches dual agents (one to propose tasks, one to review and enhance) before writing tasks to planning_tasks.json with skill assignments, complexity ratings, steps, integration tests, and full traceability. Use this skill when the user says "write tasks", "plan tasks", "what tasks does this story need", "break down this story", "define tasks for story-1", "task out this story", or anything about decomposing a story into implementation work. Also trigger after stories are written and the next step is task decomposition, or when the operator routes to task planning.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Planning Tasks

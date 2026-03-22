@@ -6,8 +6,8 @@ description: >
   and the rework milestone can close. If failures remain, creates one focused fix task for the specific
   failure. Use this skill when the final verification task in a rework milestone is dispatched during
   execution.
-user-invocable: true
 disable-model-invocation: false
+user-invocable: false
 ---
 
 # Milestone Rework Verification

@@ -1,6 +1,8 @@
 ---
 name: hx:intake-completion
 description: Guide the intake completion process through its three sections — exploration, ideation, and project risk management — by looping through each section, loading the appropriate specialist skill, and marking progress. Use this skill when the pipeline reaches the intake_completion stage, when the operator routes to intake_completion, or when the user says "start intake completion", "run exploration and ideation", "continue intake completion". Also trigger after intake_team is complete and the pipeline advances to the next stage.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Intake Completion

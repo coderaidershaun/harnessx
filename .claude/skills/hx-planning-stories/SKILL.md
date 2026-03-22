@@ -2,7 +2,7 @@
 name: hx:planning-stories
 description: Define and write the stories needed to deliver a specific epic — single, testable behavioural increments that each produce a meaningful change in what the system can do. Given an epic (or auto-selecting the next one), reads all context, deeply analyzes what behaviours are missing, writes acceptance criteria, then writes stories to planning_stories.json with full traceability. Use this skill when the user says "write stories", "plan stories", "what stories does this epic need", "break down this epic", "define stories for epic-1", or anything about decomposing an epic into testable behaviours. Also trigger after epics are written and the next step is story decomposition, or when the operator routes to story planning.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Planning Stories

@@ -1,6 +1,8 @@
 ---
 name: hx-intake-completion-project-risk
 description: Multi-agent project risk review that audits all intake documents, exploration notes, and existing action items to identify gaps that would lead to poor quality output — missing concurrency plans, unaddressed error handling, integration assumptions, data integrity blindspots, and other concerns LLMs typically overlook. Creates defensive action items to ensure all bases are covered before planning begins. Use this skill when the intake-completion project_risk_manager section needs to run, when the user says "check for risks", "what are we missing", "audit the actions", "risk review", "gap analysis", or when the pipeline reaches project_risk_manager after ideation completes.
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # Project Risk Manager

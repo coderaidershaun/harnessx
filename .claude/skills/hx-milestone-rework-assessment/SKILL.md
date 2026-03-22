@@ -6,8 +6,8 @@ description: >
   are found. Assigned to the initial review task in each rework milestone. Runs on full autopilot —
   no user gates. Use this skill when a rework milestone's review task is dispatched during execution,
   or when the user says "review milestone", "assess milestone work", "run milestone review".
-user-invocable: true
 disable-model-invocation: false
+user-invocable: false
 ---
 
 # Milestone Rework Assessment

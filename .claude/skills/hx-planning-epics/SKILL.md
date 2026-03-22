@@ -2,7 +2,7 @@
 name: hx:planning-epics
 description: Define and write the epics needed to reach a specific milestone — coherent capability chunks that collectively make the milestone true. Given a milestone (or auto-selecting the next one), reads all intake documents and existing planning artifacts, deeply analyzes what capabilities are missing, then writes epics to planning_epics.json with full traceability. Use this skill when the user says "write epics", "plan epics", "what epics does this milestone need", "break down this milestone", "define epics for milestone-1", or anything about decomposing a milestone into capability chunks. Also trigger after milestones are written and the next step is epic decomposition, or when the operator routes to epic planning.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Planning Epics

@@ -9,7 +9,7 @@ description: >
   "acceptance testing", "sign off", or when the operator routes to user_acceptance after execution
   completes.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # User Acceptance Testing

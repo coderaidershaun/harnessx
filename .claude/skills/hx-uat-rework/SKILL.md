@@ -9,7 +9,7 @@ description: >
   "create rework plan", "address UAT feedback", or when the pipeline naturally advances to
   uat_rework after user_acceptance completes with rework requested.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # UAT Rework

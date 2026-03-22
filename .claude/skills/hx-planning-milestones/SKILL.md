@@ -2,7 +2,7 @@
 name: hx:planning-milestones
 description: Define and write project milestones by reading all intake documents, deeply analyzing what "done" looks like at each checkpoint, then writing milestones to planning_milestones.json with full traceability tags back to action items and intake sections. Use this skill when the pipeline reaches the planning stage, when the user says "write milestones", "plan milestones", "define milestones", "create milestones", "what are the milestones", or anything about breaking the project into demonstrable checkpoints. Also trigger when the operator routes to planning or when intake_completion is done and milestones are the next step.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Planning Milestones
