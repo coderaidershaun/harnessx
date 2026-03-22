@@ -2,6 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
+use harnessx::commands::completion::CompletionArgs;
 use harnessx::commands::context::ContextCommand;
 use harnessx::commands::init::InitArgs;
 use harnessx::commands::intake_completion::IntakeCompletionCommand;
@@ -25,6 +26,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Show completion percentage for a project.
+    Completion(CompletionArgs),
     /// Search for tags and wikilinks across markdown files.
     Context {
         #[command(subcommand)]
@@ -92,6 +95,7 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
+        Command::Completion(args) => args.run(),
         Command::Context { command } => command.run(),
         Command::Init(args) => args.run(),
         Command::Project { command } => command.run(),
