@@ -131,6 +131,7 @@ impl Project {
         planning_epics::save(&[], &id)?;
         planning_stories::save(&[], &id)?;
         planning_tasks::save(&[], &id)?;
+        fs::write(Path::new("harnessx").join(id.as_str()).join("history.md"), "")?;
 
         Ok(project)
     }
