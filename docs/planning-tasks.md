@@ -178,6 +178,16 @@ Lists all tasks for the active project.
 harnessx planning-tasks list
 ```
 
+## `planning-tasks get <id>`
+
+Returns a single task by its ID.
+
+```bash
+harnessx planning-tasks get task-1
+```
+
+Returns the full task object, or an error if the ID doesn't exist.
+
 ## `planning-tasks remove <id>`
 
 Removes a task by its ID.

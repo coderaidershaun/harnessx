@@ -122,6 +122,16 @@ Lists all stories for the active project.
 harnessx planning-stories list
 ```
 
+## `planning-stories get <id>`
+
+Returns a single story by its ID.
+
+```bash
+harnessx planning-stories get story-1
+```
+
+Returns the full story object, or an error if the ID doesn't exist.
+
 ## `planning-stories remove <id>`
 
 Removes a story by its ID.

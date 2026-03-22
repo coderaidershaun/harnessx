@@ -117,6 +117,16 @@ Lists all milestones for the active project.
 harnessx planning-milestones list
 ```
 
+## `planning-milestones get <id>`
+
+Returns a single milestone by its ID.
+
+```bash
+harnessx planning-milestones get milestone-1
+```
+
+Returns the full milestone object, or an error if the ID doesn't exist.
+
 ## `planning-milestones remove <id>`
 
 Removes a milestone by its ID.

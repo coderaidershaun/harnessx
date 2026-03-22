@@ -117,6 +117,16 @@ Lists all epics for the active project.
 harnessx planning-epics list
 ```
 
+## `planning-epics get <id>`
+
+Returns a single epic by its ID.
+
+```bash
+harnessx planning-epics get epic-1
+```
+
+Returns the full epic object, or an error if the ID doesn't exist.
+
 ## `planning-epics remove <id>`
 
 Removes an epic by its ID.

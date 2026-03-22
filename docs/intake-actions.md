@@ -74,6 +74,16 @@ Lists all action items for the active project.
 harnessx intake-actions list
 ```
 
+## `intake-actions get <id>`
+
+Returns a single action item by its ID.
+
+```bash
+harnessx intake-actions get action-1
+```
+
+Returns the full action item object, or an error if the ID doesn't exist.
+
 ## `intake-actions remove <id>`
 
 Removes an action item by its numeric ID.
