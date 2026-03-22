@@ -690,39 +690,93 @@ When all 9 preceding stages are complete, the pipeline reaches this terminal sta
 
 ## The Full Pipeline
 
+```mermaid
+flowchart TD
+    %% Entry
+    Start(["/hx:operator"]) --> HasProject{Active\nproject?}
+    HasProject -->|No| Create["Create project\nharnessx project create"]
+    HasProject -->|Yes| CheckMeta["Check metadata\nharnessx progress next"]
+    Create --> CheckMeta
+
+    %% Failure reroute (can happen at any point during execution)
+    Troubleshoot["1. user_input_required\nhx:user-troubleshooting"]
+    Troubleshoot -->|Resolved| CheckMeta
+
+    %% Intake
+    CheckMeta --> Onboarding
+
+    subgraph Intake ["Intake"]
+        Onboarding["2. intake_onboarding\nhx:intake-onboarding"]
+        Onboarding -->|"6 sections:\ngoal, scope, user_knowledge,\nresources, success_measures, uat"| Team
+        Team["3. intake_team\nhx:intake-team"]
+        Team -->|"3 sections:\ndefine, build, interview"| Completion
+        Completion["4. intake_completion\nhx:intake-completion"]
+        Completion -->|"3 sections:\nexploration, ideation, risk"| IntakeDone((" "))
+    end
+
+    %% Planning
+    IntakeDone --> Planning
+
+    subgraph Plan ["Planning & Review"]
+        Planning["5. planning\nhx:planning"]
+        Planning -->|"4 sections across sessions:\nmilestones → epics → stories → tasks"| Review
+        Review["6. review\nhx:review"]
+        Review -->|"5-agent quality gate\n+ per-milestone remediation"| PlanDone((" "))
+    end
+
+    %% Execution with milestone rework loop
+    PlanDone --> Execution
+
+    subgraph Exec ["Execution"]
+        Execution["7. execution\nhx:execution-next-task"]
+        Execution -->|"One task per invocation:\ncontext → brief → dispatch"| TaskDone{More\ntasks?}
+        TaskDone -->|Yes| MilestoneCheck{Milestone\nboundary?}
+        MilestoneCheck -->|No| Execution
+        MilestoneCheck -->|Yes| MilestoneRework["Milestone rework\nhx:milestone-rework-assessment"]
+        MilestoneRework -->|"4-agent review\n+ rework tasks if needed"| Execution
+        TaskDone -->|All done| ExecDone((" "))
+    end
+
+    %% Failure reroute from execution
+    Execution -.->|"Integration test\nfailure"| Troubleshoot
+
+    %% UAT with rework loop
+    ExecDone --> UAT
+
+    subgraph Accept ["User Acceptance"]
+        UAT["8. user_acceptance\nhx:user-acceptance"]
+        UAT -->|"Walk through UAT scenarios\nPASS / FAIL / PARTIAL"| Verdict{Approved?}
+        Verdict -->|Rework needed| UATRework["9. uat_rework\nhx:uat-rework"]
+        UATRework -->|"Create rework milestone\nReset execution + UAT"| ReworkLoop((" "))
+    end
+
+    ReworkLoop -->|"Back to execution\nwith new rework tasks"| Execution
+    Verdict -->|Approved| Done["10. complete"]
+
+    %% Styling
+    style Start fill:#4a9eff,color:#fff,stroke:#2d7cd4
+    style Done fill:#2ecc71,color:#fff,stroke:#27ae60
+    style Troubleshoot fill:#e74c3c,color:#fff,stroke:#c0392b
+    style Intake fill:none,stroke:#3498db,stroke-width:2px
+    style Plan fill:none,stroke:#9b59b6,stroke-width:2px
+    style Exec fill:none,stroke:#e67e22,stroke-width:2px
+    style Accept fill:none,stroke:#2ecc71,stroke-width:2px
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PROJECT PIPELINE                         │
-├──────┬──────────────────────┬──────────────────┬────────────────┤
-│  #   │ Stage                │ Skill            │ Status         │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  1   │ user_input_required  │ hx:user-         │ Implemented    │
-│      │                      │ troubleshooting  │ (default:      │
-│      │                      │                  │  completed)    │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  2   │ intake_onboarding    │ hx:intake-       │ Implemented    │
-│      │                      │ onboarding       │                │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  3   │ intake_team          │ hx:intake-team   │ Implemented    │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  4   │ intake_completion    │ hx:intake-       │ Implemented    │
-│      │                      │ completion       │                │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  5   │ planning             │ hx:planning      │ Implemented    │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  6   │ review               │ hx:review        │ Implemented    │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  7   │ execution            │ hx:execution-    │ Implemented    │
-│      │                      │ next-task        │                │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  8   │ user_acceptance      │ hx:user-         │ Implemented    │
-│      │                      │ acceptance       │                │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  9   │ uat_rework           │ hx:uat-rework    │ Implemented    │
-├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  10  │ complete             │ (none)           │ Terminal state │
-└──────┴──────────────────────┴──────────────────┴────────────────┘
-```
+
+**Pipeline stages and their skills:**
+
+| # | Stage | Skill |
+|---|---|---|
+| 1 | `user_input_required` | `hx:user-troubleshooting` (default: completed) |
+| 2 | `intake_onboarding` | `hx:intake-onboarding` |
+| 3 | `intake_team` | `hx:intake-team` |
+| 4 | `intake_completion` | `hx:intake-completion` |
+| 5 | `planning` | `hx:planning` |
+| 6 | `review` | `hx:review` |
+| 7 | `execution` | `hx:execution-next-task` |
+| 8 | `user_acceptance` | `hx:user-acceptance` |
+| 9 | `uat_rework` | `hx:uat-rework` |
+| 10 | `complete` | (none — terminal state) |
 
 ---
 
