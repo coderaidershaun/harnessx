@@ -25,6 +25,10 @@ pub struct Story {
     pub acceptance_criteria: Vec<String>,
     pub traces: Traces,
     #[serde(default)]
+    pub tasks_written: bool,
+    #[serde(default)]
+    pub tasks_completed: bool,
+    #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
 }
 

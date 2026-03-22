@@ -25,6 +25,10 @@ pub struct Epic {
     pub categories: Vec<String>,
     pub traces: Traces,
     #[serde(default)]
+    pub stories_written: bool,
+    #[serde(default)]
+    pub stories_completed: bool,
+    #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
 }
 

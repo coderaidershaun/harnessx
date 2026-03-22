@@ -70,6 +70,22 @@ pub enum PlanningStoriesCommand {
     Parent { id: String },
     /// Show all tasks under a story.
     Children { id: String },
+    /// Mark a story's tasks as written (or unmark with --value false).
+    MarkWritten {
+        id: String,
+        #[arg(long, default_value = "true")]
+        value: bool,
+    },
+    /// Mark a story's tasks as completed (or unmark with --value false).
+    MarkCompleted {
+        id: String,
+        #[arg(long, default_value = "true")]
+        value: bool,
+    },
+    /// Show the next story whose tasks have not been written yet (by order).
+    NextToWrite,
+    /// Show the next story whose tasks have not been completed yet (by order).
+    NextToComplete,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -153,6 +169,10 @@ impl PlanningStoriesCommand {
             Self::Next => exit_with(next_story()),
             Self::Parent { id } => exit_with(story_parent(&id)),
             Self::Children { id } => exit_with(story_children(&id)),
+            Self::MarkWritten { id, value } => exit_with(mark_tasks_written(&id, value)),
+            Self::MarkCompleted { id, value } => exit_with(mark_tasks_completed(&id, value)),
+            Self::NextToWrite => exit_with(next_to_write()),
+            Self::NextToComplete => exit_with(next_to_complete()),
         }
     }
 }
@@ -241,6 +261,8 @@ fn create_story(
             tags: parse_csv(&trace_tags),
             intake_sources: parse_csv(&trace_intake_sources),
         },
+        tasks_written: false,
+        tasks_completed: false,
         notes: note.map(|n| vec![MilestoneNote { note: n }]),
     };
 
@@ -321,4 +343,58 @@ fn update_story(
     let updated = item.clone();
     planning_stories::save_for_active_project(&items)?;
     Ok(updated)
+}
+
+fn mark_tasks_written(id: &str, value: bool) -> ParserResult<Story> {
+    let mut items = planning_stories::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::StoryNotFound(id.to_string()))?;
+
+    item.tasks_written = value;
+    let updated = item.clone();
+    planning_stories::save_for_active_project(&items)?;
+    Ok(updated)
+}
+
+fn mark_tasks_completed(id: &str, value: bool) -> ParserResult<Story> {
+    let mut items = planning_stories::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::StoryNotFound(id.to_string()))?;
+
+    item.tasks_completed = value;
+    let updated = item.clone();
+    planning_stories::save_for_active_project(&items)?;
+    Ok(updated)
+}
+
+fn next_to_write() -> ParserResult<serde_json::Value> {
+    let mut items = planning_stories::for_active_project()?;
+    items.sort_by_key(|s| s.order);
+
+    let next = items.into_iter().find(|s| !s.tasks_written);
+
+    match next {
+        Some(story) => Ok(serde_json::to_value(story)?),
+        None => Ok(serde_json::json!({
+            "message": "All stories have their tasks written."
+        })),
+    }
+}
+
+fn next_to_complete() -> ParserResult<serde_json::Value> {
+    let mut items = planning_stories::for_active_project()?;
+    items.sort_by_key(|s| s.order);
+
+    let next = items.into_iter().find(|s| !s.tasks_completed);
+
+    match next {
+        Some(story) => Ok(serde_json::to_value(story)?),
+        None => Ok(serde_json::json!({
+            "message": "All stories have their tasks completed."
+        })),
+    }
 }

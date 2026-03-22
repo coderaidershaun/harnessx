@@ -24,6 +24,8 @@ The epics file wraps the array in a top-level object:
         "tags": ["#action-1", "#action-4"],
         "intake_sources": ["#intake-scope", "#intake-resources"]
       },
+      "stories_written": false,
+      "stories_completed": false,
       "notes": [
         { "note": "This is the first epic in the pipeline." }
       ]
@@ -53,6 +55,13 @@ Links an epic back to intake artifacts for traceability.
 |------------------|------------|-----------------------------------------------------|
 | `tags`           | string[]   | References to action items (e.g. `#action-1`)       |
 | `intake_sources` | string[]   | References to intake sections (e.g. `#intake-scope`) |
+
+### Child Tracking Fields
+
+| Field              | Type | Default | Description                                      |
+|--------------------|------|---------|--------------------------------------------------|
+| `stories_written`  | bool | `false` | Whether stories have been decomposed for this epic |
+| `stories_completed`| bool | `false` | Whether all stories under this epic are done     |
 
 ### Note
 
@@ -166,4 +175,38 @@ Returns:
   "stories": [...],
   "tasks": [...]
 }
+```
+
+## `planning-epics mark-written <id>`
+
+Sets `stories_written` to `true` for the given epic. Pass `--value false` to unset.
+
+```bash
+harnessx planning-epics mark-written epic-1
+harnessx planning-epics mark-written epic-1 --value false
+```
+
+## `planning-epics mark-completed <id>`
+
+Sets `stories_completed` to `true` for the given epic. Pass `--value false` to unset.
+
+```bash
+harnessx planning-epics mark-completed epic-1
+harnessx planning-epics mark-completed epic-1 --value false
+```
+
+## `planning-epics next-to-write`
+
+Returns the next epic (by `order`) whose `stories_written` is `false`. If all epics have their stories written, returns a completion message.
+
+```bash
+harnessx planning-epics next-to-write
+```
+
+## `planning-epics next-to-complete`
+
+Returns the next epic (by `order`) whose `stories_completed` is `false`. If all epics have their stories completed, returns a completion message.
+
+```bash
+harnessx planning-epics next-to-complete
 ```

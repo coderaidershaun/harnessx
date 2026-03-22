@@ -27,6 +27,8 @@ The stories file wraps the array in a top-level object:
         "tags": ["#action-1"],
         "intake_sources": ["#intake-scope", "#intake-resources"]
       },
+      "tasks_written": false,
+      "tasks_completed": false,
       "notes": [
         { "note": "Pagination handling should be built into this story." }
       ]
@@ -56,6 +58,13 @@ Links a story back to intake artifacts for traceability.
 |------------------|------------|-----------------------------------------------------|
 | `tags`           | string[]   | References to action items (e.g. `#action-1`)       |
 | `intake_sources` | string[]   | References to intake sections (e.g. `#intake-scope`) |
+
+### Child Tracking Fields
+
+| Field             | Type | Default | Description                                       |
+|-------------------|------|---------|---------------------------------------------------|
+| `tasks_written`   | bool | `false` | Whether tasks have been decomposed for this story |
+| `tasks_completed` | bool | `false` | Whether all tasks under this story are done       |
 
 ### Note
 

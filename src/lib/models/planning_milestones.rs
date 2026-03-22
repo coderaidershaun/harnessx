@@ -35,6 +35,10 @@ pub struct Milestone {
     pub uat_criteria: Vec<String>,
     pub traces: Traces,
     #[serde(default)]
+    pub epics_written: bool,
+    #[serde(default)]
+    pub epics_completed: bool,
+    #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
 }
 

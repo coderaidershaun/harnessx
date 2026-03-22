@@ -24,6 +24,8 @@ The milestones file wraps the array in a top-level object:
         "tags": ["#action-1", "#action-4"],
         "intake_sources": ["#intake-goal", "#intake-scope"]
       },
+      "epics_written": false,
+      "epics_completed": false,
       "notes": [
         { "note": "This is the thinnest possible vertical slice." }
       ]
@@ -53,6 +55,13 @@ Links a milestone back to intake artifacts for traceability.
 |------------------|------------|-------------------------------------------------|
 | `tags`           | string[]   | References to action items (e.g. `#action-1`)   |
 | `intake_sources` | string[]   | References to intake sections (e.g. `#intake-goal`) |
+
+### Child Tracking Fields
+
+| Field             | Type | Default | Description                                        |
+|-------------------|------|---------|----------------------------------------------------|
+| `epics_written`   | bool | `false` | Whether epics have been decomposed for this milestone |
+| `epics_completed` | bool | `false` | Whether all epics under this milestone are done    |
 
 ### MilestoneNote
 
@@ -157,4 +166,38 @@ Returns:
   "stories": [...],
   "tasks": [...]
 }
+```
+
+## `planning-milestones mark-written <id>`
+
+Sets `epics_written` to `true` for the given milestone. Pass `--value false` to unset.
+
+```bash
+harnessx planning-milestones mark-written milestone-1
+harnessx planning-milestones mark-written milestone-1 --value false
+```
+
+## `planning-milestones mark-completed <id>`
+
+Sets `epics_completed` to `true` for the given milestone. Pass `--value false` to unset.
+
+```bash
+harnessx planning-milestones mark-completed milestone-1
+harnessx planning-milestones mark-completed milestone-1 --value false
+```
+
+## `planning-milestones next-to-write`
+
+Returns the next milestone (by `order`) whose `epics_written` is `false`. If all milestones have their epics written, returns a completion message.
+
+```bash
+harnessx planning-milestones next-to-write
+```
+
+## `planning-milestones next-to-complete`
+
+Returns the next milestone (by `order`) whose `epics_completed` is `false`. If all milestones have their epics completed, returns a completion message.
+
+```bash
+harnessx planning-milestones next-to-complete
 ```

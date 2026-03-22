@@ -68,6 +68,22 @@ pub enum PlanningMilestonesCommand {
     Next,
     /// Show all epics, stories, and tasks under a milestone.
     Children { id: String },
+    /// Mark a milestone's epics as written (or unmark with --value false).
+    MarkWritten {
+        id: String,
+        #[arg(long, default_value = "true")]
+        value: bool,
+    },
+    /// Mark a milestone's epics as completed (or unmark with --value false).
+    MarkCompleted {
+        id: String,
+        #[arg(long, default_value = "true")]
+        value: bool,
+    },
+    /// Show the next milestone whose epics have not been written yet (by order).
+    NextToWrite,
+    /// Show the next milestone whose epics have not been completed yet (by order).
+    NextToComplete,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -141,6 +157,10 @@ impl PlanningMilestonesCommand {
             Self::List => exit_with(planning_milestones::for_active_project()),
             Self::Next => exit_with(next_milestone()),
             Self::Children { id } => exit_with(milestone_children(&id)),
+            Self::MarkWritten { id, value } => exit_with(mark_epics_written(&id, value)),
+            Self::MarkCompleted { id, value } => exit_with(mark_epics_completed(&id, value)),
+            Self::NextToWrite => exit_with(next_to_write()),
+            Self::NextToComplete => exit_with(next_to_complete()),
         }
     }
 }
@@ -226,6 +246,8 @@ fn create_milestone(
             tags: parse_csv(&trace_tags),
             intake_sources: parse_csv(&trace_intake_sources),
         },
+        epics_written: false,
+        epics_completed: false,
         notes: note.map(|n| vec![MilestoneNote { note: n }]),
     };
 
@@ -306,4 +328,58 @@ fn update_milestone(
     let updated = item.clone();
     planning_milestones::save_for_active_project(&items)?;
     Ok(updated)
+}
+
+fn mark_epics_written(id: &str, value: bool) -> ParserResult<Milestone> {
+    let mut items = planning_milestones::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(id.to_string()))?;
+
+    item.epics_written = value;
+    let updated = item.clone();
+    planning_milestones::save_for_active_project(&items)?;
+    Ok(updated)
+}
+
+fn mark_epics_completed(id: &str, value: bool) -> ParserResult<Milestone> {
+    let mut items = planning_milestones::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(id.to_string()))?;
+
+    item.epics_completed = value;
+    let updated = item.clone();
+    planning_milestones::save_for_active_project(&items)?;
+    Ok(updated)
+}
+
+fn next_to_write() -> ParserResult<serde_json::Value> {
+    let mut items = planning_milestones::for_active_project()?;
+    items.sort_by_key(|m| m.order);
+
+    let next = items.into_iter().find(|m| !m.epics_written);
+
+    match next {
+        Some(milestone) => Ok(serde_json::to_value(milestone)?),
+        None => Ok(serde_json::json!({
+            "message": "All milestones have their epics written."
+        })),
+    }
+}
+
+fn next_to_complete() -> ParserResult<serde_json::Value> {
+    let mut items = planning_milestones::for_active_project()?;
+    items.sort_by_key(|m| m.order);
+
+    let next = items.into_iter().find(|m| !m.epics_completed);
+
+    match next {
+        Some(milestone) => Ok(serde_json::to_value(milestone)?),
+        None => Ok(serde_json::json!({
+            "message": "All milestones have their epics completed."
+        })),
+    }
 }
