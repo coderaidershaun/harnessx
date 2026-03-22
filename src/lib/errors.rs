@@ -50,6 +50,12 @@ pub enum ParserError {
     #[error("action item '{0}' not found")]
     ActionItemNotFound(String),
 
+    #[error("no planning milestones found for project '{0}' — run `planning-milestones create` after project creation")]
+    MilestonesNotFound(String),
+
+    #[error("milestone '{0}' not found")]
+    MilestoneNotFound(String),
+
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
 }
