@@ -88,14 +88,30 @@ This is unique to task planning — you need to know what agents are available s
 ls .claude/skills/
 ```
 
-Focus on the **non-orchestration skills** — the ones that actually do implementation work. Common skill families:
+Identify which skill families exist and whether each has a **team lead** (a coordinator skill that can triage and delegate to specialists). Common skill families:
 
-- **`rust:*`** — Rust development team (developing, unit-testing, integration-testing, exploration-and-planning, planning-and-architecture, ergonomic-refactoring, errors-management, commenting, team-coordinator)
-- **`mermaid-diagrams`** — Diagram creation
-- **`research:reducer`** — URL analysis and distillation
-- **Other language/domain teams** — Any skills created during intake team (e.g., `python:*`, `typescript:*`)
+- **`rust:*`** — Rust development team. **Team lead: `rust:team-coordinator`**. Specialists: developing, unit-testing, integration-testing, exploration-and-planning, planning-and-architecture, ergonomic-refactoring, errors-management, commenting
+- **`mermaid-diagrams`** — Diagram creation (standalone, no team lead)
+- **`research:reducer`** — URL analysis and distillation (standalone, no team lead)
+- **Other language/domain teams** — Any skills created during intake team (e.g., `python:*`, `typescript:*`). Check if they have a coordinator or team lead skill.
 
 Read the SKILL.md frontmatter (name + description) of any skill you're uncertain about. The `--skills` flag on task creation takes these skill names — matching them correctly is critical because the wrong agent assignment wastes an entire execution cycle.
+
+### Team lead vs. specialist assignment
+
+When a skill family has a team lead, **assign the team lead by default**. Team leads exist because they understand the full specialist roster and can delegate to the right agent based on what they discover during execution. At planning time, you're making assignment decisions without seeing the code — the team lead makes that decision after exploring it.
+
+**Assign directly to a specialist only when the task is trivially single-concern** — work so focused and simple that a coordinator would just pass it straight through. Examples:
+- "Add comments to the position module" → `rust:commenting` (no delegation needed)
+- "Clean up iterator chains in the parser" → `rust:ergonomic-refactoring` (one skill, one concern)
+- "Add `#[inline]` annotations to hot-path functions" → `rust:ergonomic-refactoring`
+
+**Assign to the team lead for anything else** — implementation, multi-step work, tasks touching architecture decisions, tasks where the right specialist isn't obvious, or tasks with any complexity beyond "low":
+- "Implement the position tracker with PnL calculation" → `rust:team-coordinator` (needs exploration, architecture decisions, then implementation)
+- "Write integration tests for the websocket feed" → `rust:team-coordinator` (may need exploration first, then test design)
+- "Add error types for the ingestion module" → `rust:team-coordinator` (touches architecture patterns)
+
+This principle applies to all domain teams, not just Rust. If a Python team has a `python:team-coordinator`, the same logic applies. The team lead is the safe default; direct specialist assignment is the optimisation for trivial work.
 
 ---
 
@@ -141,7 +157,7 @@ Your job: propose a complete set of tasks that, when all are done, make every ac
 GUIDELINES:
 - Tasks must be BITE-SIZED. An agent should be able to complete one in a single focused session without running out of context. If a task requires understanding more than 2-3 files deeply, it's probably too broad.
 - Each task should touch ONE concern — one module, one function cluster, one data transformation. Mixing concerns (e.g., "implement the parser AND write the error types") creates context bloat.
-- Skill assignment matters enormously. A rust:developing task should be pure implementation. A rust:planning-and-architecture task should be design decisions. A rust:unit-testing task should be verification. Don't conflate them.
+- Skill assignment matters enormously. When a team lead exists (like rust:team-coordinator), assign it by default — it can explore and delegate to the right specialist. Only bypass the team lead for trivially single-concern tasks (commenting, simple refactoring) that clearly map to one specialist.
 - Steps are the agent's roadmap. Write them as instructions, not descriptions. "Read the existing Position struct in src/models/position.rs" not "Understand the data model."
 - Complexity should reflect what the AGENT will experience, not the conceptual difficulty. A simple but tedious task (many similar changes) might be "medium" because it requires sustained attention. A clever but small algorithm might be "low" because it's a few lines.
 - Every acceptance criterion must be addressed by at least one task. Check coverage.
@@ -167,11 +183,11 @@ Validate with these specific checks:
 
 2. **Bite-size check** — Would any task require an agent to hold more than 2-3 files in context simultaneously? If so, it needs splitting. Would any task take more than one focused session? If so, it's too broad.
 
-3. **Skill assignment accuracy** — Is each task assigned to the right specialist? Common mistakes:
-   - Assigning implementation work to rust:planning-and-architecture (it doesn't write code)
-   - Assigning design decisions to rust:developing (it doesn't plan)
-   - Forgetting rust:errors-management when new error variants are needed
-   - Forgetting rust:unit-testing or rust:integration-testing after implementation tasks
+3. **Skill assignment accuracy** — Is each task assigned to the right skill? Common mistakes:
+   - Assigning a non-trivial task directly to a specialist (like rust:developing) when a team lead exists (like rust:team-coordinator) that could explore the codebase and delegate intelligently
+   - Assigning a trivially simple task (like "add comments to module X") to the team coordinator when a direct specialist (rust:commenting) would be more efficient
+   - Forgetting rust:errors-management when new error variants are needed (though the team coordinator can also handle this)
+   - The general rule: if a team lead exists and the task has any complexity beyond "low" or touches multiple concerns, the team lead should be assigned
 
 4. **Step quality** — Are steps concrete enough for an agent to follow? Could an agent who has never seen this codebase execute step 1 without ambiguity? If steps say "implement the logic" without specifics, they need rewriting.
 
@@ -212,7 +228,7 @@ harnessx planning-tasks create \
   --status not_started \
   --complexity low \
   --mode plan \
-  --skills "rust:developing" \
+  --skills "rust:team-coordinator" \
   --integration-tests "Query returns all positions for a known wallet with active positions | Query correctly paginates when wallet has more than 1000 positions | Query returns empty results for a wallet with no positions" \
   --trace-tags "#action-1" \
   --trace-intake-sources "#intake-resources" \
@@ -361,7 +377,7 @@ Once tasks for this story are written and verified, you are done. Do not continu
 - **Action-oriented titles** — "Write the GraphQL query for fetching positions" not "GraphQL work"
 - **Concrete steps** — an agent can follow them without guessing. "Read src/models/position.rs to understand the Position struct" not "understand the data model"
 - **Right-sized** — completable in one focused session, touching 1-3 files. If it needs more, split it
-- **Correct skill assignment** — the agent assigned has the expertise for this specific work
+- **Correct skill assignment** — team lead for non-trivial work, direct specialist only for trivially simple tasks
 - **Verifiable** — integration tests describe how to check the task actually worked
 - **Accurate complexity** — reflects what the agent will experience, not conceptual difficulty
 - **Clean dependency chain** — foundational work ordered first, no cycles
@@ -376,7 +392,8 @@ Once tasks for this story are written and verified, you are done. Do not continu
 | "Implement the data layer" | Too broad — multiple concerns | Split: "Write Position struct", "Write DB adapter", "Write query builder" |
 | "Set up the project" | Not a behavioural step | Usually absorbed into the first real task's steps |
 | "Write tests" | Too vague — test what? | "Write unit tests for the position normalizer covering empty input, single position, and multi-DEX scenarios" |
-| Skills: `rust:team-coordinator` | Coordinator doesn't do implementation | Use the specific specialist: `rust:developing`, `rust:unit-testing`, etc. |
+| Skills: `rust:developing` for a complex multi-file task | Direct specialist for non-trivial work skips exploration and planning | Use the team lead `rust:team-coordinator` — it will explore, plan, and delegate |
+| Skills: `rust:team-coordinator` for "add comments to module" | Coordinator overhead for trivially simple work | Use `rust:commenting` directly — no delegation needed |
 | Complexity: `uncertain` | Planning should resolve uncertainty | Research the task enough to rate it, or flag it for the proposer agent to investigate |
 | No integration tests | Can't verify the task worked | Every task needs at least one test — even "the module compiles without errors" |
 
@@ -389,4 +406,4 @@ Once tasks for this story are written and verified, you are done. Do not continu
 - **Write tasks for multiple stories** — scope is one story per invocation
 - **Change the pipeline stage** — the operator handles stage transitions
 - **Create action items** — action items come from intake; tasks trace to existing ones
-- **Assign tasks to the `rust:team-coordinator`** — the coordinator dispatches; individual tasks go to individual specialists
+- **Bypass team leads for non-trivial work** — when a domain has a team lead (like `rust:team-coordinator`), assign the team lead by default. Only assign directly to a specialist for trivially simple, single-concern tasks
