@@ -6,6 +6,7 @@ pub mod intake_actions;
 pub mod intake_team;
 pub mod planning_epics;
 pub mod planning_milestones;
+pub mod planning_stories;
 pub mod progress;
 pub mod project;
 pub mod status;

@@ -1,0 +1,312 @@
+---
+name: hx:planning-milestones
+description: Define and write project milestones by reading all intake documents, deeply analyzing what "done" looks like at each checkpoint, then writing milestones to planning_milestones.json with full traceability tags back to action items and intake sections. Use this skill when the pipeline reaches the planning stage, when the user says "write milestones", "plan milestones", "define milestones", "create milestones", "what are the milestones", or anything about breaking the project into demonstrable checkpoints. Also trigger when the operator routes to planning or when intake_completion is done and milestones are the next step.
+disable-model-invocation: false
+user-invocable: true
+---
+
+# Planning Milestones
+
+You define the project's milestones — the demonstrable checkpoints where someone could look at the system and see real, observable progress. Milestones are not tasks or deliverables. They are states the project reaches when certain work is done.
+
+A project should have roughly 3–7 milestones. More than that and they're too granular; fewer and there's no meaningful checkpoint between "started" and "done."
+
+Your job is to read everything the intake process produced, deeply analyze what the project needs to accomplish, and define milestones that sequence the work into observable progress checkpoints — then write them using the harnessx CLI with full traceability back to the intake artifacts.
+
+---
+
+## Step 1: Confirm active project
+
+```bash
+harnessx project active
+```
+
+If no active project exists, tell the user to set one and stop.
+
+---
+
+## Step 2: Read all intake documents
+
+Read **everything** in `harnessx/<project-id>/intake/`. Both markdown and JSON files. You need the complete picture before you can define milestones.
+
+Read these files in parallel:
+
+**Markdown files** (the narrative context):
+- `goal.md` — what the project is trying to achieve
+- `scope.md` — what's in and out of scope
+- `user_knowledge.md` — the user's expertise and domain insights
+- `resources.md` — repos, links, docs, reference material
+- `success_measures.md` — concrete criteria for success
+- `user_acceptance_testing.md` — what gets tested before sign-off
+- `intake-team.md` — team composition and agent interview notes
+- Any `interview-*.md` files — individual agent interview documents
+
+**JSON files** (the structured data):
+- `intake_actions.json` — all action items with their categories, complexities, and tags
+- `intake_onboarding.json` — section completion status
+- `intake_team.json` — team section status
+- `intake_completion.json` — completion section status
+
+Not every file will exist — read what's there without failing on missing files.
+
+Also check if milestones already exist:
+
+```bash
+harnessx planning-milestones list
+```
+
+If milestones already exist, you are updating/refining them — not starting from scratch.
+
+---
+
+## Step 3: Analyze and plan milestones
+
+This is where your deep thinking matters most. Use extended thinking to work through this carefully.
+
+### What you're looking for
+
+**From `success_measures.md`:** Each success measure is something the user defined as "this is what done looks like." Milestones should map naturally to these — a milestone is reached when one or more success measures become demonstrably true.
+
+**From `user_acceptance_testing.md`:** UAT scenarios describe what the user will test before sign-off. Group related UAT scenarios under the milestone that enables them.
+
+**From `goal.md` and `scope.md`:** These tell you the shape of the project. What's the core capability? What depends on what? Where are the natural vertical slices?
+
+**From `intake_actions.json`:** Action items are the raw material. Look at their categories, complexities, and relationships. Clusters of related action items often point to a natural milestone boundary.
+
+**From agent interviews:** Domain experts may have flagged dependencies, risks, or phasing recommendations that should influence milestone sequencing.
+
+### How to think about milestones
+
+A milestone is a **state**, not a task:
+
+- **Good:** "Live position data flowing through the pipeline and visible in a basic UI"
+- **Bad:** "Build the data pipeline" (that's work to be done, not a state to reach)
+
+Ask yourself: *could I sit someone down and show them this is working?* If yes, it's a milestone. If you'd say "well, the code is done but you can't see it yet" — that's not a milestone.
+
+### Dependency ordering
+
+Milestones are sequenced because later ones depend on earlier ones being true. Think about what must exist before the next thing can work:
+
+- Data must flow before you can calculate on it
+- Calculations must work before you can display them
+- Core features must exist before you can polish them
+- Infrastructure must exist before services can run on it
+
+### The thinnest vertical slice
+
+Your first milestone should be the thinnest possible vertical slice — the smallest amount of work that produces something demonstrably real. This validates the architecture, the toolchain, the data flow, and the team's ability to ship. Everything else builds on this foundation.
+
+### Write your plan
+
+After thinking through the milestones, write out your plan as a structured list. For each milestone, capture:
+
+- **Title** — short, state-based description
+- **Description** — what someone would observe at this checkpoint
+- **Dependencies** — which milestones must be complete first
+- **Success measures** — which intake success measures this satisfies (use `#success-measure-N` tags)
+- **UAT criteria** — which intake UAT scenarios this enables (use `#uat-scenario-N` tags)
+- **Trace tags** — which action items this milestone encompasses (use `#action-N` tags)
+- **Trace intake sources** — which intake sections informed this milestone (use `#intake-goal`, `#intake-scope`, etc.)
+- **Notes** — any implementation notes, phasing rationale, or risk flags
+
+---
+
+## Step 4: Review your plan
+
+Launch a subagent to review and critique your milestone plan. The reviewer should have access to the same intake documents and should challenge your milestones on these dimensions:
+
+- **Coverage:** Do the milestones collectively cover all success measures and UAT criteria? Are there gaps?
+- **Granularity:** Are any milestones too broad (trying to do too much) or too narrow (not a meaningful checkpoint)?
+- **Sequencing:** Are the dependencies correct? Could any milestone be reached earlier with a different ordering?
+- **Vertical slicing:** Is the first milestone truly the thinnest slice? Could it be thinner?
+- **Observability:** Could someone actually see each milestone is met? Or are some milestones invisible internal states?
+- **Action item coverage:** Are all action items traceable to at least one milestone? Are there orphaned actions?
+
+Spawn the review agent like this:
+
+```
+Review these proposed milestones for the harnessx project.
+
+[paste your milestone plan here]
+
+The intake documents are at harnessx/<project-id>/intake/. Read the success measures, UAT criteria, goal, scope, and intake_actions.json to validate:
+
+1. Do these milestones cover all success measures and UAT criteria?
+2. Are any milestones too broad or too narrow?
+3. Are dependencies correctly sequenced?
+4. Is the first milestone the thinnest possible vertical slice?
+5. Are there any orphaned action items not covered by any milestone?
+6. Could someone actually observe each milestone is met, or are some milestones invisible internal states?
+
+Provide specific, actionable critique. Don't just say "looks good" — find things to improve.
+```
+
+Incorporate the reviewer's feedback. If the critique is substantive, revise your plan before proceeding. If the reviewer identifies gaps or sequencing issues, fix them.
+
+---
+
+## Step 5: Write milestones via CLI
+
+Before writing, read the CLI reference to confirm exact flags:
+
+```bash
+# Read the planning-milestones docs if you haven't this session
+```
+
+Reference: `docs/planning-milestones.md`
+
+### Creating milestones
+
+Use `harnessx planning-milestones create` for each milestone. The CLI auto-assigns IDs (`milestone-1`, `milestone-2`, ...) and auto-increments the `order` field.
+
+```bash
+harnessx planning-milestones create \
+  --title "Live position data flowing through the pipeline" \
+  --description "A reviewer can open the app and see real positions appearing from on-chain data sources. Positions display correct token pairs, amounts, and ranges. Data refreshes automatically without manual intervention." \
+  --status not_started \
+  --success-measures "#success-measure-1, #success-measure-3" \
+  --uat-criteria "#uat-scenario-1" \
+  --trace-tags "#action-1, #action-4, #action-7" \
+  --trace-intake-sources "#intake-goal, #intake-scope" \
+  --note "Thinnest vertical slice — validates the data pipeline architecture end-to-end."
+```
+
+Write milestones in dependency order (first milestone first). If milestone-3 depends on milestone-1 and milestone-2:
+
+```bash
+harnessx planning-milestones create \
+  --title "..." \
+  --depends-on "milestone-1, milestone-2" \
+  ...
+```
+
+### Important details
+
+- **IDs are auto-assigned** — don't try to set them manually. The CLI returns JSON with the assigned ID.
+- **Order auto-increments** — unless you need a specific order, let it auto-assign.
+- **Status starts as `not_started`** — don't set it to anything else during planning.
+- **Comma-separated lists** — `--depends-on`, `--success-measures`, `--uat-criteria`, `--trace-tags`, and `--trace-intake-sources` all accept comma-separated values.
+- **Notes are appended** — if you update a milestone later, new notes add to existing ones rather than replacing.
+
+### Updating existing milestones
+
+If milestones already exist and you're refining them:
+
+```bash
+harnessx planning-milestones update milestone-1 \
+  --title "Updated title" \
+  --trace-tags "#action-1, #action-4, #action-7, #action-12" \
+  --note "Added action-12 after scope review identified additional data source."
+```
+
+Update flags **replace** the existing values (except notes, which append). So if updating `--trace-tags`, include all tags — not just new ones.
+
+---
+
+## Step 6: Tag intake artifacts with milestone references
+
+This is critical. After creating milestones, you must add `#milestone-N` tags back into the intake documents so that traceability works in both directions.
+
+### Tag the intake markdown files
+
+Find the paragraphs in the intake markdown files that relate to each milestone and add the milestone tag inline — at the end of the most relevant line.
+
+**Example — tagging `success_measures.md`:**
+
+If milestone-1 satisfies success measure 1, find the paragraph describing that success measure and add `#milestone-1`:
+
+```markdown
+The system displays live position data with less than 5 seconds of latency from on-chain confirmation. #milestone-1
+```
+
+**Example — tagging `goal.md`:**
+
+```markdown
+The core goal is real-time visibility into all open DEX positions across supported protocols. #milestone-1 #milestone-2
+```
+
+**Example — tagging `user_acceptance_testing.md`:**
+
+```markdown
+User can open the dashboard and see their current Uniswap v3 positions with correct token amounts. #milestone-1
+```
+
+### Tag action items with milestone references
+
+For each action item that a milestone traces to, update the action item to include the milestone tag. This creates the reverse link — from action to milestone.
+
+```bash
+harnessx intake-actions update action-1 \
+  --tags "#milestone-1" \
+  --note-author "hx-planning-milestones" \
+  --note-text "Mapped to milestone-1: Live position data flowing through the pipeline."
+```
+
+**Important:** The `--tags` flag on update **replaces** existing tags. If action-1 already has tags (e.g., `#action-5` as a cross-reference), you must include all existing tags plus the new milestone tag:
+
+```bash
+# First check existing tags
+harnessx intake-actions list
+# Then include all tags in the update
+harnessx intake-actions update action-1 \
+  --tags "#action-5, #milestone-1" \
+  --note-author "hx-planning-milestones" \
+  --note-text "Mapped to milestone-1: Live position data flowing through the pipeline."
+```
+
+### Tagging rules (from hx:tag-context-writing)
+
+- Tags go at the **end of the line** they annotate — never on their own line
+- Only use **traceable tags** that reference real artifacts (`#milestone-N`, `#action-N`, `#success-measure-N`)
+- Do not invent categorical tags
+- After tagging, verify with `harnessx context search-context --query "#milestone-1"` — the result should return meaningful paragraphs, not just the tag
+
+---
+
+## Step 7: Verify traceability
+
+After writing all milestones and tagging all artifacts, verify the bidirectional links work:
+
+```bash
+# Verify each milestone is findable
+harnessx context search-context --query "#milestone-1"
+harnessx context search-context --query "#milestone-2"
+# ... for each milestone
+
+# Verify milestones were created correctly
+harnessx planning-milestones list
+```
+
+Each `search-context` query should return meaningful paragraphs from the intake documents — not just the tag itself. If any return only the tag, fix the placement (move the tag onto the content line).
+
+### Completeness check
+
+Verify:
+- Every success measure is mapped to at least one milestone
+- Every UAT criterion is mapped to at least one milestone
+- Every action item traces to at least one milestone (no orphans)
+- Every milestone has at least one trace tag back to an action item
+- Every milestone has at least one intake source reference
+
+If you find gaps, go back and fix them — either by updating milestone traces or by adding tags to intake documents.
+
+---
+
+## What a good set of milestones looks like
+
+- **3–7 milestones** that collectively cover the entire project
+- **State-based titles** — "X is working and observable" not "build X"
+- **Clean dependency chain** — first milestone has no dependencies, last milestone depends on most others
+- **Thinnest first slice** — milestone-1 is the smallest thing that proves the architecture works
+- **Full traceability** — every milestone traces to action items and intake sections, every action item traces back to a milestone
+- **Observable** — each milestone is something you could demo to someone
+
+---
+
+## What this skill does NOT do
+
+- **Write epics, stories, or tasks** — those come from separate planning skills that operate within each milestone
+- **Execute any implementation** — milestones are plans, not code
+- **Change the pipeline stage** — the operator handles stage transitions
+- **Create action items** — action items come from intake; milestones trace to existing ones

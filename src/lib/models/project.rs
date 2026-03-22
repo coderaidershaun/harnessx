@@ -13,6 +13,7 @@ use crate::models::intake_team::IntakeTeamProgress;
 use crate::models::intake_actions;
 use crate::models::planning_epics;
 use crate::models::planning_milestones;
+use crate::models::planning_stories;
 use crate::models::progress::ProjectProgress;
 
 const PROJECTS_FILE: &str = "harnessx/projects.json";
@@ -127,6 +128,7 @@ impl Project {
         intake_actions::save(&[], &id)?;
         planning_milestones::save(&[], &id)?;
         planning_epics::save(&[], &id)?;
+        planning_stories::save(&[], &id)?;
 
         Ok(project)
     }

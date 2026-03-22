@@ -62,6 +62,12 @@ pub enum ParserError {
     #[error("epic '{0}' not found")]
     EpicNotFound(String),
 
+    #[error("no planning stories found for project '{0}' — run `planning-stories create` after project creation")]
+    StoriesNotFound(String),
+
+    #[error("story '{0}' not found")]
+    StoryNotFound(String),
+
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
 }
