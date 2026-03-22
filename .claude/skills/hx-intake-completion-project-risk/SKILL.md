@@ -24,7 +24,7 @@ Your job is not to be paranoid about everything — it's to be systematically th
 Run these commands and read all outputs:
 
 ```bash
-harnessx project status
+harnessx project active
 harnessx intake-onboarding status
 harnessx intake-completion status
 harnessx intake-actions list

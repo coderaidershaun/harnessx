@@ -24,7 +24,7 @@ The key tension: you want to push creative boundaries while respecting the scope
 Run these commands and read the outputs:
 
 ```bash
-harnessx project status
+harnessx project active
 harnessx intake-onboarding status
 harnessx intake-completion status
 harnessx intake-actions list

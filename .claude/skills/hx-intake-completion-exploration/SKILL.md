@@ -22,7 +22,7 @@ Agents that skip exploration make expensive mistakes: they reinvent code that al
 Run these commands and read the outputs carefully:
 
 ```bash
-harnessx project status
+harnessx project active
 harnessx intake-onboarding status
 harnessx intake-completion status
 harnessx intake-actions list
