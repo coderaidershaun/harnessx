@@ -180,3 +180,37 @@ Returns:
   "tasks": [...]
 }
 ```
+
+## `planning-stories mark-written <id>`
+
+Sets `tasks_written` to `true` for the given story. Pass `--value false` to unset.
+
+```bash
+harnessx planning-stories mark-written story-1
+harnessx planning-stories mark-written story-1 --value false
+```
+
+## `planning-stories mark-completed <id>`
+
+Sets `tasks_completed` to `true` for the given story. Pass `--value false` to unset.
+
+```bash
+harnessx planning-stories mark-completed story-1
+harnessx planning-stories mark-completed story-1 --value false
+```
+
+## `planning-stories next-to-write`
+
+Returns the next story (by `order`) whose `tasks_written` is `false`. If all stories have their tasks written, returns a completion message.
+
+```bash
+harnessx planning-stories next-to-write
+```
+
+## `planning-stories next-to-complete`
+
+Returns the next story (by `order`) whose `tasks_completed` is `false`. If all stories have their tasks completed, returns a completion message.
+
+```bash
+harnessx planning-stories next-to-complete
+```
