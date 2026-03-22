@@ -98,3 +98,11 @@ Marks an intake onboarding section's status as `completed`.
 ```bash
 harnessx intake-onboarding complete goal
 ```
+
+## `intake-onboarding update <section> <status>`
+
+Sets a section to any status value (`not_started`, `in_progress`, `completed`, `rework`).
+
+```bash
+harnessx intake-onboarding update scope in_progress
+```

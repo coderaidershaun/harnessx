@@ -825,6 +825,31 @@ Two hooks manage session lifecycle:
 
 ---
 
+## Completion Tracking
+
+The `completion` command returns a completion percentage for a project, useful for progress indicators.
+
+```bash
+harnessx completion <project-id>
+```
+
+Returns:
+```json
+{
+  "success": true,
+  "data": {
+    "phase": "execution",
+    "completed": 12,
+    "total": 24,
+    "percentage": "50.0"
+  }
+}
+```
+
+During execution, it counts completed vs. total tasks. In earlier phases, it counts completed items across all intake/planning sections.
+
+---
+
 ## Initialization
 
 Running `harnessx init` scaffolds the full system:
@@ -847,16 +872,17 @@ The CLI exposes these command groups — each documented in detail in its own fi
 |---|---|---|
 | `harnessx project` | `projects.md` | Create, list, activate, remove projects; update metadata fields |
 | `harnessx progress` | `progress.md` | Pipeline stage tracking — init, status, next, complete, update |
-| `harnessx intake-onboarding` | `intake-onboarding.md` | 6-section onboarding tracker — init, status, list, next, complete |
-| `harnessx intake-team` | `intake-team.md` | 3-section team tracker — init, status, list, next, complete |
-| `harnessx intake-completion` | `intake-completion.md` | 3-section completion tracker — init, status, list, next, complete |
+| `harnessx intake-onboarding` | `intake-onboarding.md` | 6-section onboarding tracker — init, status, list, next, complete, update |
+| `harnessx intake-team` | `intake-team.md` | 3-section team tracker — init, status, list, next, complete, update |
+| `harnessx intake-completion` | `intake-completion.md` | 3-section completion tracker — init, status, list, next, complete, update |
 | `harnessx intake-actions` | `intake-actions.md` | Action items CRUD — create, list, get, update, remove, add-tag |
 | `harnessx planning` | (this doc) | 4-section planning tracker — init, status, list, next, complete, update |
 | `harnessx planning-milestones` | `planning-milestones.md` | Milestone CRUD + hierarchy (children, next-to-write, mark-written) |
 | `harnessx planning-epics` | `planning-epics.md` | Epic CRUD + hierarchy (parent, children, next-to-write, mark-written) |
 | `harnessx planning-stories` | `planning-stories.md` | Story CRUD + hierarchy (parent, children, next-to-write, mark-written) |
-| `harnessx planning-tasks` | `planning-tasks.md` | Task CRUD + dependency-aware next (parent, next-to-write) |
+| `harnessx planning-tasks` | `planning-tasks.md` | Task CRUD + dependency-aware next + parent hierarchy traversal |
 | `harnessx context` | `context.md` | Tag/wikilink/text search across project markdown and JSON files |
+| `harnessx completion` | (this doc) | Show completion percentage for a project |
 | `harnessx init` | (this doc) | Scaffold the full harnessx system into a directory |
 
 ---

@@ -77,3 +77,11 @@ Marks an intake completion section's status as `completed`.
 ```bash
 harnessx intake-completion complete exploration
 ```
+
+## `intake-completion update <section> <status>`
+
+Sets a section to any status value (`not_started`, `in_progress`, `completed`, `rework`).
+
+```bash
+harnessx intake-completion update ideation in_progress
+```

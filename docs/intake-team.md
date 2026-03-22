@@ -77,3 +77,11 @@ Marks an intake team section's status as `completed`.
 ```bash
 harnessx intake-team complete team_define
 ```
+
+## `intake-team update <section> <status>`
+
+Sets a section to any status value (`not_started`, `in_progress`, `completed`, `rework`).
+
+```bash
+harnessx intake-team update team_build in_progress
+```
