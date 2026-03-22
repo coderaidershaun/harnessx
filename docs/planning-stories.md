@@ -145,3 +145,29 @@ harnessx planning-stories update story-1 \
 | `--note`                 | Note content to append                                    |
 
 On update, notes are **appended** to the existing list (not replaced).
+
+## `planning-stories parent <id>`
+
+Returns the epic that this story belongs to, resolved from the story's `epic` field.
+
+```bash
+harnessx planning-stories parent story-1
+```
+
+Returns the full epic object.
+
+## `planning-stories children <id>`
+
+Returns all tasks that belong to a story. Tasks whose `story` references this ID.
+
+```bash
+harnessx planning-stories children story-1
+```
+
+Returns:
+```json
+{
+  "story": "story-1",
+  "tasks": [...]
+}
+```

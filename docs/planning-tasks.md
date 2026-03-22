@@ -215,3 +215,13 @@ harnessx planning-tasks update task-1 \
 | `--note`                  | Note content to append                                 |
 
 On update, notes are **appended** to the existing list (not replaced).
+
+## `planning-tasks parent <id>`
+
+Returns the story that this task belongs to, resolved from the task's `story` field.
+
+```bash
+harnessx planning-tasks parent task-1
+```
+
+Returns the full story object.

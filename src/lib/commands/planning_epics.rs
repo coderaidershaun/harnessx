@@ -1,11 +1,13 @@
-//! Planning epic subcommands: create, remove, update, list, next.
+//! Planning epic subcommands: create, remove, update, list, next, parent, children.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
 
 use crate::errors::{ParserError, ParserResult};
 use crate::models::planning_epics::{self, Epic};
-use crate::models::planning_milestones::{MilestoneNote, Traces};
+use crate::models::planning_milestones::{self, MilestoneNote, Traces};
+use crate::models::planning_stories;
+use crate::models::planning_tasks;
 use crate::models::status::Status;
 use crate::output::exit_with;
 
@@ -64,6 +66,10 @@ pub enum PlanningEpicsCommand {
     List,
     /// Show the next incomplete epic (by order).
     Next,
+    /// Show the milestone this epic belongs to.
+    Parent { id: String },
+    /// Show all stories and tasks under an epic.
+    Children { id: String },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -136,8 +142,15 @@ impl PlanningEpicsCommand {
 
             Self::List => exit_with(planning_epics::for_active_project()),
             Self::Next => exit_with(next_epic()),
+            Self::Parent { id } => exit_with(epic_parent(&id)),
+            Self::Children { id } => exit_with(epic_children(&id)),
         }
     }
+}
+
+/// Strips a leading `#` from a reference if present.
+fn strip_hash(s: &str) -> &str {
+    s.strip_prefix('#').unwrap_or(s)
 }
 
 fn next_epic() -> ParserResult<serde_json::Value> {
@@ -152,6 +165,52 @@ fn next_epic() -> ParserResult<serde_json::Value> {
             "message": "All epics completed."
         })),
     }
+}
+
+fn epic_parent(id: &str) -> ParserResult<serde_json::Value> {
+    let epics = planning_epics::for_active_project()?;
+    let epic = epics
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| ParserError::EpicNotFound(id.to_string()))?;
+
+    let milestone_id = strip_hash(&epic.milestone);
+    let milestones = planning_milestones::for_active_project()?;
+    let milestone = milestones
+        .into_iter()
+        .find(|m| m.id == milestone_id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(milestone_id.to_string()))?;
+
+    Ok(serde_json::to_value(milestone)?)
+}
+
+fn epic_children(id: &str) -> ParserResult<serde_json::Value> {
+    let epics = planning_epics::for_active_project()?;
+    if !epics.iter().any(|e| e.id == id) {
+        return Err(ParserError::EpicNotFound(id.to_string()));
+    }
+
+    let ref_id = format!("#{id}");
+
+    let stories: Vec<_> = planning_stories::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|s| s.epic == ref_id)
+        .collect();
+
+    let story_ids: Vec<String> = stories.iter().map(|s| format!("#{}", s.id)).collect();
+
+    let tasks: Vec<_> = planning_tasks::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|t| story_ids.contains(&t.story))
+        .collect();
+
+    Ok(serde_json::json!({
+        "epic": id,
+        "stories": serde_json::to_value(&stories)?,
+        "tasks": serde_json::to_value(&tasks)?,
+    }))
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -1,11 +1,13 @@
-//! Planning story subcommands: create, remove, update, list, next.
+//! Planning story subcommands: create, remove, update, list, next, parent, children.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
 
 use crate::errors::{ParserError, ParserResult};
+use crate::models::planning_epics;
 use crate::models::planning_milestones::{MilestoneNote, Traces};
 use crate::models::planning_stories::{self, Story};
+use crate::models::planning_tasks;
 use crate::models::status::Status;
 use crate::output::exit_with;
 
@@ -64,6 +66,10 @@ pub enum PlanningStoriesCommand {
     List,
     /// Show the next incomplete story (by order).
     Next,
+    /// Show the epic this story belongs to.
+    Parent { id: String },
+    /// Show all tasks under a story.
+    Children { id: String },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -145,8 +151,15 @@ impl PlanningStoriesCommand {
 
             Self::List => exit_with(planning_stories::for_active_project()),
             Self::Next => exit_with(next_story()),
+            Self::Parent { id } => exit_with(story_parent(&id)),
+            Self::Children { id } => exit_with(story_children(&id)),
         }
     }
+}
+
+/// Strips a leading `#` from a reference if present.
+fn strip_hash(s: &str) -> &str {
+    s.strip_prefix('#').unwrap_or(s)
 }
 
 fn next_story() -> ParserResult<serde_json::Value> {
@@ -161,6 +174,43 @@ fn next_story() -> ParserResult<serde_json::Value> {
             "message": "All stories completed."
         })),
     }
+}
+
+fn story_parent(id: &str) -> ParserResult<serde_json::Value> {
+    let stories = planning_stories::for_active_project()?;
+    let story = stories
+        .iter()
+        .find(|s| s.id == id)
+        .ok_or_else(|| ParserError::StoryNotFound(id.to_string()))?;
+
+    let epic_id = strip_hash(&story.epic);
+    let epics = planning_epics::for_active_project()?;
+    let epic = epics
+        .into_iter()
+        .find(|e| e.id == epic_id)
+        .ok_or_else(|| ParserError::EpicNotFound(epic_id.to_string()))?;
+
+    Ok(serde_json::to_value(epic)?)
+}
+
+fn story_children(id: &str) -> ParserResult<serde_json::Value> {
+    let stories = planning_stories::for_active_project()?;
+    if !stories.iter().any(|s| s.id == id) {
+        return Err(ParserError::StoryNotFound(id.to_string()));
+    }
+
+    let ref_id = format!("#{id}");
+
+    let tasks: Vec<_> = planning_tasks::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|t| t.story == ref_id)
+        .collect();
+
+    Ok(serde_json::json!({
+        "story": id,
+        "tasks": serde_json::to_value(&tasks)?,
+    }))
 }
 
 #[allow(clippy::too_many_arguments)]

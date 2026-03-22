@@ -1,10 +1,13 @@
-//! Planning milestone subcommands: create, remove, update, list, next.
+//! Planning milestone subcommands: create, remove, update, list, next, children.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
 
 use crate::errors::{ParserError, ParserResult};
+use crate::models::planning_epics;
 use crate::models::planning_milestones::{self, Milestone, MilestoneNote, Traces};
+use crate::models::planning_stories;
+use crate::models::planning_tasks;
 use crate::models::status::Status;
 use crate::output::exit_with;
 
@@ -63,6 +66,8 @@ pub enum PlanningMilestonesCommand {
     List,
     /// Show the next incomplete milestone (by order).
     Next,
+    /// Show all epics, stories, and tasks under a milestone.
+    Children { id: String },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -135,6 +140,7 @@ impl PlanningMilestonesCommand {
 
             Self::List => exit_with(planning_milestones::for_active_project()),
             Self::Next => exit_with(next_milestone()),
+            Self::Children { id } => exit_with(milestone_children(&id)),
         }
     }
 }
@@ -151,6 +157,45 @@ fn next_milestone() -> ParserResult<serde_json::Value> {
             "message": "All milestones completed."
         })),
     }
+}
+
+fn milestone_children(id: &str) -> ParserResult<serde_json::Value> {
+    // Verify the milestone exists.
+    let milestones = planning_milestones::for_active_project()?;
+    if !milestones.iter().any(|m| m.id == id) {
+        return Err(ParserError::MilestoneNotFound(id.to_string()));
+    }
+
+    let ref_id = format!("#{id}");
+
+    let epics: Vec<_> = planning_epics::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|e| e.milestone == ref_id)
+        .collect();
+
+    let epic_ids: Vec<String> = epics.iter().map(|e| format!("#{}", e.id)).collect();
+
+    let stories: Vec<_> = planning_stories::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|s| epic_ids.contains(&s.epic))
+        .collect();
+
+    let story_ids: Vec<String> = stories.iter().map(|s| format!("#{}", s.id)).collect();
+
+    let tasks: Vec<_> = planning_tasks::for_active_project()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|t| story_ids.contains(&t.story))
+        .collect();
+
+    Ok(serde_json::json!({
+        "milestone": id,
+        "epics": serde_json::to_value(&epics)?,
+        "stories": serde_json::to_value(&stories)?,
+        "tasks": serde_json::to_value(&tasks)?,
+    }))
 }
 
 #[allow(clippy::too_many_arguments)]

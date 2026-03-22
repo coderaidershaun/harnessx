@@ -140,3 +140,21 @@ harnessx planning-milestones update milestone-1 \
 | `--note`                 | Note content to append                               |
 
 On update, notes are **appended** to the existing list (not replaced).
+
+## `planning-milestones children <id>`
+
+Returns all epics, stories, and tasks that belong to a milestone. Traverses the full hierarchy: epics whose `milestone` references this ID, stories whose `epic` references those epics, and tasks whose `story` references those stories.
+
+```bash
+harnessx planning-milestones children milestone-1
+```
+
+Returns:
+```json
+{
+  "milestone": "milestone-1",
+  "epics": [...],
+  "stories": [...],
+  "tasks": [...]
+}
+```

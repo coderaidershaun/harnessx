@@ -1,4 +1,4 @@
-//! Planning task subcommands: create, remove, update, list, next.
+//! Planning task subcommands: create, remove, update, list, next, parent.
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use crate::errors::{ParserError, ParserResult};
 use crate::models::intake_actions::{ActionMode, Complexity};
 use crate::models::planning_milestones::MilestoneNote;
+use crate::models::planning_stories;
 use crate::models::planning_tasks::{self, Task, TaskTraces};
 use crate::models::status::Status;
 use crate::output::exit_with;
@@ -83,6 +84,8 @@ pub enum PlanningTasksCommand {
     List,
     /// Show the next ready task (dependency-aware).
     Next,
+    /// Show the story this task belongs to.
+    Parent { id: String },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -206,6 +209,7 @@ impl PlanningTasksCommand {
 
             Self::List => exit_with(planning_tasks::for_active_project()),
             Self::Next => exit_with(next_task()),
+            Self::Parent { id } => exit_with(task_parent(&id)),
         }
     }
 }
@@ -214,6 +218,23 @@ impl PlanningTasksCommand {
 /// `depends_on` values are stored as `"#task-1"` but IDs are `"task-1"`.
 fn strip_hash(s: &str) -> &str {
     s.strip_prefix('#').unwrap_or(s)
+}
+
+fn task_parent(id: &str) -> ParserResult<serde_json::Value> {
+    let tasks = planning_tasks::for_active_project()?;
+    let task = tasks
+        .iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
+
+    let story_id = strip_hash(&task.story);
+    let stories = planning_stories::for_active_project()?;
+    let story = stories
+        .into_iter()
+        .find(|s| s.id == story_id)
+        .ok_or_else(|| ParserError::StoryNotFound(story_id.to_string()))?;
+
+    Ok(serde_json::to_value(story)?)
 }
 
 /// Finds the next task that is ready to work on.
