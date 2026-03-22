@@ -11,6 +11,7 @@ use harnessx::commands::intake_team::IntakeTeamCommand;
 use harnessx::commands::planning_epics::PlanningEpicsCommand;
 use harnessx::commands::planning_milestones::PlanningMilestonesCommand;
 use harnessx::commands::planning_stories::PlanningStoriesCommand;
+use harnessx::commands::planning_tasks::PlanningTasksCommand;
 use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
 
@@ -75,6 +76,11 @@ enum Command {
         #[command(subcommand)]
         command: PlanningStoriesCommand,
     },
+    /// Manage planning tasks.
+    PlanningTasks {
+        #[command(subcommand)]
+        command: PlanningTasksCommand,
+    },
 }
 
 fn main() {
@@ -91,5 +97,6 @@ fn main() {
         Command::PlanningEpics { command } => command.run(),
         Command::PlanningMilestones { command } => command.run(),
         Command::PlanningStories { command } => command.run(),
+        Command::PlanningTasks { command } => command.run(),
     }
 }

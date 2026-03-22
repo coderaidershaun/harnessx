@@ -68,6 +68,12 @@ pub enum ParserError {
     #[error("story '{0}' not found")]
     StoryNotFound(String),
 
+    #[error("no planning tasks found for project '{0}' — run `planning-tasks create` after project creation")]
+    PlanningTasksNotFound(String),
+
+    #[error("planning task '{0}' not found")]
+    PlanningTaskNotFound(String),
+
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
 }
