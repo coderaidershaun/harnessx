@@ -339,27 +339,128 @@ The coordinator handles mid-phase resumption gracefully. `harnessx planning next
 
 ---
 
-## Phase 6: Review (Planned)
+## Phase 6: Review
 
+**Skill:** `hx:review`
 **Pipeline stage:** `review`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-Design review and approval before implementation begins.
+A quality gate between planning and execution. It answers one question: **will this plan actually work when agents execute it independently?** The skill dispatches 5 specialist review agents in parallel, synthesizes their findings into a unified report, then launches per-milestone remediation agents to fix issues — all via the harnessx CLI.
+
+### Phase 6a: Dispatch 5 Review Agents
+
+All 5 agents launch in parallel, each receiving the full project state (all planning lists + intake documents) and specializing in one review dimension:
+
+| Agent | Focus | Model |
+|-------|-------|-------|
+| **Task Ordering & Dependencies** | Circular dependencies, missing dependencies, cross-story gaps, bottleneck detection, parallelisation opportunities | opus |
+| **Task Robustness** | Step completeness, skill assignments, integration test coverage, complexity calibration, self-containment, context sufficiency | opus |
+| **Goal Alignment** | Success measure coverage, UAT criteria tracing, scope adherence, feature gaps, over-engineering detection | opus |
+| **Intake-Actions Alignment** | Orphaned action items, orphaned planning artifacts, category alignment, input doc coverage, complexity consistency | opus |
+| **Risk & Coherence** | Integration seams, architectural decisions, error handling coherence, testing gaps, agent context loss, sum-of-parts check | opus |
+
+Each agent returns a structured review with critical issues, warnings, observations, and a score out of 10.
+
+### Phase 6b: Synthesize Review
+
+Once all 5 agents return:
+
+1. **Deduplicate** — Multiple agents may flag the same issue from different angles. Merge into single findings with the most severe rating.
+2. **Priority rank** — Critical (execution would fail), Warning (quality issues), Observation (informational).
+3. **Present to user** — Overall score, per-agent scores, numbered findings list. Ask which issues to fix.
+
+### Phase 6c: Remediation
+
+Based on the user's selection:
+
+1. **Group fixes by milestone** — trace each affected artifact up to its parent milestone.
+2. **Launch per-milestone remediation agents** (sonnet) — each receives the milestone's full hierarchy plus the specific findings to fix.
+3. Remediation agents use CLI commands exclusively (`planning-tasks update`, `planning-stories update`, `planning-tasks create`, etc.) — never editing JSON directly.
+4. Every update includes a `--note` documenting what changed and why, creating an audit trail.
+5. **Report results** — summary of all changes, recommendation on whether to re-review.
+
+When complete: `harnessx progress complete review`.
 
 ---
 
-## Phase 7: Execution (Planned)
+## Phase 7: Execution
 
+**Skill:** `hx:execution-next-task`
 **Pipeline stage:** `execution`
-**Status:** Not yet implemented (skill: `hx:TODO-WARN-USER`)
 
-When implemented, this is where the development skills do the actual building. The skill fleet available for execution includes 9 Rust specialists plus a coordinator, and any additional language/domain teams created during intake team:
+The execution engine. It picks up one task per invocation, gathers the right context, synthesizes it into a precision-targeted brief, and dispatches the task to the specialist agent who does the actual work. This skill is invoked repeatedly — each invocation handles exactly one task.
 
-### rust:team-coordinator (Orchestration)
+### Phase 7a: Identify the Next Task
+
+```bash
+harnessx planning-tasks next
+```
+
+Uses dependency-aware resolution: a task is "ready" only when all its `depends_on` tasks are completed. Returns one of three states:
+- **Ready task found** — proceed to context gathering.
+- **All blocked** — report unmet dependencies to the user and stop.
+- **All completed** — cascade completion flags upward (story → epic → milestone) and stop.
+
+### Phase 7b: Gather Intelligence (3 Parallel Agents)
+
+Three lightweight agents launch simultaneously:
+
+| Agent | Purpose | Model |
+|-------|---------|-------|
+| **Project context** | Follows `hx:tag-context-reading` to walk task → story → epic → milestone, collect traced action items, pull relevant intake context | opus |
+| **Recent progress** | Reads `harnessx/<id>/history.md` for last completed tasks, blockers, decisions | sonnet |
+| **Git activity** | Runs `git log` and `git diff` to understand current codebase state | sonnet |
+
+### Phase 7c: Synthesize Execution Brief
+
+Distills all gathered intelligence into a 40-60 line brief — the only context the executing agent receives. Structure:
+
+- **SITUATION** — the WHY chain (milestone → epic → story → task purpose) in flowing prose
+- **RECENT PROGRESS** — what just happened, codebase state
+- **YOUR WORK** — steps copied verbatim from the task, key action item context, scope boundaries
+- **VERIFICATION** — integration tests, story acceptance criteria, expected output files
+- **WHAT COMES NEXT** — the following task, so the agent leaves the codebase ready for it
+
+### Phase 7d: Determine Dispatch Parameters
+
+Task complexity maps to model selection (always bumped one level for safety):
+
+| Complexity | Model Used |
+|------------|-----------|
+| `super-low`, `low` | sonnet |
+| `medium`, `high`, `super-high`, `uncertain` | opus |
+
+Mode determines framing:
+- **`plan`** — produce a design document, not code
+- **`execute`** — write the code, follow the steps, verify with tests
+- **`review`** — read critically, check against criteria, flag issues
+- **`rework`** — fix specific problems identified during review
+
+### Phase 7e: Dispatch the Executing Agent
+
+One agent launches with the synthesized brief, thinking depth instruction, mode framing, and assigned specialist skill(s). Runs autonomously in `bypassPermissions` mode.
+
+When skills contain a team coordinator (e.g., `rust:team-coordinator`), the coordinator is dispatched and triages internally. Direct specialist skills (e.g., `rust:commenting`) work without a coordinator.
+
+### Phase 7f: Post-Execution Bookkeeping
+
+After the executing agent returns:
+
+1. **Update task status** — `completed` (success) or `rework` (failure), with a note summarizing what happened.
+2. **Append to history.md** — date, status, skills used, summary, files changed.
+3. **Cascade completion upward** — if all tasks in a story are done, mark story completed; if all stories in an epic, mark epic; if all epics in a milestone, mark milestone.
+4. **Report to user** — what happened, what's next.
+
+Then stop. The user or operator invokes again for the next task.
+
+### Available Execution Skills
+
+The skill fleet available for execution includes 9 Rust specialists plus a coordinator, and any additional language/domain teams created during intake team:
+
+#### rust:team-coordinator (Orchestration)
 
 Smart coordinator for all Rust development work. Triages tasks and either dispatches a single specialist agent directly or orchestrates the full team through a disciplined pipeline (exploration, TDD, architecture, implementation, testing, polish). Single entry point for all Rust work.
 
-### rust:exploration-and-planning (Read-Only)
+#### rust:exploration-and-planning (Read-Only)
 
 Systematically explores a codebase to understand its architecture before writing anything. Produces a structured plan with:
 
@@ -371,7 +472,7 @@ Systematically explores a codebase to understand its architecture before writing
 
 This skill never writes code. It produces recommendations that the implementation skill executes.
 
-### rust:planning-and-architecture (Decision Making)
+#### rust:planning-and-architecture (Decision Making)
 
 Senior architect for performance-critical decisions:
 
@@ -382,7 +483,7 @@ Senior architect for performance-critical decisions:
 
 Process: understand constraints, enumerate 2-3 options, evaluate against what matters, commit to a direction, flag inflection points where the answer changes at different scale.
 
-### rust:developing (Implementation)
+#### rust:developing (Implementation)
 
 The implementation workhorse. Writes core logic — functions, methods, trait impls, state machines, algorithms, business rules.
 
@@ -395,7 +496,7 @@ Philosophy:
 
 Does NOT plan architecture, refactor for style, write tests, or add comments.
 
-### rust:unit-testing (Verification)
+#### rust:unit-testing (Verification)
 
 Writes minimal unit tests, verifies correctness, then cleans up. Tests are scaffolding, not furniture.
 
@@ -406,7 +507,7 @@ Workflow:
 4. Decide what stays (complex logic, non-obvious correctness) vs what goes (scaffolding)
 5. Remove tests that served their purpose
 
-### rust:integration-testing (Production-Reality)
+#### rust:integration-testing (Production-Reality)
 
 High-stakes tests with real data, real connections, real failure modes. Never mocks, never synthetic data.
 
@@ -421,15 +522,15 @@ Tests go in `tests/` directory, all passing tests marked `#[ignore]`, run with `
 
 When a test fails and can't be fixed, triggers the failure loop (see below).
 
-### rust:ergonomic-refactoring (Code Quality)
+#### rust:ergonomic-refactoring (Code Quality)
 
 Refactors for readability and idiomatic style with zero runtime overhead. Self-evident code over commented code.
 
-### rust:errors-management (Error Handling)
+#### rust:errors-management (Error Handling)
 
 Architects robust error handling using thiserror, dedicated error types, and proper propagation. Catches unwrap/expect misuse.
 
-### rust:commenting (Documentation)
+#### rust:commenting (Documentation)
 
 Adds minimal, consistent comments. Every `.rs` file gets a `//!` module comment. Doc comments only when the name and signature don't tell the full story. Never restates what code already says.
 
@@ -509,7 +610,7 @@ When all 8 preceding stages are complete, the pipeline reaches this terminal sta
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  5   │ planning             │ hx:planning      │ Implemented    │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
-│  6   │ review               │ (planned)        │ Not yet        │
+│  6   │ review               │ hx:review        │ Implemented    │
 ├──────┼──────────────────────┼──────────────────┼────────────────┤
 │  7   │ execution            │ hx:execution-    │ Implemented    │
 │      │                      │ next-task        │                │
@@ -577,6 +678,7 @@ harnessx ships with skill definitions organized into three groups:
 | `hx:planning-epics` | Decompose milestones into capability chunks |
 | `hx:planning-stories` | Decompose epics into testable behaviours |
 | `hx:planning-tasks` | Decompose stories into atomic implementation tasks |
+| `hx:review` | Quality gate — 5-agent review + remediation before execution |
 | `hx:tag-context-reading` | Trace tags up the hierarchy for full context |
 | `hx:execution-next-task` | Pick up and dispatch the next ready task |
 | `hx:user-troubleshooting` | Diagnose and resolve pipeline failures |
@@ -630,8 +732,30 @@ Agent platform is auto-detected from existing `CLAUDE.md` or `AGENTS.md`, or pro
 
 ---
 
+## CLI Command Reference
+
+The CLI exposes these command groups — each documented in detail in its own file under `docs/`:
+
+| Command Group | Doc File | Purpose |
+|---|---|---|
+| `harnessx project` | `projects.md` | Create, list, activate, remove projects; update metadata fields |
+| `harnessx progress` | `progress.md` | Pipeline stage tracking — init, status, next, complete, update |
+| `harnessx intake-onboarding` | `intake-onboarding.md` | 6-section onboarding tracker — init, status, list, next, complete |
+| `harnessx intake-team` | `intake-team.md` | 3-section team tracker — init, status, list, next, complete |
+| `harnessx intake-completion` | `intake-completion.md` | 3-section completion tracker — init, status, list, next, complete |
+| `harnessx intake-actions` | `intake-actions.md` | Action items CRUD — create, list, get, update, remove |
+| `harnessx planning` | (this doc) | 4-section planning tracker — init, status, list, next, complete, update |
+| `harnessx planning-milestones` | `planning-milestones.md` | Milestone CRUD + hierarchy (children, next-to-write, mark-written) |
+| `harnessx planning-epics` | `planning-epics.md` | Epic CRUD + hierarchy (parent, children, next-to-write, mark-written) |
+| `harnessx planning-stories` | `planning-stories.md` | Story CRUD + hierarchy (parent, children, next-to-write, mark-written) |
+| `harnessx planning-tasks` | `planning-tasks.md` | Task CRUD + dependency-aware next (parent, next-to-write) |
+| `harnessx context` | `context.md` | Tag/wikilink/text search across project markdown and JSON files |
+| `harnessx init` | (this doc) | Scaffold the full harnessx system into a directory |
+
+---
+
 ## Summary
 
 The harnessx process in one paragraph:
 
-The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The intake team phase defines what specialist skills the project needs, builds any that are missing, and interviews each agent. The intake completion phase runs deep exploration of project resources, creative ideation, and a risk audit. The planning phase then decomposes all work into milestones, epics, stories, and tasks across multiple sessions. After review, the execution phase picks up tasks one at a time and dispatches them to specialist agents. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
+The user runs `/hx:operator`, which creates a project (or resumes one). The intake onboarding phase walks through 6 sections — goal, scope, user knowledge, resources, success measures, and UAT criteria — capturing action items throughout. The intake team phase defines what specialist skills the project needs, builds any that are missing, and interviews each agent. The intake completion phase runs deep exploration of project resources, creative ideation, and a risk audit. The planning phase then decomposes all work into milestones, epics, stories, and tasks across multiple sessions. The review phase dispatches 5 specialist agents to audit the plan for dependency issues, robustness gaps, goal alignment, traceability, and coherence — then remediates any findings via per-milestone agents. The execution phase picks up tasks one at a time, gathers targeted context via parallel agents, synthesizes an execution brief, and dispatches each task to the right specialist agent with the right model and thinking depth. At any point, if something fails and needs user input, the pipeline reroutes to a troubleshooting skill. When all stages are complete, the project reaches its terminal state. All state lives in JSON files on disk, all workflow logic lives in skill markdown files, and the CLI is the stateless bridge between them.
