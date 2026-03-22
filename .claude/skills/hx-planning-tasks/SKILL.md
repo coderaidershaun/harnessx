@@ -39,6 +39,12 @@ harnessx planning-stories next
 
 You need the story's full object — especially its `title`, `description`, `acceptance_criteria`, `epic`, and `traces`. The acceptance criteria are your north star — every task you write should contribute toward making at least one criterion pass.
 
+### Pre-built check
+
+Before proceeding, check if this story already has its tasks pre-built:
+
+If the story has `tasks_written: true`, it has pre-built structure from rework milestone generation. Report to the user: "This story already has pre-built tasks (from rework milestone setup). No additional task planning needed." Stop — do not create additional tasks.
+
 ---
 
 ## Step 2: Read the full context hierarchy
