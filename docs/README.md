@@ -34,7 +34,7 @@ The operator skill runs `harnessx project active` to check if a project exists.
 4. This scaffolds the full project directory:
    ```
    harnessx/<id>/
-   ├── progress.json              # 9 pipeline stages (all not_started except user_input_required = completed)
+   ├── progress.json              # 10 pipeline stages (all not_started except user_input_required = completed)
    └── intake/
        ├── intake_onboarding.json # 6 onboarding sections
        ├── intake_team.json       # 3 team sections

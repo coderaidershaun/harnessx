@@ -207,7 +207,7 @@ When the user mentions something, think about what could go wrong when an agent 
 
 ## Process awareness
 
-You know the full harnessx pipeline (9 stages from intake through completion). Use this knowledge to create actions at the right level — and avoid creating actions for things that later stages handle naturally.
+You know the full harnessx pipeline (10 stages from intake through completion). Use this knowledge to create actions at the right level — and avoid creating actions for things that later stages handle naturally.
 
 ### Create actions for:
 
