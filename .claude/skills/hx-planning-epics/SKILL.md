@@ -251,20 +251,16 @@ Real-time PnL requires normalized position data across all supported protocols. 
 
 ### Tag action items with epic references
 
-For each action item an epic traces to, update the action to include the epic tag. This creates the reverse link.
-
-**Important:** The `--tags` flag on update **replaces** existing tags. Check existing tags first and include them all:
+For each action item an epic traces to, append the epic tag using `add-tag`. This creates the reverse link without replacing any existing tags.
 
 ```bash
-# Check existing tags on the action
-harnessx intake-actions list
-
-# Update with all existing tags plus the new epic tag
+harnessx intake-actions add-tag action-1 --tags "#epic-1"
 harnessx intake-actions update action-1 \
-  --tags "#milestone-1, #epic-1" \
   --note-author "hx-planning-epics" \
   --note-text "Mapped to epic-1: DEX position ingestion."
 ```
+
+`add-tag` only appends — it will not remove any existing tags on the action item, and it skips duplicates.
 
 ### Tag milestones with their epics
 

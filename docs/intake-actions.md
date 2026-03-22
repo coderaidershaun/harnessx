@@ -118,3 +118,17 @@ harnessx intake-actions update 1 \
 | `--note-text`   | Note content to append (requires `--note-author`)    |
 
 On update, notes are **appended** to the existing list (not replaced).
+
+## `intake-actions add-tag <id>`
+
+Appends tags to an existing action item without replacing existing ones. Duplicate tags are skipped.
+
+```bash
+harnessx intake-actions add-tag action-1 --tags "#epic-1, #story-1"
+```
+
+| Flag     | Required | Description                    |
+|----------|----------|--------------------------------|
+| `--tags` | yes      | Comma-separated tags to append |
+
+This is safer than using `update --tags` when you only need to add tags, because `update --tags` **replaces** all existing tags.

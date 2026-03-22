@@ -295,9 +295,9 @@ The planning stage decomposes all intake work into a four-level hierarchy: miles
 | Session | Section | What Happens |
 |---------|---------|-------------|
 | 1 | milestones | Create all project milestones (3-7 demonstrable checkpoints) |
-| 2 | epics | Create epics for every milestone (capability chunks) |
-| 3 | stories | Create stories for every epic (testable behavioural increments) |
-| 4+ | tasks | Create tasks for ONE story per session (atomic implementation steps) |
+| 2+ | epics | Create epics for ONE milestone per session (capability chunks) |
+| N+ | stories | Create stories for ONE epic per session (testable behavioural increments) |
+| M+ | tasks | Create tasks for ONE story per session (atomic implementation steps) |
 
 Each session: get current section via `harnessx planning next`, do the work, mark progress, stop. The user returns via `/hx:operator` to continue.
 
@@ -313,7 +313,7 @@ After milestones are created: `harnessx planning complete milestones`. Session e
 
 **Skill:** `hx:planning-epics`
 
-Loops through milestones using `harnessx planning-milestones next-to-write` to find milestones without epics. For each milestone, creates epics (coherent capability chunks that collectively make the milestone true). After writing epics for a milestone, marks it: `harnessx planning-milestones mark-written <id>`.
+Processes one milestone per session using `harnessx planning-milestones next-to-write`. Creates epics for that milestone (coherent capability chunks that collectively make the milestone true), marks it written, checks if more milestones remain, and stops. The user returns for the next milestone.
 
 After all milestones have epics: `harnessx planning complete epics`. Session ends.
 
@@ -321,7 +321,7 @@ After all milestones have epics: `harnessx planning complete epics`. Session end
 
 **Skill:** `hx:planning-stories`
 
-Loops through epics using `harnessx planning-epics next-to-write` to find epics without stories. For each epic, creates stories (testable behavioural increments) with acceptance criteria. After writing stories for an epic, marks it: `harnessx planning-epics mark-written <id>`.
+Processes one epic per session using `harnessx planning-epics next-to-write`. Creates stories for that epic (testable behavioural increments) with acceptance criteria, marks it written, checks if more epics remain, and stops. The user returns for the next epic.
 
 After all epics have stories: `harnessx planning complete stories`. Session ends.
 
@@ -377,6 +377,7 @@ Based on the user's selection:
 3. Remediation agents use CLI commands exclusively (`planning-tasks update`, `planning-stories update`, `planning-tasks create`, etc.) — never editing JSON directly.
 4. Every update includes a `--note` documenting what changed and why, creating an audit trail.
 5. **Report results** — summary of all changes, recommendation on whether to re-review.
+6. **User confirmation** — review stage is only marked complete after the user explicitly confirms satisfaction. The skill never auto-advances past the review gate.
 
 When complete: `harnessx progress complete review`.
 
@@ -398,7 +399,7 @@ harnessx planning-tasks next
 Uses dependency-aware resolution: a task is "ready" only when all its `depends_on` tasks are completed. Returns one of three states:
 - **Ready task found** — proceed to context gathering.
 - **All blocked** — report unmet dependencies to the user and stop.
-- **All completed** — cascade completion flags upward (story → epic → milestone) and stop.
+- **All completed** — cascade completion flags upward (story → epic → milestone), mark the execution stage complete via `harnessx progress complete execution`, and stop.
 
 ### Phase 7b: Gather Intelligence (3 Parallel Agents)
 

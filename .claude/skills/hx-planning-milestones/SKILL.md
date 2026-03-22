@@ -228,26 +228,16 @@ User can open the dashboard and see their current Uniswap v3 positions with corr
 
 ### Tag action items with milestone references
 
-For each action item that a milestone traces to, update the action item to include the milestone tag. This creates the reverse link — from action to milestone.
+For each action item that a milestone traces to, append the milestone tag using `add-tag`. This creates the reverse link — from action to milestone — without replacing any existing tags.
 
 ```bash
+harnessx intake-actions add-tag action-1 --tags "#milestone-1"
 harnessx intake-actions update action-1 \
-  --tags "#milestone-1" \
   --note-author "hx-planning-milestones" \
   --note-text "Mapped to milestone-1: Live position data flowing through the pipeline."
 ```
 
-**Important:** The `--tags` flag on update **replaces** existing tags. If action-1 already has tags (e.g., `#action-5` as a cross-reference), you must include all existing tags plus the new milestone tag:
-
-```bash
-# First check existing tags
-harnessx intake-actions list
-# Then include all tags in the update
-harnessx intake-actions update action-1 \
-  --tags "#action-5, #milestone-1" \
-  --note-author "hx-planning-milestones" \
-  --note-text "Mapped to milestone-1: Live position data flowing through the pipeline."
-```
+`add-tag` only appends — it will not remove any existing tags on the action item, and it skips duplicates.
 
 ### Tagging rules (from hx:tag-context-writing)
 

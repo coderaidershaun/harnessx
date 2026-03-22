@@ -334,3 +334,43 @@ Before running CLI commands, read the relevant doc file to confirm exact flag na
 - `docs/planning-epics.md`
 - `docs/planning-milestones.md`
 - `docs/intake-actions.md`
+
+---
+
+## Phase 4: Complete Review
+
+After remediation is complete (or if no critical issues were found), mark the review stage as done.
+
+### After remediation
+
+When remediation agents have finished and you've reported changes to the user, ask:
+
+> "Are you satisfied with the remediation, or would you like to re-run the review to validate the changes?"
+
+If the user is satisfied:
+
+```bash
+harnessx progress complete review
+```
+
+Tell the user: "Review is complete. The pipeline will advance to execution on next invocation. Start a new session and run `/hx:operator` to begin executing tasks."
+
+If the user wants a re-review, tell them to run `/hx:review` again in a new session. Do not mark complete.
+
+### No critical issues found
+
+If Phase 2's synthesis shows zero critical issues and zero warnings (only observations), and the overall score is 8/10 or higher, tell the user:
+
+> "The plan looks solid — no critical issues or warnings. Ready to mark review complete and move to execution?"
+
+If the user confirms:
+
+```bash
+harnessx progress complete review
+```
+
+If the user wants to address observations or run further checks, do not mark complete.
+
+### Important
+
+Never auto-complete review without user confirmation. The review is a quality gate — the user must explicitly approve moving to execution.

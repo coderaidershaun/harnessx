@@ -14,9 +14,9 @@ Planning is split across sessions to manage context:
 | Session | Phase | What happens |
 |---------|-------|-------------|
 | 1 | milestones | Create all project milestones |
-| 2 | epics | Create epics for every milestone |
-| 3 | stories | Create stories for every epic |
-| 4+ | tasks | Create tasks for ONE story per session |
+| 2+ | epics | Create epics for ONE milestone per session |
+| N+ | stories | Create stories for ONE epic per session |
+| M+ | tasks | Create tasks for ONE story per session |
 
 Each session does one unit of work, marks progress, and stops. The user returns via `/hx:operator` (which routes back here) or invokes `/hx:planning` directly.
 
@@ -96,9 +96,11 @@ Do not continue to the epics phase. Do not invoke another skill.
 
 ## Step 3b: Epics phase
 
-**Goal**: Create epics for every milestone that doesn't have them yet, all in one session.
+**Goal**: Create epics for ONE milestone per session.
 
-Mark the section in progress:
+The epics section processes one milestone per session because epic decomposition requires deep analysis of each milestone's success measures, action items, and capability requirements. Your job is to handle the next unwritten milestone, mark progress, then stop.
+
+Mark the section in progress (only on first entry — if already in_progress, skip):
 
 ```bash
 harnessx planning update epics in_progress
@@ -110,9 +112,7 @@ Load the `hx:planning-epics` SKILL.md:
 Read .claude/skills/hx-planning-epics/SKILL.md
 ```
 
-Now loop through milestones that still need epics:
-
-### Loop start
+Find the next milestone that needs epics:
 
 ```bash
 harnessx planning-milestones next-to-write
@@ -120,11 +120,11 @@ harnessx planning-milestones next-to-write
 
 This returns either:
 - A milestone object (has `epics_written: false`) — create epics for it
-- `{"message": "All milestones have their epics written."}` — loop is done, go to "Epics complete" below
+- `{"message": "All milestones have their epics written."}` — go to "All epics complete" below
 
-For the returned milestone:
+### Create epics for this milestone
 
-1. Follow the planning-epics skill's protocol for this specific milestone — read intake docs, analyze what capabilities are needed, create epics via CLI, use a review agent to critique, write traceability tags.
+1. Follow the planning-epics skill's full protocol for this specific milestone — read intake docs, analyze what capabilities are needed, create epics via CLI, use a review agent to critique, write traceability tags.
 
 2. After all epics for this milestone are created and verified, mark it:
 
@@ -132,9 +132,23 @@ For the returned milestone:
 harnessx planning-milestones mark-written <milestone-id>
 ```
 
-3. Go back to **Loop start** and check for the next milestone.
+3. Check if there are more milestones:
 
-### Epics complete
+```bash
+harnessx planning-milestones next-to-write
+```
+
+If another milestone is returned:
+
+**Stop.** Tell the user:
+- What epics were created for the milestone just completed (brief summary)
+- Which milestone is next
+- How many milestones remain (count milestones where `epics_written` is false)
+- Start a new session and run `/hx:operator` or `/hx:planning`
+
+Do not continue to the next milestone in this session.
+
+### All epics complete
 
 When all milestones have their epics written:
 
@@ -143,8 +157,8 @@ harnessx planning complete epics
 ```
 
 **Stop.** Tell the user:
-- What epics were created across which milestones (brief summary)
-- Next session will write stories for each epic
+- All milestones now have epics defined
+- Next session will write stories — one epic per session
 - Start a new session and run `/hx:operator` or `/hx:planning`
 
 Do not continue to the stories phase. Do not invoke another skill.
@@ -153,9 +167,11 @@ Do not continue to the stories phase. Do not invoke another skill.
 
 ## Step 3c: Stories phase
 
-**Goal**: Create stories for every epic that doesn't have them yet, all in one session.
+**Goal**: Create stories for ONE epic per session.
 
-Mark the section in progress:
+The stories section processes one epic per session because story decomposition — including acceptance criteria development — requires focused attention on each epic's capability boundaries.
+
+Mark the section in progress (only on first entry — if already in_progress, skip):
 
 ```bash
 harnessx planning update stories in_progress
@@ -167,9 +183,7 @@ Load the `hx:planning-stories` SKILL.md:
 Read .claude/skills/hx-planning-stories/SKILL.md
 ```
 
-Now loop through epics that still need stories:
-
-### Loop start
+Find the next epic that needs stories:
 
 ```bash
 harnessx planning-epics next-to-write
@@ -177,11 +191,11 @@ harnessx planning-epics next-to-write
 
 This returns either:
 - An epic object (has `stories_written: false`) — create stories for it
-- `{"message": "All epics have their stories written."}` — loop is done, go to "Stories complete" below
+- `{"message": "All epics have their stories written."}` — go to "All stories complete" below
 
-For the returned epic:
+### Create stories for this epic
 
-1. Follow the planning-stories skill's protocol for this specific epic — get parent milestone context, read intake docs, analyze what testable behaviours are needed, develop acceptance criteria, create stories via CLI, use a review agent to critique, write traceability tags.
+1. Follow the planning-stories skill's full protocol for this specific epic — get parent milestone context, read intake docs, analyze what testable behaviours are needed, develop acceptance criteria, create stories via CLI, use a review agent to critique, write traceability tags.
 
 2. After all stories for this epic are created and verified, mark it:
 
@@ -189,9 +203,23 @@ For the returned epic:
 harnessx planning-epics mark-written <epic-id>
 ```
 
-3. Go back to **Loop start** and check for the next epic.
+3. Check if there are more epics:
 
-### Stories complete
+```bash
+harnessx planning-epics next-to-write
+```
+
+If another epic is returned:
+
+**Stop.** Tell the user:
+- What stories were created for the epic just completed (brief summary)
+- Which epic is next
+- How many epics remain (count epics where `stories_written` is false)
+- Start a new session and run `/hx:operator` or `/hx:planning`
+
+Do not continue to the next epic in this session.
+
+### All stories complete
 
 When all epics have their stories written:
 
@@ -200,7 +228,7 @@ harnessx planning complete stories
 ```
 
 **Stop.** Tell the user:
-- What stories were created across which epics (brief summary)
+- All epics now have stories defined
 - Next session(s) will write tasks — one story per session
 - Start a new session and run `/hx:operator` or `/hx:planning`
 

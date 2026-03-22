@@ -300,20 +300,16 @@ The ingestion system must handle Uniswap v3 subgraph queries with pagination for
 
 ### Tag action items with task references
 
-For each action item a task traces to, update it to include the task tag:
+For each action item a task traces to, append the task tags using `add-tag`. This creates the reverse link without replacing any existing tags.
 
 ```bash
-# Check existing tags first
-harnessx intake-actions list
-
-# Update preserving all existing tags
+harnessx intake-actions add-tag action-1 --tags "#task-1, #task-2"
 harnessx intake-actions update action-1 \
-  --tags "#milestone-1, #epic-1, #story-1, #task-1, #task-2" \
   --note-author "hx-planning-tasks" \
   --note-text "Mapped to task-1: Write GraphQL query, task-2: Parse response."
 ```
 
-**Important:** `--tags` replaces existing tags. Include all existing tags plus the new task tags.
+`add-tag` only appends — it will not remove any existing tags on the action item, and it skips duplicates.
 
 ### Tag stories with their tasks
 

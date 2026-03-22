@@ -62,6 +62,12 @@ pub enum IntakeActionsCommand {
     List,
     /// Get a single action item by ID.
     Get { id: String },
+    /// Append tags to an existing action item without replacing existing ones.
+    AddTag {
+        id: String,
+        #[arg(long)]
+        tags: String,
+    },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -112,8 +118,26 @@ impl IntakeActionsCommand {
 
             Self::List => exit_with(intake_actions::for_active_project()),
             Self::Get { id } => exit_with(get_action(&id)),
+            Self::AddTag { id, tags } => exit_with(add_tag_action(&id, tags)),
         }
     }
+}
+
+fn add_tag_action(id: &str, tags: String) -> ParserResult<ActionItem> {
+    let mut items = intake_actions::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::ActionItemNotFound(id.to_string()))?;
+    let new_tags = parse_csv(&tags);
+    for tag in new_tags {
+        if !item.tags.contains(&tag) {
+            item.tags.push(tag);
+        }
+    }
+    let updated = item.clone();
+    intake_actions::save_for_active_project(&items)?;
+    Ok(updated)
 }
 
 fn get_action(id: &str) -> ParserResult<serde_json::Value> {

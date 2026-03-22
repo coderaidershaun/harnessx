@@ -245,20 +245,16 @@ Uniswap v3 subgraph documentation and endpoint URL for position queries. #story-
 
 ### Tag action items with story references
 
-For each action item a story traces to, update it to include the story tag:
+For each action item a story traces to, append the story tag using `add-tag`. This creates the reverse link without replacing any existing tags.
 
 ```bash
-# Check existing tags first
-harnessx intake-actions list
-
-# Update preserving all existing tags
+harnessx intake-actions add-tag action-1 --tags "#story-1"
 harnessx intake-actions update action-1 \
-  --tags "#milestone-1, #epic-1, #story-1" \
   --note-author "hx-planning-stories" \
   --note-text "Mapped to story-1: Fetch open positions from Uniswap v3 subgraph."
 ```
 
-**Important:** `--tags` replaces existing tags. Include all existing tags plus the new story tag.
+`add-tag` only appends — it will not remove any existing tags on the action item, and it skips duplicates.
 
 ### Tag epics with their stories
 

@@ -55,7 +55,15 @@ Find any stories where `tasks_completed` is false but all their tasks are done. 
 harnessx planning-stories mark-completed <story-id>
 ```
 
-Then cascade upward — check epics, then milestones, marking completion flags as appropriate. Report completion to the user. Stop.
+Then cascade upward — check epics, then milestones, marking completion flags as appropriate.
+
+After all completion flags are cascaded, mark the execution stage complete:
+
+```bash
+harnessx progress complete execution
+```
+
+Report to the user that all tasks are complete and the pipeline will advance past execution on next invocation. Stop.
 
 ---
 
@@ -262,6 +270,22 @@ When skills contain a team coordinator (e.g., `rust:team-coordinator`), dispatch
 ---
 
 ## Phase 5: Dispatch the executing agent
+
+### Update task status and mode
+
+Before dispatching, mark the task in progress. If the task's current `mode` is `plan`, flip it to `execute` so the agent receives implementation framing:
+
+```bash
+harnessx planning-tasks update [TASK-ID] --status in_progress --mode execute
+```
+
+If the task's mode is already `rework` or `review`, preserve it — only update status:
+
+```bash
+harnessx planning-tasks update [TASK-ID] --status in_progress
+```
+
+### Launch the agent
 
 Launch one agent with the synthesized brief. This is the agent that does the actual work.
 
