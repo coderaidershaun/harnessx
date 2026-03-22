@@ -11,6 +11,7 @@ use crate::models::intake_completion::IntakeCompletionProgress;
 use crate::models::intake_onboarding::IntakeOnboardingProgress;
 use crate::models::intake_team::IntakeTeamProgress;
 use crate::models::intake_actions;
+use crate::models::planning_epics;
 use crate::models::planning_milestones;
 use crate::models::progress::ProjectProgress;
 
@@ -125,6 +126,7 @@ impl Project {
         ProjectProgress::default().save(&id)?;
         intake_actions::save(&[], &id)?;
         planning_milestones::save(&[], &id)?;
+        planning_epics::save(&[], &id)?;
 
         Ok(project)
     }

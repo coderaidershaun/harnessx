@@ -56,6 +56,12 @@ pub enum ParserError {
     #[error("milestone '{0}' not found")]
     MilestoneNotFound(String),
 
+    #[error("no planning epics found for project '{0}' — run `planning-epics create` after project creation")]
+    EpicsNotFound(String),
+
+    #[error("epic '{0}' not found")]
+    EpicNotFound(String),
+
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
 }
