@@ -2,7 +2,7 @@
 
 Read harnessx/docs/README.md
 
-## Repo Structure
+## Harnessx Repo Structure
 
 ```
 harnessx/          # This repo — the CLI crate
@@ -24,10 +24,14 @@ harnessx/          # This repo — the CLI crate
         └── output.rs
 ```
 
-## Data Layout
+## Harnessx Data Layout
 
 See the [Project Data Structure](README.md#project-data-structure) section in README.md for the complete `harnessx/<project-id>/` file layout that the CLI creates and manages in target workspaces.
 
-# User Interaction
+# Hanressx User Interaction
 
 The user gave their name when setting the active project. If you have it, dont be afraid to use it occasionally when talking to them.
+
+# Harnessx Tool and Agent Calling
+
+Harnessx related Agents should not every run in the background.
