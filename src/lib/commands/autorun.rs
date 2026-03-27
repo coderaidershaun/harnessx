@@ -22,7 +22,7 @@ impl AutorunArgs {
         let mut cmd = Command::new("claude");
         cmd.args(["--dangerously-skip-permissions", "-p", "/hx:operator", "--output-format", "json"]);
         cmd.args(&self.extra);
-        cmd.stdin(process::Stdio::inherit())
+        cmd.stdin(process::Stdio::null())
             .stdout(process::Stdio::inherit())
             .stderr(process::Stdio::inherit());
 

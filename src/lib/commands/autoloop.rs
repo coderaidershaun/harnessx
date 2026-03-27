@@ -102,7 +102,7 @@ fn run_loop(extra: &[String]) -> ParserResult<AutoloopResult> {
             "json",
         ]);
         cmd.args(extra);
-        cmd.stdin(process::Stdio::inherit())
+        cmd.stdin(process::Stdio::null())
             .stdout(process::Stdio::inherit())
             .stderr(process::Stdio::inherit());
 
