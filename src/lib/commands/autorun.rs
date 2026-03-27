@@ -1,4 +1,4 @@
-//! `harnessx run` — launch the Claude operator in the current workspace.
+//! `harnessx autorun` — launch the Claude operator in the current workspace.
 
 use std::path::Path;
 use std::process::{self, Command};
@@ -7,13 +7,13 @@ use crate::errors::{ParserError, ParserResult};
 use crate::output::exit_with;
 
 #[derive(clap::Args)]
-pub struct RunArgs {
+pub struct AutorunArgs {
     /// Extra arguments forwarded to the `claude` command.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     extra: Vec<String>,
 }
 
-impl RunArgs {
+impl AutorunArgs {
     pub fn run(self) -> ! {
         if let Err(e) = require_harnessx_dir() {
             exit_with::<()>(Err(e));
