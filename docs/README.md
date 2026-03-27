@@ -936,6 +936,7 @@ The CLI exposes these command groups — each documented in detail in its own fi
 | `harnessx planning-stories` | `planning-stories.md` | Story CRUD + hierarchy (parent, children, next-to-write, mark-written) |
 | `harnessx planning-tasks` | `planning-tasks.md` | Task CRUD + dependency-aware next + parent hierarchy traversal |
 | `harnessx context` | `context.md` | Tag/wikilink/text search across project markdown and JSON files |
+| `harnessx autorun` | `autorun.md` | Launch an autonomous Claude operator session in the current workspace |
 | `harnessx completion` | (this doc) | Show completion percentage for a project |
 | `harnessx init` | (this doc) | Scaffold the full harnessx system into a directory |
 
