@@ -138,6 +138,8 @@ Before anyone writes anything, you need to understand the landscape. Spawn explo
 
 Launch all exploration agents in parallel. Each agent MUST use the `rust:exploration-and-planning` skill.
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 **What to include in the agent prompt:**
 ```
 You have the rust:exploration-and-planning skill. Your task:
@@ -166,7 +168,7 @@ and recommended implementation order.
 
 This is test-driven development. Write the test contracts *before* implementation. These tests define what "correct" means — they are the specification in code form.
 
-Launch two agents in parallel:
+Launch two agents in parallel (**Do NOT set `run_in_background: true`** — results are needed before the next phase):
 
 **Unit test agent:**
 ```
@@ -308,6 +310,8 @@ The developer skill is focused and disciplined — it writes logic, not tests, n
 **Skip if:** simple task
 
 Now that the code is written, verify that the test contracts from Phase 2 are satisfied. Launch both agents in parallel.
+
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
 
 **Unit test verification agent:**
 ```

@@ -71,6 +71,8 @@ Report to the user that all tasks are complete and the pipeline will advance pas
 
 Launch three agents in parallel. Each has a focused job and returns a compact result. The key insight: these agents are cheap scouts, not deep thinkers. They gather and summarize — the synthesis happens in Phase 3 (your job).
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 ### Agent A: Project context via tag tracing
 
 This is the heavyweight. Launch an agent that follows the `hx:tag-context-reading` skill's process for the task you just identified.

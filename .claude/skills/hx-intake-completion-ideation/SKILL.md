@@ -58,6 +58,8 @@ Build a deep mental model of: what the project is trying to achieve, what the us
 
 Launch 3-5 agents concurrently, each approaching the project from a different creative angle. Each agent receives the full project context (summarized) and a specific thinking lens.
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 The power of multi-agent ideation is diversity of perspective — each agent sees the same project through a different frame, which surfaces ideas that a single perspective would miss.
 
 **Agent Lenses:**

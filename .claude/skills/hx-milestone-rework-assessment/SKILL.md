@@ -120,6 +120,8 @@ All agents receive the same base context:
 
 Launch all 4 agents in parallel.
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 ### Agent 1: Test Analyst
 
 **Prompt:**

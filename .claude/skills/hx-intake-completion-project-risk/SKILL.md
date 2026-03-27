@@ -60,6 +60,8 @@ Build a complete mental model of the project: goal, scope, technical landscape, 
 
 Launch 3-5 agents concurrently, each examining the project through a different risk lens. Every agent receives the full project context (summarized) and the complete list of existing action items.
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 The core instruction to each agent: **"Read every existing action item. Then identify what's missing — the actions that should exist but don't."**
 
 **Risk Lenses:**

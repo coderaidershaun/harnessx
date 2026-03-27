@@ -220,6 +220,8 @@ Write your findings to: [output path]
 
 Launch ALL agents concurrently using the Agent tool. Each agent runs independently and writes to its own subfolder.
 
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+
 For code exploration, prefer `subagent_type: "Explore"` for thorough codebase analysis, or use a general-purpose agent with explicit skill assignment for Rust code.
 
 For research documents, use `model: "opus"` to get extended thinking capabilities.
