@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- Initial end-to-end testing ready.
+
 ## 0.1.1
 
 - Updated README.md with installation instructions, crate/repo links, and Rust prerequisite note.

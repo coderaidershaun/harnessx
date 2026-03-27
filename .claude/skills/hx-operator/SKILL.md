@@ -2,7 +2,7 @@
 name: hx:operator
 description: The harnessx project operator — the main entry point for all project workflows. Use this skill when the user runs /hx:operator, wants to start or resume a project, check what's next, or get routed to the right skill. Trigger this whenever the user says "start project", "what's next", "resume work", or anything related to project orchestration and workflow routing.
 disable-model-invocation: true
-user-invocable: false
+user-invocable: true
 ---
 
 # HX Operator
