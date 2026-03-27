@@ -16,6 +16,7 @@ use harnessx::commands::planning_stories::PlanningStoriesCommand;
 use harnessx::commands::planning_tasks::PlanningTasksCommand;
 use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
+use harnessx::commands::session::SessionCommand;
 
 #[derive(Parser)]
 #[command(name = "harnessx", version, about = "CLI for harnessx project management")]
@@ -90,6 +91,11 @@ enum Command {
         #[command(subcommand)]
         command: PlanningTasksCommand,
     },
+    /// Find live Claude Code sessions.
+    Session {
+        #[command(subcommand)]
+        command: SessionCommand,
+    },
 }
 
 fn main() {
@@ -109,5 +115,6 @@ fn main() {
         Command::PlanningMilestones { command } => command.run(),
         Command::PlanningStories { command } => command.run(),
         Command::PlanningTasks { command } => command.run(),
+        Command::Session { command } => command.run(),
     }
 }
