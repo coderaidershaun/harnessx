@@ -16,6 +16,7 @@ use harnessx::commands::planning_stories::PlanningStoriesCommand;
 use harnessx::commands::planning_tasks::PlanningTasksCommand;
 use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
+use harnessx::commands::autoloop::AutoloopArgs;
 use harnessx::commands::autorun::AutorunArgs;
 use harnessx::commands::session::SessionCommand;
 
@@ -92,6 +93,8 @@ enum Command {
         #[command(subcommand)]
         command: PlanningTasksCommand,
     },
+    /// Autonomous session loop for fully-autonomous pipeline stages.
+    Autoloop(AutoloopArgs),
     /// Launch the Claude operator in the current workspace.
     Autorun(AutorunArgs),
     /// Find live Claude Code sessions.
@@ -118,6 +121,7 @@ fn main() {
         Command::PlanningMilestones { command } => command.run(),
         Command::PlanningStories { command } => command.run(),
         Command::PlanningTasks { command } => command.run(),
+        Command::Autoloop(args) => args.run(),
         Command::Autorun(args) => args.run(),
         Command::Session { command } => command.run(),
     }

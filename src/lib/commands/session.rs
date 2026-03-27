@@ -35,7 +35,7 @@ impl SessionCommand {
     }
 }
 
-fn find_live_sessions(name: &str) -> ParserResult<Vec<LiveSession>> {
+pub fn find_live_sessions(name: &str) -> ParserResult<Vec<LiveSession>> {
     let home = std::env::var("HOME").map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
