@@ -35,9 +35,7 @@ Create the project:
 harnessx project create <project-id>
 ```
 
-Once created successfully:
-1. Run `/compact` to free up context for the intake conversation.
-2. Invoke the `hx:intake-onboarding` skill using the Skill tool.
+Once created successfully, invoke the `hx:intake-onboarding` skill using the Skill tool.
 
 Stop here — the intake onboarding skill takes over.
 
@@ -100,4 +98,4 @@ Read the `skill` field from the response:
 - If `skill` starts with `hx:`: Invoke the skill directly using the Skill tool (these are interactive and need user conversation).
 - If `skill` starts with `rust:`: These can optionally be delegated to a subagent for autonomous execution, or invoked directly.
 
-Run `/compact` before invoking the skill to free up context, then invoke the skill and stop.
+Invoke the skill and stop.
