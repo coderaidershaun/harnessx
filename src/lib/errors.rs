@@ -82,6 +82,9 @@ pub enum ParserError {
 
     #[error("invalid enum value: {0}")]
     InvalidEnumValue(String),
+
+    #[error("no harnessx/ directory found — run `harnessx init` first")]
+    HarnessNotInitialised,
 }
 
 impl ParserError {

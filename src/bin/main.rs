@@ -16,6 +16,7 @@ use harnessx::commands::planning_stories::PlanningStoriesCommand;
 use harnessx::commands::planning_tasks::PlanningTasksCommand;
 use harnessx::commands::progress::ProgressCommand;
 use harnessx::commands::project::ProjectCommand;
+use harnessx::commands::run::RunArgs;
 use harnessx::commands::session::SessionCommand;
 
 #[derive(Parser)]
@@ -91,6 +92,8 @@ enum Command {
         #[command(subcommand)]
         command: PlanningTasksCommand,
     },
+    /// Launch the Claude operator in the current workspace.
+    Run(RunArgs),
     /// Find live Claude Code sessions.
     Session {
         #[command(subcommand)]
@@ -115,6 +118,7 @@ fn main() {
         Command::PlanningMilestones { command } => command.run(),
         Command::PlanningStories { command } => command.run(),
         Command::PlanningTasks { command } => command.run(),
+        Command::Run(args) => args.run(),
         Command::Session { command } => command.run(),
     }
 }
