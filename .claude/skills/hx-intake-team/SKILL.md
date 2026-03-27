@@ -232,6 +232,8 @@ Use the existing `rust:*` skills as templates — they're battle-tested:
 
 **Use multi-agents to create skills in parallel when possible.** Independent skills (like `python:commenting` and `python:unit-testing`) have no dependencies. But the **team-coordinator must always be created last** — it references all specialists.
 
+**Critical rule for any skill that dispatches agents:** Every agent dispatch point must include `**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.` — without this, agents silently run in the background and the skill proceeds before results are available.
+
 **For standalone skills:**
 
 Give `/skill-creator:skill-creator` a clear description of what the skill enables, when it triggers, the expected workflow, and what domain expertise it embodies.
