@@ -107,11 +107,19 @@ fn run_loop(extra: &[String]) -> ParserResult<AutoloopResult> {
             .stderr(process::Stdio::inherit());
 
         match cmd.status() {
+            Ok(status) if status.success() => {
+                eprintln!("[autoloop] Autorun exited successfully.");
+            }
             Ok(status) => {
-                eprintln!(
-                    "[autoloop] Autorun exited with code {}.",
-                    status.code().unwrap_or(-1)
-                );
+                let code = status.code().unwrap_or(-1);
+                eprintln!("[autoloop] Autorun failed with code {code}. Breaking loop.");
+                return Ok(AutoloopResult {
+                    message: format!(
+                        "Autoloop aborted: claude exited with code {code}."
+                    ),
+                    project_id,
+                    runs,
+                });
             }
             Err(e) => {
                 eprintln!("[autoloop] Failed to launch claude: {e}");
