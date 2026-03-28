@@ -60,6 +60,30 @@ Tasks sit at the bottom of the planning hierarchy, so you need context from ever
 
 You already have the milestone and its children from Step 1. The milestone gives you the "why" behind every story. A task that's technically correct but misaligned with the milestone's success measures is a bad task.
 
+### Prior milestone context (critical for continuity)
+
+If this is NOT the first milestone (i.e., `milestone.depends_on` references earlier milestones), you must understand what those milestones produced. Without this, you'll write tasks with wrong assumptions about what files, interfaces, and structures already exist.
+
+```bash
+# For each milestone this one depends on, load it and read its handoff notes
+harnessx planning-milestones get <prior-milestone-id>
+```
+
+Read the **notes** on each prior milestone — especially any note starting with "HANDOFF:". These contain:
+- Key output files and what's in them (e.g., `src/models/position.rs` contains `Position` struct)
+- Exit-point task IDs — the specific tasks whose outputs downstream work builds on
+- Interfaces and contracts — function signatures, struct shapes, API patterns
+
+If no handoff notes exist (e.g., this is the first time the system is used), fall back to loading prior milestone tasks:
+
+```bash
+harnessx planning-milestones children <prior-milestone-id>
+```
+
+Scan the tasks' `traces.output_sources` fields to build a picture of what files and modules were created. This is your "what already exists" map — reference it when writing steps for this milestone's tasks.
+
+**Key principle:** Every task step that says "Read the existing X" or "Extend the Y module" must reference something that a prior milestone's task actually produces. If you can't trace it to a specific output_source, the step is making an assumption that may be wrong.
+
 ### Check existing tasks
 
 ```bash
@@ -135,8 +159,14 @@ STORY CONTEXT:
 - Milestone: [milestone-id] — "[milestone title]": [milestone description]
 - Traces: [story trace tags and intake sources]
 
-EXISTING TASKS (if any):
+EXISTING TASKS FOR THIS STORY (if any):
 [paste existing tasks or "none"]
+
+UPSTREAM CONTEXT (from prior milestones):
+[paste the handoff notes from prior milestones, or a summary of their output_sources. If this is the first milestone, write "First milestone — no upstream dependencies."]
+
+TASKS ALREADY WRITTEN FOR OTHER STORIES IN THIS MILESTONE:
+[paste task titles and output_sources from stories already processed in this session, or "none yet"]
 
 AVAILABLE SPECIALIST SKILLS:
 [list all non-hx skills with their names and one-line descriptions]
@@ -204,6 +234,10 @@ Validate with these specific checks:
    - Edge cases mentioned in acceptance criteria but not tasked
    - Integration between newly created components
    - Cleanup or refactoring needed to make new code fit existing patterns
+
+9. **Upstream dependency accuracy** — Do any steps reference files, structs, or interfaces from prior milestones? If so, check that those references match the actual output_sources and handoff notes from those milestones. Flag any step that says "Read the existing X" or "Extend Y" where X or Y doesn't appear in any prior task's output_sources.
+
+10. **Cross-story dependencies** — Do any proposed tasks consume output from tasks already written for OTHER stories in this milestone? If task-5 (from story-1) produces `src/models/position.rs` and a proposed task reads that file, add `task-5` to its `depends_on`. Missing cross-story dependencies cause execution failures when tasks run out of order.
 
 Provide specific, actionable critique. For each issue, explain what's wrong and how to fix it. If a task needs splitting, show the split. If steps are vague, rewrite them. If a skill assignment is wrong, name the correct skill and why.
 ```
@@ -375,21 +409,65 @@ After the current story is verified, move to the next story under this milestone
 
 ---
 
-## Step 7: All stories done — final verification and stop
+## Step 7: Cross-story dependency scan
 
-Once all stories under the milestone have tasks:
+After all stories under this milestone have tasks but BEFORE final verification, do a quick scan for missing cross-story dependencies within this milestone.
 
 ```bash
-# Verify all tasks across the milestone
 harnessx planning-milestones children <milestone-id>
+```
 
+Review all tasks you just created across all stories. For each task, check:
+
+1. **Does it read from a file that another task in a DIFFERENT story produces?** If task-12 (story-3) reads `src/models/position.rs` and task-5 (story-1) creates it, task-12 must have `depends_on: ["#task-5"]`.
+2. **Does it call a function or use a struct defined by another story's task?** Same logic — add the dependency.
+3. **Are there tasks across stories that could run in parallel but are accidentally serialized?** Remove unnecessary dependencies.
+
+For each missing dependency found, fix it:
+
+```bash
+harnessx planning-tasks update task-12 --depends-on "task-5, task-11"
+```
+
+This scan takes 3-5 minutes but prevents execution failures where tasks run out of order because a cross-story dependency was missed during the per-story dual-agent process.
+
+---
+
+## Step 8: Write milestone handoff notes
+
+Before stopping, write a structured handoff note onto the milestone. This is read by the NEXT task session (for the next milestone) so it knows what files, interfaces, and structures now exist.
+
+```bash
+harnessx planning-milestones update <milestone-id> \
+  --note "HANDOFF: Key outputs — [list files and what they contain, referencing task IDs]. Exit-point tasks: [task IDs that downstream milestones build on]. Interfaces: [key structs, functions, APIs that downstream work will use, with enough detail to write correct task steps]."
+```
+
+**What to include:**
+- Every file path from `trace_output_sources` across this milestone's tasks, grouped by module/concern
+- The task ID that produces each file (so downstream tasks can reference it)
+- Key structs, traits, and function signatures that downstream code will depend on
+- Any patterns or conventions established (e.g., "all error types go in src/errors.rs")
+
+**What NOT to include:**
+- Internal implementation details that downstream tasks don't need
+- Every single task — focus on the "exit points" that other milestones will build on
+
+**Example:**
+
+```
+HANDOFF: Key outputs — src/models/position.rs (Position, PositionList structs; task-3), src/ingestion/client.rs (GraphQLClient with fetch_positions(); task-5), src/ingestion/queries.rs (POSITIONS_QUERY const; task-1), src/db/schema.rs (positions table migration; task-7). Exit-point tasks: task-7 (schema ready for writes), task-9 (ingestion pipeline callable). Interfaces: Position { id, owner, token0, token1, liquidity, fee_tier }, GraphQLClient::new(endpoint) and ::fetch_positions(wallet) -> Vec<Position>. Conventions: all DB queries go through src/db/queries.rs, errors use thiserror in src/errors.rs.
+```
+
+---
+
+## Step 9: Final verification and stop
+
+```bash
 # Spot-check traceability
 harnessx context search-context --query "#task-1"
 ```
 
-### Then stop
-
-Once all stories under this milestone have their tasks written and verified, you are done. The coordinator (hx:planning) will mark the milestone with `mark-tasks-written` and check for more milestones.
+Once all stories under this milestone have their tasks written, cross-story dependencies are linked, and the handoff note is written, you are done. The coordinator (hx:planning) will mark the milestone with `mark-tasks-written` and check for more milestones.
 
 ---
 
