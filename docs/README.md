@@ -913,7 +913,21 @@ During execution, it counts completed vs. total tasks. In earlier phases, it cou
 
 ## Initialization
 
-Running `harnessx init` scaffolds the full system:
+Running `harnessx init` scaffolds the full system through an interactive flow:
+
+### Directory selection
+
+The first prompt asks whether to use the current directory:
+
+- **Yes** (default) — initialise in place, same as before.
+- **No** — choose a project type and provide a name:
+  - **Workspace** — creates `<name>/Cargo.toml` with `[workspace]` and `members = []`.
+  - **Library** — runs `cargo new --lib <name>`.
+  - **Binary** — runs `cargo new --bin <name>`.
+
+After creating the project directory, `harnessx init` changes into it and continues scaffolding there.
+
+### Scaffolded files
 
 - `harnessx/` directory with `projects.json` and `README.md`
 - `.claude/skills/` (or `.cursor/skills/`) with all skill definitions

@@ -1,10 +1,11 @@
-//! `harnessx init` — scaffold the harness in the current directory.
+//! `harnessx init` — scaffold the harness in a directory.
 
+use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::process;
+use std::process::{self, Command};
 
 use crate::templates::{self, Agent};
 
@@ -25,6 +26,13 @@ enum ConflictPolicy {
     Overwrite,
 }
 
+/// The type of Cargo project to create when not using the current directory.
+enum ProjectKind {
+    Workspace,
+    Library,
+    Binary,
+}
+
 impl InitArgs {
     pub fn run(self) -> ! {
         if let Err(err) = self.execute() {
@@ -35,6 +43,8 @@ impl InitArgs {
     }
 
     fn execute(self) -> io::Result<()> {
+        self.resolve_directory()?;
+
         let agent = self.resolve_agent()?;
 
         let manifest = templates::manifest(agent);
@@ -93,6 +103,118 @@ impl InitArgs {
             },
         );
         Ok(())
+    }
+
+    /// Ask the user whether to initialise in the current directory or create a
+    /// new Cargo project. If a new project is created, the working directory is
+    /// changed into it before returning so the rest of `execute` operates there.
+    fn resolve_directory(&self) -> io::Result<()> {
+        let cwd = env::current_dir()?;
+        println!("Use current directory? ({})", cwd.display());
+        println!();
+        print!("[Y/n]: ");
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        match input.trim().to_lowercase().as_str() {
+            "" | "y" | "yes" => return Ok(()),
+            "n" | "no" => {}
+            other => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unknown selection '{other}' — expected y or n"),
+                ));
+            }
+        }
+
+        // --- Create a new project ------------------------------------------------
+
+        let kind = Self::prompt_project_kind()?;
+        let name = Self::prompt_project_name()?;
+
+        match kind {
+            ProjectKind::Workspace => {
+                fs::create_dir_all(&name)?;
+                let cargo_toml = format!(
+                    "[workspace]\nresolver = \"2\"\nmembers = []\n"
+                );
+                fs::write(format!("{name}/Cargo.toml"), cargo_toml)?;
+                println!("  created workspace {name}/");
+            }
+            ProjectKind::Library => {
+                let status = Command::new("cargo")
+                    .args(["new", "--lib", &name])
+                    .status()?;
+                if !status.success() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        format!("cargo new --lib {name} failed"),
+                    ));
+                }
+            }
+            ProjectKind::Binary => {
+                let status = Command::new("cargo")
+                    .args(["new", "--bin", &name])
+                    .status()?;
+                if !status.success() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        format!("cargo new --bin {name} failed"),
+                    ));
+                }
+            }
+        }
+
+        env::set_current_dir(&name)?;
+        println!("  changed directory to {name}/");
+        println!();
+
+        Ok(())
+    }
+
+    fn prompt_project_kind() -> io::Result<ProjectKind> {
+        println!();
+        println!("What kind of project?");
+        println!();
+        println!("  [1] Workspace");
+        println!("  [2] Library");
+        println!("  [3] Binary");
+        println!();
+        print!("Select [1/2/3]: ");
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        match input.trim() {
+            "1" | "workspace" => Ok(ProjectKind::Workspace),
+            "2" | "library" | "lib" => Ok(ProjectKind::Library),
+            "3" | "binary" | "bin" => Ok(ProjectKind::Binary),
+            other => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("unknown selection '{other}' — expected 1, 2, or 3"),
+            )),
+        }
+    }
+
+    fn prompt_project_name() -> io::Result<String> {
+        print!("Project name: ");
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        let name = input.trim().to_string();
+        if name.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "project name cannot be empty",
+            ));
+        }
+
+        Ok(name)
     }
 
     /// Resolve the agent platform.

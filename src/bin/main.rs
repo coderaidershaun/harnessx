@@ -36,7 +36,7 @@ enum Command {
         #[command(subcommand)]
         command: ContextCommand,
     },
-    /// Scaffold the harnessx harness in the current directory.
+    /// Scaffold the harnessx harness in the current or a new project directory.
     Init(InitArgs),
     /// Manage projects.
     Project {
