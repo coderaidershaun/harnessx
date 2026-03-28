@@ -294,6 +294,16 @@ fn strip_hash(s: &str) -> &str {
     s.strip_prefix('#').unwrap_or(s)
 }
 
+/// Ensures a reference has the `#` prefix (e.g. `"milestone-1"` → `"#milestone-1"`).
+/// Returns empty string unchanged.
+fn ensure_hash(s: &str) -> String {
+    if s.is_empty() || s.starts_with('#') {
+        s.to_string()
+    } else {
+        format!("#{s}")
+    }
+}
+
 fn get_task(id: &str) -> ParserResult<serde_json::Value> {
     let items = planning_tasks::for_active_project()?;
     let item = items
@@ -585,6 +595,11 @@ fn create_task(
     // Load ALL tasks across all shards for global ID/order uniqueness.
     let all_items = planning_tasks::for_active_project()?;
 
+    // Normalize references: ensure # prefix on milestone, epic, story.
+    let milestone = ensure_hash(&milestone);
+    let epic = ensure_hash(&epic);
+    let story = ensure_hash(&story);
+
     let item = Task {
         id: planning_tasks::next_id(&all_items),
         order: order.unwrap_or_else(|| planning_tasks::next_order(&all_items)),
@@ -722,7 +737,7 @@ fn update_task(
     }
     // v2 fields
     if let Some(v) = &milestone {
-        item.milestone = v.clone();
+        item.milestone = ensure_hash(v);
     }
     if let Some(v) = group {
         item.group = Some(v);
@@ -772,7 +787,7 @@ fn update_task(
 
     // Handle shard migration if the shard key changed.
     if is_v2 {
-        let new_ms = milestone.unwrap_or(old_shard_key.clone());
+        let new_ms = milestone.map(|m| ensure_hash(&m)).unwrap_or(old_shard_key.clone());
         if new_ms != old_shard_key {
             // Milestone changed — migrate shard
             shard.retain(|t| t.id != id);
@@ -831,11 +846,7 @@ fn list_tasks(
     let mut items = planning_tasks::for_active_project()?;
 
     if let Some(ms) = milestone_filter {
-        let ms_ref = if ms.starts_with('#') {
-            ms
-        } else {
-            format!("#{ms}")
-        };
+        let ms_ref = ensure_hash(&ms);
         items.retain(|t| t.milestone == ms_ref);
     }
 
@@ -854,11 +865,7 @@ fn list_tasks(
 // ---------------------------------------------------------------------------
 
 fn reorder_tasks(milestone_id: &str) -> ParserResult<serde_json::Value> {
-    let ms_ref = if milestone_id.starts_with('#') {
-        milestone_id.to_string()
-    } else {
-        format!("#{milestone_id}")
-    };
+    let ms_ref = ensure_hash(milestone_id);
 
     let mut shard = planning_tasks::load_milestone_shard_for_active_project(&ms_ref)?;
 
