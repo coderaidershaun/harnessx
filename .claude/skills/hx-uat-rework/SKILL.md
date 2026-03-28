@@ -230,6 +230,7 @@ harnessx planning-tasks create \
   --title "[task title]" \
   --steps "[step 1 | step 2 | step 3]" \
   --story "#[story-id]" \
+  --epic "#[epic-id]" \
   --complexity [level] \
   --mode plan \
   --skills "[skill-name]" \

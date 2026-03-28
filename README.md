@@ -182,7 +182,10 @@ harnessx/                                   # Data root (in target workspace)
     │   ├── planning_milestones.json        # Milestone definitions
     │   ├── planning_epics.json             # Epic definitions
     │   ├── planning_stories.json           # Story definitions
-    │   └── planning_tasks.json             # Task definitions
+    │   └── tasks/                          # Task definitions (sharded by epic/story)
+    │       └── <epic-id>/
+    │           └── <story-id>/
+    │               └── planning_tasks.json
     └── integration-tests/
         └── failing.md                      # Failure reports (triggers troubleshooting loop)
 ```

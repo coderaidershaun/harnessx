@@ -15,7 +15,6 @@ use crate::models::planning::PlanningProgress;
 use crate::models::planning_epics;
 use crate::models::planning_milestones;
 use crate::models::planning_stories;
-use crate::models::planning_tasks;
 use crate::models::progress::ProjectProgress;
 
 const PROJECTS_FILE: &str = "harnessx/projects.json";
@@ -132,7 +131,8 @@ impl Project {
         planning_milestones::save(&[], &id)?;
         planning_epics::save(&[], &id)?;
         planning_stories::save(&[], &id)?;
-        planning_tasks::save(&[], &id)?;
+        // Tasks directory is created lazily on first shard save (no flat file needed).
+        fs::create_dir_all(format!("harnessx/{id}/planning/tasks"))?;
         fs::write(Path::new("harnessx").join(id.as_str()).join("history.md"), "")?;
 
         Ok(project)

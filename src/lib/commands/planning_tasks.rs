@@ -1,4 +1,7 @@
 //! Planning task subcommands: create, remove, update, list, next, parent.
+//!
+//! Tasks are sharded on disk by epic + story:
+//! `planning/tasks/{epic-id}/{story-id}/planning_tasks.json`
 
 use clap::Subcommand;
 use smol_str::SmolStr;
@@ -26,6 +29,8 @@ pub enum PlanningTasksCommand {
         order: Option<u32>,
         #[arg(long, default_value = "not_started")]
         status: String,
+        #[arg(long, default_value = "")]
+        epic: String,
         #[arg(long, default_value = "")]
         story: String,
         #[arg(long, default_value = "")]
@@ -147,6 +152,7 @@ impl PlanningTasksCommand {
                 steps,
                 order,
                 status,
+                epic,
                 story,
                 depends_on,
                 complexity,
@@ -162,6 +168,7 @@ impl PlanningTasksCommand {
                 steps,
                 order,
                 status,
+                epic,
                 story,
                 depends_on,
                 complexity,
@@ -250,6 +257,45 @@ fn task_parent(id: &str) -> ParserResult<serde_json::Value> {
     Ok(serde_json::to_value(story)?)
 }
 
+/// Returns a sort key `(milestone.order, epic.order, story.order, task.order)` so that
+/// tasks are naturally ordered by their position in the planning hierarchy.
+fn task_sort_key(
+    task: &Task,
+    stories: &[planning_stories::Story],
+    epics: &[planning_epics::Epic],
+    milestones: &[planning_milestones::Milestone],
+) -> (u32, u32, u32, u32) {
+    let story = stories
+        .iter()
+        .find(|s| format!("#{}", s.id) == task.story);
+
+    // Try the task's epic field first, then fall back to the story's epic.
+    let epic_ref = if !task.epic.is_empty() {
+        Some(task.epic.as_str())
+    } else {
+        story.map(|s| s.epic.as_str())
+    };
+
+    let epic = epic_ref.and_then(|e_ref| {
+        epics
+            .iter()
+            .find(|e| format!("#{}", e.id) == e_ref)
+    });
+
+    let ms = epic.and_then(|e| {
+        milestones
+            .iter()
+            .find(|m| format!("#{}", m.id) == e.milestone)
+    });
+
+    (
+        ms.map(|m| m.order).unwrap_or(u32::MAX),
+        epic.map(|e| e.order).unwrap_or(u32::MAX),
+        story.map(|s| s.order).unwrap_or(u32::MAX),
+        task.order,
+    )
+}
+
 /// Checks whether a task's parent milestone has all its `depends_on` milestones completed.
 ///
 /// Traces task → story → epic → milestone, then checks each milestone dependency.
@@ -265,9 +311,20 @@ fn milestone_deps_met(
     let story = stories
         .iter()
         .find(|s| format!("#{}", s.id) == task.story);
-    let epic = story.and_then(|s| {
-        epics.iter().find(|e| format!("#{}", e.id) == s.epic)
+
+    // Try the task's epic field first, then fall back to the story's epic.
+    let epic_ref = if !task.epic.is_empty() {
+        Some(task.epic.as_str())
+    } else {
+        story.map(|s| s.epic.as_str())
+    };
+
+    let epic = epic_ref.and_then(|e_ref| {
+        epics
+            .iter()
+            .find(|e| format!("#{}", e.id) == e_ref)
     });
+
     let ms = epic.and_then(|e| {
         milestones
             .iter()
@@ -290,21 +347,28 @@ fn milestone_deps_met(
 /// Finds the next task that is ready to work on.
 ///
 /// Algorithm:
-/// 1. Collect IDs of all completed tasks.
-/// 2. A task is "ready" if it is not completed, ALL of its task-level dependencies
+/// 1. Load all tasks from all shards.
+/// 2. Sort by hierarchy: (milestone.order, epic.order, story.order, task.order).
+/// 3. Collect IDs of all completed tasks.
+/// 4. A task is "ready" if it is not completed, ALL of its task-level dependencies
 ///    are in the completed set, AND its parent milestone's dependencies are completed.
-/// 3. Among ready tasks, return the one with the lowest `order`.
-/// 4. If no tasks are ready but incomplete tasks remain, report them as blocked
+/// 5. Among ready tasks, return the first one (lowest in hierarchy order).
+/// 6. If no tasks are ready but incomplete tasks remain, report them as blocked
 ///    with the specific unmet dependencies for each.
-/// 5. If all tasks are completed, report completion.
+/// 7. If all tasks are completed, report completion.
 fn next_task() -> ParserResult<serde_json::Value> {
     let mut items = planning_tasks::for_active_project()?;
-    items.sort_by_key(|t| t.order);
 
-    // Load hierarchy for milestone-level dependency checks
+    // Load hierarchy for sorting and milestone-level dependency checks
     let stories = planning_stories::for_active_project().unwrap_or_default();
     let epics = planning_epics::for_active_project().unwrap_or_default();
     let milestones = planning_milestones::for_active_project().unwrap_or_default();
+
+    // Sort by hierarchy: milestone → epic → story → task order
+    items.sort_by(|a, b| {
+        task_sort_key(a, &stories, &epics, &milestones)
+            .cmp(&task_sort_key(b, &stories, &epics, &milestones))
+    });
 
     let completed_ids: HashSet<&str> = items
         .iter()
@@ -368,6 +432,7 @@ fn create_task(
     steps: String,
     order: Option<u32>,
     status: String,
+    epic: String,
     story: String,
     depends_on: String,
     complexity: String,
@@ -379,15 +444,17 @@ fn create_task(
     trace_output_sources: String,
     note: Option<String>,
 ) -> ParserResult<Task> {
-    let mut items = planning_tasks::for_active_project()?;
+    // Load ALL tasks across all shards for global ID/order uniqueness.
+    let all_items = planning_tasks::for_active_project()?;
 
     let item = Task {
-        id: planning_tasks::next_id(&items),
-        order: order.unwrap_or_else(|| planning_tasks::next_order(&items)),
+        id: planning_tasks::next_id(&all_items),
+        order: order.unwrap_or_else(|| planning_tasks::next_order(&all_items)),
         title: SmolStr::new(title),
         steps: parse_pipe(&steps),
         status: parse_status(&status)?,
-        story,
+        epic: epic.clone(),
+        story: story.clone(),
         depends_on: parse_csv(&depends_on),
         complexity: parse_complexity(&complexity)?,
         mode: parse_mode(&mode)?,
@@ -401,21 +468,33 @@ fn create_task(
         notes: note.map(|n| vec![MilestoneNote { note: n }]),
     };
 
-    items.push(item.clone());
-    planning_tasks::save_for_active_project(&items)?;
+    // Load existing shard for this epic/story, append, save back.
+    let mut shard = planning_tasks::load_shard_for_active_project(&epic, &story)?;
+    shard.push(item.clone());
+    planning_tasks::save_shard_for_active_project(&shard, &epic, &story)?;
     Ok(item)
 }
 
 fn remove_task(id: &str) -> ParserResult<Task> {
-    let mut items = planning_tasks::for_active_project()?;
-
-    let position = items
+    // Find the task across all shards to determine which shard it lives in.
+    let all_items = planning_tasks::for_active_project()?;
+    let task = all_items
         .iter()
-        .position(|item| item.id == id)
+        .find(|t| t.id == id)
         .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
 
-    let removed = items.remove(position);
-    planning_tasks::save_for_active_project(&items)?;
+    let epic = task.epic.clone();
+    let story = task.story.clone();
+
+    // Load the specific shard, remove the task, save back.
+    let mut shard = planning_tasks::load_shard_for_active_project(&epic, &story)?;
+    let position = shard
+        .iter()
+        .position(|t| t.id == id)
+        .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
+
+    let removed = shard.remove(position);
+    planning_tasks::save_shard_for_active_project(&shard, &epic, &story)?;
     Ok(removed)
 }
 
@@ -437,13 +516,31 @@ fn update_task(
     trace_output_sources: Option<String>,
     note: Option<String>,
 ) -> ParserResult<Task> {
-    let mut items = planning_tasks::for_active_project()?;
-
-    let item = items
-        .iter_mut()
-        .find(|item| item.id == id)
+    // Find the task across all shards to determine which shard it lives in.
+    let all_items = planning_tasks::for_active_project()?;
+    let existing = all_items
+        .iter()
+        .find(|t| t.id == id)
         .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
 
+    let old_epic = existing.epic.clone();
+    let old_story = existing.story.clone();
+
+    // Check if the story is changing (shard migration needed).
+    let new_story = story.clone();
+    let story_changing = new_story
+        .as_ref()
+        .map(|s| *s != old_story)
+        .unwrap_or(false);
+
+    // Load the specific shard this task currently lives in.
+    let mut shard = planning_tasks::load_shard_for_active_project(&old_epic, &old_story)?;
+    let item = shard
+        .iter_mut()
+        .find(|t| t.id == id)
+        .ok_or_else(|| ParserError::PlanningTaskNotFound(id.to_string()))?;
+
+    // Apply mutations.
     if let Some(v) = title {
         item.title = SmolStr::new(v);
     }
@@ -456,8 +553,8 @@ fn update_task(
     if let Some(v) = status {
         item.status = parse_status(&v)?;
     }
-    if let Some(v) = story {
-        item.story = v;
+    if let Some(v) = &new_story {
+        item.story = v.clone();
     }
     if let Some(v) = depends_on {
         item.depends_on = parse_csv(&v);
@@ -492,6 +589,34 @@ fn update_task(
     }
 
     let updated = item.clone();
-    planning_tasks::save_for_active_project(&items)?;
+
+    if story_changing {
+        // Shard migration: remove from old shard, add to new shard.
+        shard.retain(|t| t.id != id);
+        planning_tasks::save_shard_for_active_project(&shard, &old_epic, &old_story)?;
+
+        // Derive new epic from the story's parent epic.
+        let new_epic = if !updated.epic.is_empty() {
+            updated.epic.clone()
+        } else {
+            // Look up the new story's epic.
+            let stories = planning_stories::for_active_project().unwrap_or_default();
+            let story_id = strip_hash(&updated.story);
+            stories
+                .iter()
+                .find(|s| s.id == story_id)
+                .map(|s| s.epic.clone())
+                .unwrap_or(old_epic)
+        };
+
+        let mut new_shard =
+            planning_tasks::load_shard_for_active_project(&new_epic, &updated.story)?;
+        new_shard.push(updated.clone());
+        planning_tasks::save_shard_for_active_project(&new_shard, &new_epic, &updated.story)?;
+    } else {
+        // Save in place.
+        planning_tasks::save_shard_for_active_project(&shard, &old_epic, &old_story)?;
+    }
+
     Ok(updated)
 }

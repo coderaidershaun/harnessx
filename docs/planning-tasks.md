@@ -1,8 +1,12 @@
 # Planning Tasks Commands
 
-Manage planning tasks for the active project. Stored at `harnessx/<id>/planning/planning_tasks.json`.
+Manage planning tasks for the active project. Tasks are **sharded by epic and story**:
 
-Tasks are atomic units of implementation — each has a clear start, a clear end, and can be finished in a single focused session. Each task belongs to a story and is the thing a specialist agent actually executes. This is where complexity ratings and skill assignments matter most.
+```
+harnessx/<id>/planning/tasks/<epic-id>/<story-id>/planning_tasks.json
+```
+
+Tasks are atomic units of implementation — each has a clear start, a clear end, and can be finished in a single focused session. Each task belongs to a story (under an epic) and is the thing a specialist agent actually executes. This is where complexity ratings and skill assignments matter most.
 
 ## JSON Structure
 
@@ -20,6 +24,7 @@ The tasks file wraps the array in a top-level object:
         "Write a query that filters by owner address"
       ],
       "status": "not_started",
+      "epic": "#epic-1",
       "story": "#story-1",
       "depends_on": [],
       "complexity": "low",
@@ -104,11 +109,13 @@ harnessx planning-tasks next
 
 ### Algorithm
 
-1. Collect the IDs of all completed tasks.
-2. A task is "ready" if it is **not completed** and **all** of its `depends_on` references resolve to completed tasks. The `#` prefix on dependency references (e.g. `#task-1`) is stripped automatically when matching against task IDs.
-3. Among ready tasks, return the one with the lowest `order`.
-4. If no tasks are ready but incomplete tasks remain, return a `blocked_tasks` array listing each blocked task and its unmet dependencies.
-5. If all tasks are completed, return a completion message.
+1. Load all tasks from all shards (traverses `planning/tasks/` directory).
+2. Sort tasks by hierarchy: `(milestone.order, epic.order, story.order, task.order)`.
+3. Collect the IDs of all completed tasks.
+4. A task is "ready" if it is **not completed**, **all** of its `depends_on` references resolve to completed tasks, AND its parent milestone's dependencies are completed. The `#` prefix on references (e.g. `#task-1`) is stripped automatically when matching.
+5. Among ready tasks, return the first one (lowest in hierarchy order).
+6. If no tasks are ready but incomplete tasks remain, return a `blocked_tasks` array listing each blocked task and its unmet dependencies.
+7. If all tasks are completed, return a completion message.
 
 ### Response shapes
 
@@ -140,6 +147,7 @@ Creates a new task for the active project. The `id` is auto-assigned (`task-1`, 
 harnessx planning-tasks create \
   --title "Write the GraphQL query for fetching open positions" \
   --steps "Look up the subgraph schema | Write the query | Add pagination" \
+  --epic "#epic-1" \
   --story "#story-1" \
   --complexity low \
   --mode plan \
@@ -157,6 +165,7 @@ harnessx planning-tasks create \
 | `--steps`                 | no       | `""`           | **Pipe-separated** ordered steps (see note below)      |
 | `--order`                 | no       | auto-increment | Explicit ordering; defaults to next sequential         |
 | `--status`                | no       | `"not_started"` | Status (see enum above)                                |
+| `--epic`                  | no       | `""`           | Parent epic ref (e.g. `#epic-1`). Determines shard path. |
 | `--story`                 | no       | `""`           | The story this task belongs to                         |
 | `--depends-on`            | no       | `""`           | Comma-separated task dependency references             |
 | `--complexity`            | no       | `""`           | Complexity level (see enum above)                      |

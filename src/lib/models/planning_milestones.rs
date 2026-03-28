@@ -39,6 +39,8 @@ pub struct Milestone {
     #[serde(default)]
     pub epics_completed: bool,
     #[serde(default)]
+    pub tasks_written: bool,
+    #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
 }
 

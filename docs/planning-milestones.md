@@ -211,3 +211,20 @@ Returns the next milestone (by `order`) whose `epics_completed` is `false`. If a
 ```bash
 harnessx planning-milestones next-to-complete
 ```
+
+## `planning-milestones mark-tasks-written <id>`
+
+Sets the `tasks_written` flag on a milestone. When `true`, indicates that all tasks for all stories under this milestone have been written. Pass `--value false` to unmark.
+
+```bash
+harnessx planning-milestones mark-tasks-written milestone-1
+harnessx planning-milestones mark-tasks-written milestone-1 --value false
+```
+
+## `planning-milestones next-to-write-tasks`
+
+Returns the next milestone (by `order`) whose `tasks_written` is `false`. If all milestones have their tasks written, returns a completion message.
+
+```bash
+harnessx planning-milestones next-to-write-tasks
+```

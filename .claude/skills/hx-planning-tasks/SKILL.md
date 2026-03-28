@@ -1,23 +1,23 @@
 ---
 name: hx:planning-tasks
-description: Define and write the atomic implementation tasks needed to deliver a specific story — bite-sized units of work that a specialist agent can complete in a single focused session without context overflow. Given a story (or auto-selecting the next one), reads all context up the full hierarchy (story → epic → milestone → intake), discovers available specialist skills, then launches dual agents (one to propose tasks, one to review and enhance) before writing tasks to planning_tasks.json with skill assignments, complexity ratings, steps, integration tests, and full traceability. Use this skill when the user says "write tasks", "plan tasks", "what tasks does this story need", "break down this story", "define tasks for story-1", "task out this story", or anything about decomposing a story into implementation work. Also trigger after stories are written and the next step is task decomposition, or when the operator routes to task planning.
+description: Define and write the atomic implementation tasks needed to deliver all stories under a given milestone — bite-sized units of work that a specialist agent can complete in a single focused session without context overflow. Given a milestone (from the coordinator), iterates over all its stories, reads context up the full hierarchy (story → epic → milestone → intake), discovers available specialist skills, then launches dual agents (one to propose tasks, one to review and enhance) for each story before writing tasks with skill assignments, complexity ratings, steps, integration tests, and full traceability. Tasks are sharded on disk by epic and story. Use this skill when the user says "write tasks", "plan tasks", or anything about decomposing stories into implementation work. Also trigger after stories are written and the next step is task decomposition, or when the operator routes to task planning.
 disable-model-invocation: false
 user-invocable: false
 ---
 
 # Planning Tasks
 
-You define the tasks for a specific story — the atomic implementation steps that a specialist agent will actually sit down and execute. Each task has a clear start, a clear end, and can be finished in a single focused session. When a task is done, the agent can point to a concrete change: a new file, a modified function, a passing test.
+You define the tasks for all stories under a given milestone — the atomic implementation steps that a specialist agent will actually sit down and execute. Each task has a clear start, a clear end, and can be finished in a single focused session. When a task is done, the agent can point to a concrete change: a new file, a modified function, a passing test.
 
 Tasks are where the rubber meets the road. Every task you write will be dispatched to a real agent with limited context. If the task is too broad, the agent will lose focus or drift. If the task is too vague, the agent won't know when it's done. If the wrong skill is assigned, the agent will struggle with work outside its expertise. Getting tasks right is what makes the difference between agents that ship and agents that spin.
 
-Your job is to look at a story, understand its acceptance criteria and the behaviour it delivers, and break that into the discrete implementation steps that collectively make the story's acceptance criteria pass. Then write them using the harnessx CLI with the right skill assignments, complexity ratings, and full traceability.
+Your job is to look at each story under the target milestone, understand its acceptance criteria and the behaviour it delivers, and break that into the discrete implementation steps that collectively make the story's acceptance criteria pass. Then write them using the harnessx CLI with the right skill assignments, complexity ratings, and full traceability.
 
-**Scope discipline:** You work on ONE story at a time. Once all tasks for that story are written and verified, you stop. Do not attempt to write tasks for multiple stories in a single session.
+**Scope discipline:** You work on ALL stories under a single milestone in one session. Process each story in order (by the story's `order` field), completing all tasks for one story before moving to the next. Once all stories in the milestone have tasks, you stop.
 
 ---
 
-## Step 1: Confirm active project and identify target story
+## Step 1: Confirm active project and identify target milestone
 
 ```bash
 harnessx project active
@@ -25,25 +25,30 @@ harnessx project active
 
 If no active project exists, tell the user to set one and stop.
 
-### Determine which story to work on
+### Get the target milestone and its children
 
-The user may specify a story directly (e.g., "write tasks for story-3") or you may need to find the next one:
+The coordinator (hx:planning) will have identified the milestone. Get its full hierarchy:
 
 ```bash
-# If user specified a story, get its full details
-harnessx planning-stories list
-
-# If no story specified, get the next incomplete one
-harnessx planning-stories next
+harnessx planning-milestones next-to-write-tasks
 ```
 
-You need the story's full object — especially its `title`, `description`, `acceptance_criteria`, `epic`, and `traces`. The acceptance criteria are your north star — every task you write should contribute toward making at least one criterion pass.
+This returns the next milestone with `tasks_written: false`. Capture the milestone ID.
+
+```bash
+harnessx planning-milestones children <milestone-id>
+```
+
+This returns all epics, stories, and existing tasks under this milestone. From this response, extract:
+- The **epics** and their IDs (you need epic IDs for the `--epic` flag)
+- The **stories** sorted by `order` — these are what you'll iterate over
+- Any **existing tasks** — to avoid duplicating work
+
+For each story, note its parent epic ID — you'll need it when creating tasks.
 
 ### Pre-built check
 
-Before proceeding, check if this story already has its tasks pre-built:
-
-If the story has `tasks_written: true`, it has pre-built structure from rework milestone generation. Report to the user: "This story already has pre-built tasks (from rework milestone setup). No additional task planning needed." Stop — do not create additional tasks.
+For each story, check if it already has `tasks_written: true`. If so, it has pre-built structure from rework milestone generation. Skip it — do not create additional tasks for pre-built stories.
 
 ---
 
@@ -51,29 +56,18 @@ If the story has `tasks_written: true`, it has pre-built structure from rework m
 
 Tasks sit at the bottom of the planning hierarchy, so you need context from every level above. Gather it efficiently — you'll pass this to the dual agents.
 
-### Walk up the hierarchy
+### Milestone context (already gathered)
 
-```bash
-# Get the parent epic
-harnessx planning-stories parent <story-id>
-
-# Get the grandparent milestone
-harnessx planning-epics parent <epic-id>
-```
-
-Understanding the milestone and epic gives you the "why" behind the story. A task that's technically correct but misaligned with the epic's capability goal is a bad task.
+You already have the milestone and its children from Step 1. The milestone gives you the "why" behind every story. A task that's technically correct but misaligned with the milestone's success measures is a bad task.
 
 ### Check existing tasks
 
 ```bash
-# Tasks already under this story
-harnessx planning-stories children <story-id>
-
 # All tasks across all stories (to spot overlaps)
 harnessx planning-tasks list
 ```
 
-If tasks already exist for this story, you're filling gaps — not starting from scratch. Understand what's covered before proposing what's missing.
+If tasks already exist for some stories under this milestone, you're filling gaps — not starting from scratch. Understand what's covered before proposing what's missing.
 
 ### Read intake documents
 
@@ -121,7 +115,9 @@ This principle applies to all domain teams, not just Rust. If a Python team has 
 
 ---
 
-## Step 3: Launch dual agents for task analysis
+## Step 3: For each story — launch dual agents for task analysis
+
+Iterate over each story under the milestone (sorted by `order`). For each story that doesn't have `tasks_written: true`, run the dual-agent process below.
 
 This is the core of the skill — two agents working in sequence to produce a robust task set. The reason for two agents: the first thinks creatively about decomposition, the second thinks critically about whether it's right. Neither alone is sufficient.
 
@@ -230,6 +226,7 @@ Use `harnessx planning-tasks create` for each task. The CLI auto-assigns IDs (`t
 harnessx planning-tasks create \
   --title "Write the GraphQL query for fetching open positions" \
   --steps "Read the Uniswap v3 subgraph schema documentation at the URL in action-1's input_docs | Write a GraphQL query that filters positions by owner address where liquidity > 0 | Add pagination handling using the skip/first pattern for the 1000-entity limit | Write the query as a const string in src/ingestion/queries.rs" \
+  --epic "#epic-1" \
   --story "#story-1" \
   --status not_started \
   --complexity low \
@@ -241,6 +238,8 @@ harnessx planning-tasks create \
   --trace-output-sources "src/ingestion/queries.rs" \
   --note "Only fetch positions where liquidity > 0 — closed positions should be excluded."
 ```
+
+**Critical: `--epic` is required.** The `--epic` and `--story` together determine where the task is stored on disk: `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. Always pass the parent epic with the `#` prefix.
 
 ### Critical: steps and integration-tests are pipe-separated
 
@@ -257,6 +256,7 @@ Both `--steps` and `--integration-tests` use **pipe (`|`) separators** — not c
 
 ### Other important details
 
+- **`--epic` uses the `#` prefix** — e.g., `--epic "#epic-1"`. Required on create.
 - **`--story` uses the `#` prefix** — e.g., `--story "#story-1"`.
 - **`--depends-on` is comma-separated** — e.g., `--depends-on "task-1, task-2"`.
 - **`--skills` is comma-separated** — e.g., `--skills "rust:developing, rust:unit-testing"`.
@@ -336,24 +336,24 @@ harnessx planning-stories update story-1 \
 
 ---
 
-## Step 6: Verify and stop
+## Step 6: After each story — mark written and verify
 
-After writing all tasks and tagging artifacts, verify completeness — then stop.
+After writing all tasks for the current story and tagging artifacts:
+
+### Mark the story as written
 
 ```bash
-# Verify tasks were created correctly
-harnessx planning-tasks list
-
-# Verify the story sees its children
-harnessx planning-stories children <story-id>
-
-# Verify each task is findable
-harnessx context search-context --query "#task-1"
-harnessx context search-context --query "#task-2"
-# ... for each task
+harnessx planning-stories mark-written <story-id>
 ```
 
-### Completeness check
+### Verify tasks for this story
+
+```bash
+# Verify the story sees its children
+harnessx planning-stories children <story-id>
+```
+
+### Completeness check (per story)
 
 Verify:
 - Every acceptance criterion in the story is addressed by at least one task
@@ -362,15 +362,34 @@ Verify:
 - Every task has a skill assignment
 - Every task has a complexity rating
 - Every task has at least one trace tag back to an action item
+- Every task has `--epic` set correctly
 - Tasks are collectively sufficient — all done means every acceptance criterion passes
 - No task overlaps significantly with a task under another story
 - Dependencies form a valid DAG (no cycles)
 
-If you find gaps, go back and fix them.
+If you find gaps, go back and fix them before moving to the next story.
+
+### Continue to next story
+
+After the current story is verified, move to the next story under this milestone (from the children list gathered in Step 1). Repeat Steps 3-6 for each story.
+
+---
+
+## Step 7: All stories done — final verification and stop
+
+Once all stories under the milestone have tasks:
+
+```bash
+# Verify all tasks across the milestone
+harnessx planning-milestones children <milestone-id>
+
+# Spot-check traceability
+harnessx context search-context --query "#task-1"
+```
 
 ### Then stop
 
-Once tasks for this story are written and verified, you are done. Do not continue to the next story. Do not start writing tasks for other stories. The operator or user will invoke this skill again for the next story.
+Once all stories under this milestone have their tasks written and verified, you are done. The coordinator (hx:planning) will mark the milestone with `mark-tasks-written` and check for more milestones.
 
 ---
 
@@ -405,7 +424,17 @@ Once tasks for this story are written and verified, you are done. Do not continu
 
 - **Write stories, epics, or milestones** — those must exist before tasks; use the corresponding planning skills
 - **Execute any implementation** — tasks are plans with steps and skill assignments, not code
-- **Write tasks for multiple stories** — scope is one story per invocation
+- **Write tasks for stories outside the target milestone** — scope is one milestone per invocation
 - **Change the pipeline stage** — the operator handles stage transitions
 - **Create action items** — action items come from intake; tasks trace to existing ones
 - **Bypass team leads for non-trivial work** — when a domain has a team lead (like `rust:team-coordinator`), assign the team lead by default. Only assign directly to a specialist for trivially simple, single-concern tasks
+
+## Task file storage
+
+Tasks are sharded on disk by epic and story:
+
+```
+planning/tasks/<epic-id>/<story-id>/planning_tasks.json
+```
+
+The `--epic` and `--story` flags determine the shard location. Task IDs and order values are globally unique across all shards.

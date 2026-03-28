@@ -54,6 +54,7 @@ harnessx planning-tasks create \
   --title "REWORK: Fix [specific test failure]" \
   --steps "[concrete fix steps]" \
   --story "#[REWORK-STORY-ID]" \
+  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "#[THIS-VERIFICATION-TASK-ID]" \
   --complexity [level] \
   --mode rework \
@@ -69,6 +70,7 @@ harnessx planning-tasks create \
   --title "VERIFY: Re-run tests after fix" \
   --steps "Run cargo test -- --test-threads=1 | Run cargo test -- --ignored --test-threads=1 | Verify all pass" \
   --story "#[REWORK-STORY-ID]" \
+  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "#[FIX-TASK-ID]" \
   --complexity low \
   --mode review \
@@ -90,5 +92,6 @@ Still create the fix task, but add to the note: "WARNING: 3+ rework cycles. May 
 
 - Run tests sequentially (`--test-threads=1`) to avoid flaky results from concurrent state
 - The rework story ID can be found by tracing this task's parent: `harnessx planning-tasks parent [THIS-TASK-ID]`
+- The rework epic ID can be found by tracing the story's parent: `harnessx planning-stories parent [REWORK-STORY-ID]` — capture this for the `--epic` flag on task creation
 - Always create rework tasks via CLI, never edit JSON directly
 - Keep fix tasks focused — one specific failure per task

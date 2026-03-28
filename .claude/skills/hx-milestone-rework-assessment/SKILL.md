@@ -50,6 +50,8 @@ harnessx planning-epics parent [EPIC-ID]
 
 Capture the parent milestone ID — this is the **rework milestone**.
 
+Also capture the **epic ID** from the step above — you will need it when creating rework tasks (the `--epic` flag).
+
 Read the rework milestone's `depends_on` field to find the **main milestone ID**.
 
 ```bash
@@ -80,6 +82,7 @@ Before proceeding, confirm you have:
 - **UAT criteria** — from the intake docs
 - **All tasks with their notes** — execution summaries from the agents that did the work
 - **Rework story ID** — the story under the rework milestone where new tasks will be created
+- **Rework epic ID** — the epic under the rework milestone (captured during the parent chain walk)
 - **This review task's ID** — rework tasks will use this as their `depends_on`
 
 ---
@@ -239,6 +242,7 @@ harnessx planning-tasks create \
   --title "REWORK: [specific fix description]" \
   --steps "[step 1 | step 2 | ...]" \
   --story "#[REWORK-STORY-ID]" \
+  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "#[THIS-REVIEW-TASK-ID]" \
   --complexity [appropriate level] \
   --mode rework \
@@ -262,6 +266,7 @@ harnessx planning-tasks create \
   --title "VERIFY: Re-run all tests after rework" \
   --steps "Run cargo test -- --test-threads=1 | Run cargo test -- --ignored --test-threads=1 | Verify all tests pass | Report results" \
   --story "#[REWORK-STORY-ID]" \
+  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "[comma-separated list of ALL rework task IDs]" \
   --complexity low \
   --mode review \

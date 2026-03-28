@@ -86,6 +86,14 @@ pub enum PlanningMilestonesCommand {
     NextToWrite,
     /// Show the next milestone whose epics have not been completed yet (by order).
     NextToComplete,
+    /// Mark a milestone's tasks as written (or unmark with --value false).
+    MarkTasksWritten {
+        id: String,
+        #[arg(long, default_value = "true")]
+        value: bool,
+    },
+    /// Show the next milestone whose tasks have not been written yet (by order).
+    NextToWriteTasks,
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -164,6 +172,8 @@ impl PlanningMilestonesCommand {
             Self::MarkCompleted { id, value } => exit_with(mark_epics_completed(&id, value)),
             Self::NextToWrite => exit_with(next_to_write()),
             Self::NextToComplete => exit_with(next_to_complete()),
+            Self::MarkTasksWritten { id, value } => exit_with(mark_tasks_written(&id, value)),
+            Self::NextToWriteTasks => exit_with(next_to_write_tasks()),
         }
     }
 }
@@ -260,6 +270,7 @@ fn create_milestone(
         },
         epics_written: false,
         epics_completed: false,
+        tasks_written: false,
         notes: note.map(|n| vec![MilestoneNote { note: n }]),
     };
 
@@ -392,6 +403,33 @@ fn next_to_complete() -> ParserResult<serde_json::Value> {
         Some(milestone) => Ok(serde_json::to_value(milestone)?),
         None => Ok(serde_json::json!({
             "message": "All milestones have their epics completed."
+        })),
+    }
+}
+
+fn mark_tasks_written(id: &str, value: bool) -> ParserResult<Milestone> {
+    let mut items = planning_milestones::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(id.to_string()))?;
+
+    item.tasks_written = value;
+    let updated = item.clone();
+    planning_milestones::save_for_active_project(&items)?;
+    Ok(updated)
+}
+
+fn next_to_write_tasks() -> ParserResult<serde_json::Value> {
+    let mut items = planning_milestones::for_active_project()?;
+    items.sort_by_key(|m| m.order);
+
+    let next = items.into_iter().find(|m| !m.tasks_written);
+
+    match next {
+        Some(milestone) => Ok(serde_json::to_value(milestone)?),
+        None => Ok(serde_json::json!({
+            "message": "All milestones have their tasks written."
         })),
     }
 }

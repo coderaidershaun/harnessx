@@ -276,7 +276,7 @@ For each milestone that has fixes:
 > - `harnessx planning-tasks update <id> --skills "rust:developing"` — Fix skill assignment
 > - `harnessx planning-tasks update <id> --trace-tags "#action-1,#action-2"` — Fix traceability
 > - `harnessx planning-tasks update <id> --note "Review fix: ..."` — Document what was changed and why
-> - `harnessx planning-tasks create ...` — Create new tasks to fill gaps
+> - `harnessx planning-tasks create ... --epic "#[epic-id]" ...` — Create new tasks to fill gaps (always include `--epic` with the parent epic ID)
 > - `harnessx planning-stories update <id> ...` — Update stories
 > - `harnessx planning-stories create ...` — Create new stories to fill gaps
 > - `harnessx planning-epics update <id> ...` — Update epics
