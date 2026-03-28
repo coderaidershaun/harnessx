@@ -365,7 +365,7 @@ harnessx progress complete review
 
 Tell the user: "Review is complete. The pipeline will advance to execution on next invocation. Start a new session and run `/hx:operator` to begin executing tasks."
 
-If the user wants a re-review, tell them to run `/hx:review` again in a new session. Do not mark complete.
+If the user wants a re-review, tell them to run `/hx:operator` again in a new session. Do not mark complete.
 
 ### No critical issues found
 

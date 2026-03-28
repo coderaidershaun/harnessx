@@ -20,7 +20,7 @@ Planning is split across sessions to manage context:
 | 3 | stories | Create ALL stories for ALL epics |
 | 4+ | tasks | Create all tasks for ONE milestone per session |
 
-Each session does one unit of work, marks progress, and stops. The user returns via `/hx:operator` (which routes back here) or invokes `/hx:planning` directly.
+Each session does one unit of work, marks progress, and stops. The user returns via `/hx:operator` (which routes back here).
 
 ---
 
@@ -90,7 +90,7 @@ harnessx planning complete milestones
 **Stop.** Tell the user:
 - What milestones were created (brief summary)
 - Next session will write epics for all milestones at once
-- They should start a new session and run `/hx:operator` or `/hx:planning` to continue
+- They should start a new session and run `/hx:operator` to continue
 
 Do not continue to the epics phase. Do not invoke another skill.
 
@@ -153,8 +153,7 @@ harnessx planning complete epics
 **Stop.** Tell the user:
 - What epics were created for each milestone (brief summary)
 - Next session will write stories for all epics at once
-- Start a new session and run `/hx:operator` or `/hx:planning`
-
+- Start a new session and run `/hx:operator`
 Do not continue to the stories phase. Do not invoke another skill.
 
 ---
@@ -216,8 +215,7 @@ harnessx planning complete stories
 **Stop.** Tell the user:
 - What stories were created for each epic (brief summary)
 - Next session(s) will write tasks — one milestone per session
-- Start a new session and run `/hx:operator` or `/hx:planning`
-
+- Start a new session and run `/hx:operator`
 Do not continue to the tasks phase. Do not invoke another skill.
 
 ---
@@ -296,8 +294,7 @@ If another milestone is returned:
 - What tasks were created for the milestone just completed (brief summary)
 - Which milestone is next
 - How many milestones remain (count milestones where `tasks_written` is false)
-- Start a new session and run `/hx:operator` or `/hx:planning`
-
+- Start a new session and run `/hx:operator`
 Do not continue to the next milestone in this session.
 
 ### All tasks complete

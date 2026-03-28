@@ -140,3 +140,5 @@ Continue this cycle until `harnessx intake-onboarding next` returns no remaining
    harnessx progress complete intake_onboarding
    ```
 2. Tell the user the full intake onboarding is complete.
+3. Tell the user to start a new session and run `/hx:operator` to continue to the next pipeline stage.
+4. **Stop.** Do not continue to the next pipeline stage. Do not invoke another skill. The operator handles stage routing.
