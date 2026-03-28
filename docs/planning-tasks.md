@@ -1,12 +1,22 @@
 # Planning Tasks Commands
 
-Manage planning tasks for the active project. Tasks are **sharded by epic and story**:
+Manage planning tasks for the active project.
+
+## Storage Models
+
+**v2 (current):** Tasks are sharded by milestone:
+
+```
+harnessx/<id>/planning/tasks/<milestone-id>/planning_tasks.json
+```
+
+**v1 (legacy):** Tasks are sharded by epic and story:
 
 ```
 harnessx/<id>/planning/tasks/<epic-id>/<story-id>/planning_tasks.json
 ```
 
-Tasks are atomic units of implementation — each has a clear start, a clear end, and can be finished in a single focused session. Each task belongs to a story (under an epic) and is the thing a specialist agent actually executes. This is where complexity ratings and skill assignments matter most.
+Tasks are atomic units of implementation — each has a clear start, a clear end, and can be finished in a single focused session. In the v2 model, tasks belong directly to milestones with optional `group` labels for organization. In v1, tasks belong to stories under epics.
 
 ## JSON Structure
 
@@ -18,33 +28,76 @@ The tasks file wraps the array in a top-level object:
     {
       "id": "task-1",
       "order": 1,
-      "title": "Write the GraphQL query for fetching open positions",
+      "title": "Project skeleton: Cargo.toml, .env, .gitignore, lib.rs",
       "steps": [
-        "Look up the Uniswap v3 subgraph schema",
-        "Write a query that filters by owner address"
+        "Configure Cargo.toml with SDK dependencies",
+        "Create .env.example and add .env to .gitignore",
+        "Set up src/lib.rs with crate root"
       ],
       "status": "not_started",
-      "epic": "#epic-1",
-      "story": "#story-1",
+      "milestone": "#milestone-1",
+      "group": "setup",
+      "purpose": "Bootstrap the project so all subsequent tasks can compile and run",
+      "execution_order": 1,
+      "batch_with": [],
+      "epic": "",
+      "story": "",
       "depends_on": [],
       "complexity": "low",
       "mode": "plan",
       "skills": ["rust:developing"],
       "integration_tests": [
-        "Query returns positions for a known wallet"
+        "cargo build exits with code 0",
+        ".env.example exists with placeholder keys"
       ],
       "traces": {
         "tags": ["#action-1"],
         "intake_sources": ["#intake-resources"],
-        "output_sources": ["src/ingestion/queries.rs"]
+        "output_sources": ["Cargo.toml", "src/lib.rs"]
       },
       "notes": [
-        { "note": "Only fetch positions where liquidity > 0." }
+        { "note": "Ensure edition = 2024 and all 6 SDK features enabled." }
       ]
     }
   ]
 }
 ```
+
+## Fields
+
+### v2 Fields (Milestone-Direct Model)
+
+| Field             | Type       | Description                                                                 |
+|-------------------|------------|-----------------------------------------------------------------------------|
+| `milestone`       | string     | Direct parent milestone ref (e.g. `#milestone-1`). Determines shard path.   |
+| `group`           | string?    | Lightweight label replacing epics (e.g. `"setup"`, `"harness"`, `"ws-market"`) |
+| `purpose`         | string?    | The WHY — explains why this task exists, replacing story descriptions       |
+| `execution_order` | u32?       | Strict ordering within the milestone. Lower runs first.                     |
+| `batch_with`      | string[]   | Task IDs to execute in the same agent session (e.g. `["#task-2"]`)          |
+
+### v1 Legacy Fields (4-Level Hierarchy)
+
+| Field   | Type   | Description                                                   |
+|---------|--------|---------------------------------------------------------------|
+| `epic`  | string | Parent epic ref (e.g. `#epic-1`). Used for v1 shard path.    |
+| `story` | string | Parent story ref (e.g. `#story-1`). Used for v1 shard path.  |
+
+### Common Fields
+
+| Field              | Type       | Description                                                |
+|--------------------|------------|------------------------------------------------------------|
+| `id`               | string     | Auto-assigned (`task-1`, `task-2`, ...)                    |
+| `order`            | u32        | Global order (auto-increment). v2 uses `execution_order` instead. |
+| `title`            | string     | Specific, actionable description of the work               |
+| `steps`            | string[]   | Ordered implementation steps                               |
+| `status`           | Status     | Current status (see enum below)                            |
+| `depends_on`       | string[]   | Task dependency refs. In v2, only for cross-milestone deps. |
+| `complexity`       | Complexity | Complexity rating (see enum below)                         |
+| `mode`             | ActionMode | Type of work (see enum below)                              |
+| `skills`           | string[]   | Skill identifiers for the executing agent                  |
+| `integration_tests`| string[]   | Descriptions of how to verify the task                     |
+| `traces`           | TaskTraces | Traceability links (see below)                             |
+| `notes`            | Note[]?    | Historical notes                                           |
 
 ## Types
 
@@ -101,21 +154,27 @@ Extended traces that include output sources for traceability to generated code.
 
 ## `planning-tasks next`
 
-Returns the next task that is **ready to work on** using dependency-aware resolution.
+Returns the next task that is **ready to work on**. Auto-detects model version.
 
 ```bash
 harnessx planning-tasks next
 ```
 
-### Algorithm
+### v2 Algorithm (Strict Execution Order)
 
-1. Load all tasks from all shards (traverses `planning/tasks/` directory).
-2. Sort tasks by hierarchy: `(milestone.order, epic.order, story.order, task.order)`.
-3. Collect the IDs of all completed tasks.
-4. A task is "ready" if it is **not completed**, **all** of its `depends_on` references resolve to completed tasks, AND its parent milestone's dependencies are completed. The `#` prefix on references (e.g. `#task-1`) is stripped automatically when matching.
-5. Among ready tasks, return the first one (lowest in hierarchy order).
-6. If no tasks are ready but incomplete tasks remain, return a `blocked_tasks` array listing each blocked task and its unmet dependencies.
-7. If all tasks are completed, return a completion message.
+1. Load all tasks from all shards.
+2. Find the lowest-order incomplete milestone whose dependencies are met.
+3. Get tasks for that milestone, sorted by `execution_order`.
+4. Return the first incomplete task.
+
+Within a milestone, `execution_order` IS the dependency — task 5 can assume tasks 1-4 are done. No DAG resolution needed. `depends_on` is only checked for cross-milestone references.
+
+### v1 Algorithm (Dependency DAG)
+
+1. Load all tasks from all shards.
+2. Sort by hierarchy: `(milestone.order, epic.order, story.order, task.order)`.
+3. A task is "ready" if all `depends_on` refs are completed AND its parent milestone's dependencies are met.
+4. Return the first ready task in hierarchy order.
 
 ### Response shapes
 
@@ -134,6 +193,14 @@ harnessx planning-tasks next
 }
 ```
 
+**Milestone tasks done (v2):**
+```json
+{
+  "message": "All tasks in current milestone completed. Milestone ready for review.",
+  "milestone": "milestone-1"
+}
+```
+
 **All completed:**
 ```json
 { "message": "All tasks completed." }
@@ -143,6 +210,27 @@ harnessx planning-tasks next
 
 Creates a new task for the active project. The `id` is auto-assigned (`task-1`, `task-2`, ...) and `order` defaults to the next sequential value.
 
+### v2 Example (Milestone-Direct)
+
+```bash
+harnessx planning-tasks create \
+  --title "Project skeleton: Cargo.toml, .env, .gitignore, lib.rs" \
+  --steps "Configure Cargo.toml with SDK deps | Create .env.example | Set up src/lib.rs" \
+  --milestone "#milestone-1" \
+  --group "setup" \
+  --purpose "Bootstrap the project so all subsequent tasks can compile" \
+  --execution-order 1 \
+  --complexity low \
+  --mode plan \
+  --skills "rust:developing" \
+  --integration-tests "cargo build exits with code 0 | .env.example exists" \
+  --trace-tags "#action-1" \
+  --trace-intake-sources "#intake-resources" \
+  --trace-output-sources "Cargo.toml,src/lib.rs"
+```
+
+### v1 Example (Legacy Epic/Story)
+
 ```bash
 harnessx planning-tasks create \
   --title "Write the GraphQL query for fetching open positions" \
@@ -151,13 +239,10 @@ harnessx planning-tasks create \
   --story "#story-1" \
   --complexity low \
   --mode plan \
-  --skills "rust:developing" \
-  --integration-tests "Query returns positions for a known wallet | Empty wallet returns empty results" \
-  --trace-tags "#action-1" \
-  --trace-intake-sources "#intake-resources" \
-  --trace-output-sources "src/ingestion/queries.rs" \
-  --note "Only fetch positions where liquidity > 0."
+  --skills "rust:developing"
 ```
+
+### Flags
 
 | Flag                      | Required | Default        | Description                                            |
 |---------------------------|----------|----------------|--------------------------------------------------------|
@@ -165,8 +250,13 @@ harnessx planning-tasks create \
 | `--steps`                 | no       | `""`           | **Pipe-separated** ordered steps (see note below)      |
 | `--order`                 | no       | auto-increment | Explicit ordering; defaults to next sequential         |
 | `--status`                | no       | `"not_started"` | Status (see enum above)                                |
-| `--epic`                  | no       | `""`           | Parent epic ref (e.g. `#epic-1`). Determines shard path. |
-| `--story`                 | no       | `""`           | The story this task belongs to                         |
+| `--milestone`             | no       | `""`           | **v2:** Parent milestone ref (e.g. `#milestone-1`). Determines shard path. |
+| `--group`                 | no       | —              | **v2:** Lightweight grouping label (e.g. `"setup"`)    |
+| `--purpose`               | no       | —              | **v2:** Why this task exists                           |
+| `--execution-order`       | no       | —              | **v2:** Strict ordering within milestone (lower first) |
+| `--batch-with`            | no       | `""`           | **v2:** Comma-separated task IDs for same-session execution |
+| `--epic`                  | no       | `""`           | **v1 legacy:** Parent epic ref. Determines v1 shard path. |
+| `--story`                 | no       | `""`           | **v1 legacy:** Parent story ref                        |
 | `--depends-on`            | no       | `""`           | Comma-separated task dependency references             |
 | `--complexity`            | no       | `""`           | Complexity level (see enum above)                      |
 | `--mode`                  | no       | `""`           | Action mode (see enum above)                           |
@@ -181,11 +271,20 @@ harnessx planning-tasks create \
 
 ## `planning-tasks list`
 
-Lists all tasks for the active project.
+Lists all tasks for the active project. Supports filtering by milestone or group (v2).
 
 ```bash
 harnessx planning-tasks list
+harnessx planning-tasks list --milestone milestone-1
+harnessx planning-tasks list --group "setup"
 ```
+
+| Flag          | Description                              |
+|---------------|------------------------------------------|
+| `--milestone` | Filter tasks by parent milestone ID      |
+| `--group`     | Filter tasks by group label              |
+
+Tasks are sorted by `execution_order` (v2) or `order` (v1).
 
 ## `planning-tasks get <id>`
 
@@ -222,7 +321,12 @@ harnessx planning-tasks update task-1 \
 | `--steps`                 | Replacement **pipe-separated** steps                   |
 | `--order`                 | New order value                                        |
 | `--status`                | New status                                             |
-| `--story`                 | New story reference                                    |
+| `--milestone`             | **v2:** New milestone reference (triggers shard migration) |
+| `--group`                 | **v2:** New group label                                |
+| `--purpose`               | **v2:** New purpose text                               |
+| `--execution-order`       | **v2:** New execution order value                      |
+| `--batch-with`            | **v2:** Replacement comma-separated batch task refs    |
+| `--story`                 | **v1 legacy:** New story reference (triggers shard migration) |
 | `--depends-on`            | Replacement comma-separated dependency references      |
 | `--complexity`            | New complexity level                                   |
 | `--mode`                  | New action mode                                        |
@@ -237,10 +341,20 @@ On update, notes are **appended** to the existing list (not replaced).
 
 ## `planning-tasks parent <id>`
 
-Returns the story that this task belongs to, resolved from the task's `story` field.
+Returns the parent of this task: the milestone (v2) or the story (v1), resolved from the task's `milestone` or `story` field.
 
 ```bash
 harnessx planning-tasks parent task-1
 ```
 
-Returns the full story object.
+## `planning-tasks reorder <milestone-id>`
+
+Renumbers `execution_order` for all tasks in a milestone (v2). Tasks are sorted by current `execution_order` (or `order` as fallback) and assigned consecutive integers starting at 1.
+
+Useful after inserting or removing tasks to eliminate gaps in the ordering.
+
+```bash
+harnessx planning-tasks reorder milestone-1
+```
+
+Returns the renumbered task list.

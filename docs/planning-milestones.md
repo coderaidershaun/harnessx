@@ -27,6 +27,7 @@ The milestones file wraps the array in a top-level object:
       "epics_written": false,
       "epics_completed": false,
       "tasks_written": false,
+      "review_status": null,
       "notes": [
         { "note": "This is the thinnest possible vertical slice." }
       ]
@@ -59,11 +60,14 @@ Links a milestone back to intake artifacts for traceability.
 
 ### Child Tracking Fields
 
-| Field             | Type | Default | Description                                        |
-|-------------------|------|---------|----------------------------------------------------|
-| `epics_written`   | bool | `false` | Whether epics have been decomposed for this milestone |
-| `epics_completed` | bool | `false` | Whether all epics under this milestone are done    |
-| `tasks_written`   | bool | `false` | Whether all tasks for this milestone's stories have been written |
+| Field             | Type    | Default | Description                                        |
+|-------------------|---------|---------|----------------------------------------------------|
+| `epics_written`   | bool    | `false` | v1 legacy: whether epics have been decomposed for this milestone |
+| `epics_completed` | bool    | `false` | v1 legacy: whether all epics under this milestone are done    |
+| `tasks_written`   | bool    | `false` | Whether all tasks for this milestone have been written |
+| `review_status`   | string? | `null`  | v2: built-in review status — `"pending"`, `"passed"`, or `"rework"` |
+
+For v2 projects, only `tasks_written` and `review_status` are actively used. The `epics_*` fields remain for backward compatibility with v1 projects.
 
 ### MilestoneNote
 
@@ -166,13 +170,21 @@ On update, notes are **appended** to the existing list (not replaced).
 
 ## `planning-milestones children <id>`
 
-Returns all epics, stories, and tasks that belong to a milestone. Traverses the full hierarchy: epics whose `milestone` references this ID, stories whose `epic` references those epics, and tasks whose `story` references those stories.
+Returns all tasks (and optionally epics/stories) that belong to a milestone.
 
 ```bash
 harnessx planning-milestones children milestone-1
 ```
 
-Returns:
+**v2 response** (tasks directly under milestone, sorted by `execution_order`):
+```json
+{
+  "milestone": "milestone-1",
+  "tasks": [...]
+}
+```
+
+**v1 response** (traverses full hierarchy: epics → stories → tasks):
 ```json
 {
   "milestone": "milestone-1",
@@ -232,3 +244,19 @@ Returns the next milestone (by `order`) whose `tasks_written` is `false`. If all
 ```bash
 harnessx planning-milestones next-to-write-tasks
 ```
+
+## `planning-milestones review <id>`
+
+Sets the `review_status` for a milestone (v2 built-in review). Replaces the need for separate rework milestones.
+
+```bash
+harnessx planning-milestones review milestone-1 --status pending
+harnessx planning-milestones review milestone-1 --status passed
+harnessx planning-milestones review milestone-1 --status rework
+```
+
+| Flag       | Required | Description                                    |
+|------------|----------|------------------------------------------------|
+| `--status` | yes      | One of: `pending`, `passed`, `rework`          |
+
+**Workflow:** When all tasks in a milestone complete, set `review_status` to `pending` and run the review agents. If issues are found, set to `rework` and append fix tasks to the milestone with high `execution_order` values. After fixes pass verification, set to `passed` and mark the milestone completed.

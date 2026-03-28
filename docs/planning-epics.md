@@ -1,5 +1,7 @@
 # Planning Epics Commands
 
+> **v1 Legacy:** Epics are part of the v1 planning model (4-level hierarchy: milestone → epic → story → task). In v2 projects, tasks belong directly to milestones with optional `group` labels for organization. These commands remain for backward compatibility with existing v1 projects.
+
 Manage planning epics for the active project. Stored at `harnessx/<id>/planning/planning_epics.json`.
 
 Epics are coherent chunks of functionality that, when complete, give the system a new capability it didn't have before. Each epic belongs to a milestone, and they collectively make that milestone true. An epic typically maps to one or more action items from intake and often spans multiple categories.

@@ -1,5 +1,7 @@
 # Planning Stories Commands
 
+> **v1 Legacy:** Stories are part of the v1 planning model (4-level hierarchy: milestone → epic → story → task). In v2 projects, tasks belong directly to milestones with a `purpose` field replacing story descriptions. These commands remain for backward compatibility with existing v1 projects.
+
 Manage planning stories for the active project. Stored at `harnessx/<id>/planning/planning_stories.json`.
 
 Stories are single, testable behaviours. When a story is done, you can write one sentence describing what changed: "the system now does X" or "a user can now do Y." Each story belongs to an epic and is small enough to complete without a context switch.
