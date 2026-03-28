@@ -121,7 +121,11 @@ fn run_loop(extra: &[String]) -> ParserResult<AutoloopResult> {
 
         match current_autonomous_stage()? {
             Some(stage) => {
-                eprintln!("[autoloop] Still in '{stage}' stage. Continuing loop.");
+                eprintln!(
+                    "[autoloop] Still in '{stage}' stage. Cooling down {}s before next run...",
+                    POLL_INTERVAL.as_secs()
+                );
+                thread::sleep(POLL_INTERVAL);
             }
             None => {
                 return Ok(AutoloopResult {
