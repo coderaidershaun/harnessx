@@ -2,7 +2,7 @@
 name: hx:uat-rework
 description: >
   Read UAT feedback from the user acceptance testing phase, create a uat_rework milestone with
-  epics, stories, and tasks to address all feedback items, reset the pipeline for re-execution,
+  tasks to address all feedback items, reset the pipeline for re-execution,
   and mark the rework planning complete. This skill runs when the pipeline reaches uat_rework
   after the user has requested changes during user acceptance testing. Use this skill when the
   operator routes to the uat_rework stage, when the user says "plan rework", "fix UAT issues",
@@ -14,11 +14,11 @@ user-invocable: false
 
 # UAT Rework
 
-This skill takes structured feedback from user acceptance testing and turns it into an actionable rework plan. It creates a milestone with the full planning hierarchy (epics, stories, tasks) so the execution engine can pick up the work immediately.
+This skill takes structured feedback from user acceptance testing and turns it into an actionable rework plan. It creates a milestone with tasks so the execution engine can pick up the work immediately.
 
-Unlike the automated milestone-level rework (which runs 4 review agents autonomously), UAT rework is driven by the user's direct feedback. The user tested the deliverables, found specific issues, and this skill translates those issues into work the agents can execute.
+Unlike the automated milestone-level rework (which uses built-in milestone review via the review_status field), UAT rework is driven by the user's direct feedback. The user tested the deliverables, found specific issues, and this skill translates those issues into work the agents can execute.
 
-The rework plan does NOT get a companion rework milestone (unlike main milestones). The UAT cycle itself is the verification mechanism — when rework tasks complete, the user re-tests during the next user_acceptance round.
+The rework plan uses built-in milestone review rather than a separate rework milestone. The UAT cycle itself is the verification mechanism — when rework tasks complete, the user re-tests during the next user_acceptance round.
 
 ---
 
@@ -102,7 +102,7 @@ This is the core of the skill. Use a dual-agent approach (proposer + reviewer) t
 
 ### Agent 1: Rework Proposer (opus)
 
-Launch a subagent with all context. Its job is to propose the complete planning hierarchy for the rework milestone.
+Launch a subagent with all context. Its job is to propose the complete task list for the rework milestone.
 
 ```
 You are planning UAT rework for round N. The user tested the project and found these issues:
@@ -123,19 +123,18 @@ AVAILABLE SPECIALIST SKILLS:
 EXISTING TASKS (completed):
 [summary of completed tasks, especially those related to the failing scenarios]
 
-Your job: propose a complete rework plan — epics, stories, and tasks — that addresses every FAIL and PARTIAL scenario from the feedback. For each level:
+Your job: propose a complete rework plan — tasks grouped by feedback category — that addresses every FAIL and PARTIAL scenario from the feedback.
 
-EPICS: Group related feedback items into coherent capability areas (1-3 epics). Each epic should represent a distinct area of rework. Don't create an epic per feedback item unless they're truly unrelated.
-
-STORIES: For each epic, define testable behavioral increments. Each story should have acceptance criteria derived directly from the UAT feedback — specifically, the "Expected" field from FAIL scenarios and the "What Doesn't" field from PARTIAL scenarios become acceptance criteria.
-
-TASKS: For each story, define atomic implementation tasks. For each task provide:
+TASKS: Define atomic implementation tasks, grouped logically by feedback category. For each task provide:
 1. Title — specific, actionable (verb + noun + context)
-2. Steps — ordered implementation steps (3-7 per task), concrete enough for an agent to follow
-3. Complexity — super-low, low, medium, high, or super-high
-4. Skills — which specialist skill(s) should execute this. Use team leads (like rust:team-coordinator) for non-trivial work
-5. Integration tests — how to verify this specific task works
-6. Dependencies — which other proposed tasks must be done first
+2. Group — a short label categorizing the feedback area (e.g., "uat-fix", "regression-guard", "ui-fix")
+3. Purpose — "Fix: [description of what UAT feedback requires]"
+4. Execution order — sequential number reflecting priority and dependencies
+5. Steps — ordered implementation steps (3-7 per task), concrete enough for an agent to follow
+6. Complexity — super-low, low, medium, high, or super-high
+7. Skills — which specialist skill(s) should execute this. Use team leads (like rust:team-coordinator) for non-trivial work
+8. Integration tests — how to verify this specific task works
+9. Dependencies — which other proposed tasks must be done first
 
 GUIDELINES:
 - Every FAIL scenario must be addressed. Every PARTIAL scenario must be addressed.
@@ -175,7 +174,7 @@ Validate with these checks:
 
 6. **Missing work** — Is there anything implied by the feedback that nobody planned for? Common gaps: error handling changes, UI updates that need backend changes, test updates for changed behavior.
 
-7. **Acceptance criteria quality** — Do story acceptance criteria directly map to what the user expected (from the feedback's Expected/What Doesn't fields)?
+7. **Task purpose quality** — Does each task's purpose clearly map to what the user expected (from the feedback's Expected/What Doesn't fields)?
 
 Provide specific, actionable critique. For each issue, explain what's wrong and how to fix it.
 ```
@@ -184,53 +183,26 @@ Provide specific, actionable critique. For each issue, explain what's wrong and 
 
 ### Synthesize and Finalize
 
-After both agents return, synthesize. The reviewer's critiques should be addressed unless they're incorrect. Produce the final plan: epics, stories, and tasks.
+After both agents return, synthesize. The reviewer's critiques should be addressed unless they're incorrect. Produce the final plan: tasks with groups, purposes, and execution order.
 
 ---
 
 ## Phase 4: Write the Plan via CLI
 
-Read `docs/planning-epics.md`, `docs/planning-stories.md`, and `docs/planning-tasks.md` if you haven't this session — flag names and pipe-separated fields matter.
-
-### Create epics
-
-For each epic in the finalized plan:
-
-```bash
-harnessx planning-epics create \
-  --title "[epic title]" \
-  --milestone "#[uat-rework-milestone-id]" \
-  --description "[epic description]" \
-  --note "UAT rework round N. Addresses: [list the feedback scenarios this epic covers]"
-```
-
-Capture each auto-assigned epic ID.
-
-### Create stories
-
-For each story under each epic:
-
-```bash
-harnessx planning-stories create \
-  --title "[story title]" \
-  --epic "#[epic-id]" \
-  --description "[story description]" \
-  --acceptance-criteria "[criterion 1 | criterion 2 | criterion 3]" \
-  --note "Derived from UAT feedback: [scenario title]"
-```
-
-Acceptance criteria use **pipe separators** (`|`).
+Read `docs/planning-tasks.md` if you haven't this session — flag names and pipe-separated fields matter.
 
 ### Create tasks
 
-For each task under each story:
+For each task in the finalized plan:
 
 ```bash
 harnessx planning-tasks create \
   --title "[task title]" \
   --steps "[step 1 | step 2 | step 3]" \
-  --story "#[story-id]" \
-  --epic "#[epic-id]" \
+  --milestone "#[uat-rework-milestone-id]" \
+  --group "[group label, e.g. uat-fix, regression-guard, ui-fix]" \
+  --purpose "Fix: [description of what UAT feedback requires]" \
+  --execution-order N \
   --complexity [level] \
   --mode plan \
   --skills "[skill-name]" \
@@ -246,19 +218,15 @@ If a task depends on another rework task:
 --depends-on "task-N"
 ```
 
-### Mark all as written
+### Mark tasks written
 
-After creating the full hierarchy:
+After creating all tasks:
 
 ```bash
-harnessx planning-milestones mark-written [uat-rework-milestone-id]
-harnessx planning-epics mark-written [epic-id]
-# ... for each epic
-harnessx planning-stories mark-written [story-id]
-# ... for each story
+harnessx planning-milestones mark-tasks-written [uat-rework-milestone-id]
 ```
 
-This tells downstream planning skills to skip these items — they're fully planned.
+This tells downstream planning skills to skip this milestone — its tasks are fully planned.
 
 ---
 
@@ -287,7 +255,7 @@ Read `harnessx/<project-id>/history.md` first, then append:
 **Date:** [today]
 **Feedback Items:** X failed, Y partial scenarios
 **Milestone Created:** [milestone-id] — "[title]"
-**Epics:** [count] | **Stories:** [count] | **Tasks:** [count]
+**Tasks:** [count]
 **Pipeline Reset:** execution and user_acceptance reset to not_started
 ```
 
@@ -298,8 +266,8 @@ Tell the user what was created:
 > "I've created a rework plan based on your UAT feedback:
 >
 > - **Milestone:** [title]
-> - **[N] epics**, **[M] stories**, **[P] tasks**
-> - Key areas: [list epic titles]
+> - **[P] tasks** across [N] groups
+> - Key groups: [list group labels]
 >
 > The execution and user acceptance stages have been reset. Run `/hx:operator` to start executing the rework tasks. When they're complete, you'll go through UAT again."
 
@@ -311,9 +279,9 @@ Tell the user what was created:
 
 All state changes and plan creation go through the harnessx CLI. Never edit JSON files directly.
 
-### No companion rework milestone
+### Built-in milestone review
 
-Unlike main milestones during initial planning, UAT rework milestones do NOT get a companion automated rework milestone. The user's re-testing during the next `user_acceptance` round serves as the verification mechanism. This prevents infinite nesting of rework milestones.
+Unlike main milestones during initial planning (which use the built-in milestone review via the review_status field), UAT rework milestones rely on the user's re-testing during the next `user_acceptance` round as the verification mechanism. This prevents infinite nesting of rework cycles.
 
 ### Pipe-separated fields
 

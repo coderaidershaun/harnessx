@@ -1,6 +1,6 @@
 ---
 name: hx:planning-milestones
-description: Define and write project milestones by reading all intake documents, deeply analyzing what "done" looks like at each checkpoint, then writing milestones to planning_milestones.json with full traceability tags back to action items and intake sections. Use this skill when the pipeline reaches the planning stage, when the user says "write milestones", "plan milestones", "define milestones", "create milestones", "what are the milestones", or anything about breaking the project into demonstrable checkpoints. Also trigger when the operator routes to planning or when intake_completion is done and milestones are the next step.
+description: Define and write project milestones by reading all intake documents, deeply analyzing what "done" looks like at each checkpoint, then writing milestones to planning_milestones.json with full traceability tags back to action items and intake sections. Milestones use built-in review_status for post-execution review — no companion rework milestones are created. Use this skill when the pipeline reaches the planning stage, when the user says "write milestones", "plan milestones", "define milestones", "create milestones", "what are the milestones", or anything about breaking the project into demonstrable checkpoints. Also trigger when the operator routes to planning or when intake_completion is done and milestones are the next step.
 disable-model-invocation: false
 user-invocable: false
 ---
@@ -198,95 +198,11 @@ Update flags **replace** the existing values (except notes, which append). So if
 
 ---
 
-## Step 6: Generate rework milestones
+## Step 6: Built-in review (no rework milestones)
 
-Every main milestone gets a companion "Review & rework" milestone. These rework milestones automatically review the completed work, dispatch review agents, and create rework tasks if issues are found. They are interleaved into the dependency chain so that each main milestone's output is reviewed before the next main milestone begins.
+In the v2 model, milestones have a built-in `review_status` field. After all tasks in a milestone complete during execution, the execution engine runs review agents and sets `review_status` to `pending`, `passed`, or `rework`. Fix tasks are appended directly to the milestone — no separate rework milestones are created.
 
-### Create rework milestones and rewire dependencies
-
-For each main milestone you just created (in order), do the following:
-
-**1. Create the rework milestone:**
-
-```bash
-# Create the rework milestone
-harnessx planning-milestones create \
-  --title "Review & rework: [main milestone title]" \
-  --depends-on "#[main-milestone-id]" \
-  --description "Autonomous review and rework of [title]. Runs all tests, dispatches review agents, creates rework tasks if issues are found." \
-  --note "Auto-generated rework companion for [main-milestone-id]"
-```
-
-Capture the new rework milestone ID from the CLI response (it will be auto-assigned, e.g. `milestone-4` if the main milestones were `milestone-1` through `milestone-3`).
-
-**2. Update the NEXT main milestone's dependency to point to the rework milestone:**
-
-If there is a next main milestone that originally depended on the current main milestone, update it so it depends on the rework milestone instead. This rewires the dependency chain from `main → next main` to `main → rework → next main`.
-
-```bash
-# If milestone-3 originally depends on milestone-1, update it to depend on milestone-2 (the rework)
-harnessx planning-milestones update [next-main-milestone-id] --depends-on "#[rework-milestone-id]"
-```
-
-The last main milestone also gets a rework companion — it simply has no "next" milestone to rewire, so skip this sub-step for the final one.
-
-**3. Create the pre-built epic, story, and task for the rework milestone:**
-
-Each rework milestone ships with a ready-to-execute epic/story/task so that downstream planning skills can skip them.
-
-```bash
-# Epic
-harnessx planning-epics create \
-  --title "[main title] review & rework" \
-  --milestone "#[rework-milestone-id]" \
-  --description "Review completed work for [main title] and fix issues found"
-
-# Story
-harnessx planning-stories create \
-  --title "Assess delivered work and fix issues" \
-  --epic "#[rework-epic-id]" \
-  --acceptance-criteria "All unit tests pass|All integration tests pass|Success measures verified|No critical issues remain"
-
-# Review task
-harnessx planning-tasks create \
-  --title "Review [main title] and write rework tasks" \
-  --story "#[rework-story-id]" \
-  --mode review \
-  --skills "hx:milestone-rework-assessment" \
-  --complexity medium \
-  --steps "Run all unit and integration tests sequentially (cargo test -- --test-threads=1 and cargo test -- --ignored --test-threads=1)|Dispatch 4 review agents to assess test results, code quality, integration, and success measures|Synthesize findings into structured report|Create rework tasks for any Critical or Warning issues found|Create final verification task that depends on all rework tasks and re-runs all tests|If no issues found, report clean pass" \
-  --note "Auto-generated review task for [main-milestone-id]"
-```
-
-Capture the epic, story, and task IDs from each CLI response for the next sub-step.
-
-**4. Mark all rework items as "written" so downstream planning skills skip them:**
-
-```bash
-harnessx planning-milestones mark-written [rework-milestone-id]
-harnessx planning-epics mark-written [rework-epic-id]
-harnessx planning-stories mark-written [rework-story-id]
-```
-
-### After all rework milestones are created
-
-The final dependency chain should look like:
-
-```
-main-1 → rework-1 → main-2 → rework-2 → main-3 → rework-3
-```
-
-Report to the user:
-
-> "Generated N rework milestones as companions to the main milestones. These will automatically review completed work and create rework tasks if issues are found. The dependency chain ensures: main milestone → rework review → next main milestone."
-
-Verify the chain with:
-
-```bash
-harnessx planning-milestones list
-```
-
-Confirm each rework milestone depends on its companion main milestone, and each subsequent main milestone depends on the preceding rework milestone.
+**You do NOT create companion rework milestones.** The review process is automatic and built into the execution phase.
 
 ---
 
@@ -386,3 +302,4 @@ If you find gaps, go back and fix them — either by updating milestone traces o
 - **Execute any implementation** — milestones are plans, not code
 - **Change the pipeline stage** — the operator handles stage transitions
 - **Create action items** — action items come from intake; milestones trace to existing ones
+- **Create rework milestones** — the v2 model uses built-in milestone review instead of companion rework milestones

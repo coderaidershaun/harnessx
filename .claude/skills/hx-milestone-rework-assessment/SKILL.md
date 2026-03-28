@@ -30,27 +30,13 @@ Capture the project ID, directory, and metadata.
 
 ### 2. Trace Parent Chain to Find the Main Milestone
 
-Walk up the hierarchy from this task to the rework milestone, then follow `depends_on` to the main milestone:
+Get the parent milestone directly from this task:
 
 ```bash
 harnessx planning-tasks parent [THIS-TASK-ID]
 ```
 
-Capture the parent story ID.
-
-```bash
-harnessx planning-stories parent [STORY-ID]
-```
-
-Capture the parent epic ID.
-
-```bash
-harnessx planning-epics parent [EPIC-ID]
-```
-
-Capture the parent milestone ID — this is the **rework milestone**.
-
-Also capture the **epic ID** from the step above — you will need it when creating rework tasks (the `--epic` flag).
+This returns the **rework milestone** directly (v2 tasks belong to milestones, no epics/stories).
 
 Read the rework milestone's `depends_on` field to find the **main milestone ID**.
 
@@ -64,7 +50,7 @@ Capture the main milestone — its title, success_measures, and all metadata.
 harnessx planning-milestones children [MAIN-MILESTONE-ID]
 ```
 
-Capture the full hierarchy of completed work: all epics, stories, and tasks under the main milestone, including their notes (which contain execution summaries from the agents that completed them).
+Capture the full hierarchy of completed work: all tasks under the main milestone, including their notes (which contain execution summaries from the agents that completed them).
 
 ### 3. Load Intake Documents
 
@@ -81,8 +67,7 @@ Before proceeding, confirm you have:
 - **Main milestone's success measures** — from the milestone object and intake docs
 - **UAT criteria** — from the intake docs
 - **All tasks with their notes** — execution summaries from the agents that did the work
-- **Rework story ID** — the story under the rework milestone where new tasks will be created
-- **Rework epic ID** — the epic under the rework milestone (captured during the parent chain walk)
+- **Rework milestone ID** — the milestone where new rework tasks will be appended
 - **This review task's ID** — rework tasks will use this as their `depends_on`
 
 ---
@@ -157,7 +142,7 @@ Launch all 4 agents in parallel.
 > 1. **OUTPUT FILES EXIST** — Do the files listed in traces.output_sources actually exist? Read them.
 > 2. **STEPS EXECUTED** — Based on task notes and git history, were all steps actually completed?
 > 3. **CODE QUALITY** — Read the key files produced. Look for: unwrap() calls that should be handled, TODO/FIXME comments left behind, placeholder implementations, dead code, missing error handling.
-> 4. **STORY ACCEPTANCE CRITERIA** — For each story, read its acceptance_criteria. Based on the code delivered, are they satisfied?
+> 4. **TASK INTEGRATION TESTS & PURPOSE** — For each task, read its integration_tests and purpose. Based on the code delivered, are they satisfied?
 >
 > Focus on SUBSTANCE not style. Do not flag formatting preferences.
 >
@@ -239,12 +224,12 @@ For each Critical or Warning issue that needs fixing, create a rework task via t
 
 ```bash
 harnessx planning-tasks create \
+  --milestone "#[REWORK-MILESTONE-ID]" \
   --title "REWORK: [specific fix description]" \
   --steps "[step 1 | step 2 | ...]" \
-  --story "#[REWORK-STORY-ID]" \
-  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "#[THIS-REVIEW-TASK-ID]" \
   --complexity [appropriate level] \
+  --execution-order [high-number] \
   --mode rework \
   --skills "[appropriate specialist skill]" \
   --integration-tests "[specific tests that must pass after this fix]" \
@@ -263,22 +248,36 @@ After all rework tasks are created, create a verification task that depends on A
 
 ```bash
 harnessx planning-tasks create \
+  --milestone "#[REWORK-MILESTONE-ID]" \
   --title "VERIFY: Re-run all tests after rework" \
   --steps "Run cargo test -- --test-threads=1 | Run cargo test -- --ignored --test-threads=1 | Verify all tests pass | Report results" \
-  --story "#[REWORK-STORY-ID]" \
-  --epic "#[REWORK-EPIC-ID]" \
   --depends-on "[comma-separated list of ALL rework task IDs]" \
   --complexity low \
+  --execution-order [highest-number] \
   --mode review \
   --skills "hx:milestone-rework-verification" \
   --note "Final verification after rework. Must pass before milestone can complete."
 ```
 
-### 4d: If NO Issues Found
+### 4d: Set Review Status
+
+After creating rework tasks, set the milestone review status to rework:
+
+```bash
+harnessx planning-milestones review [REWORK-MILESTONE-ID] --status rework
+```
+
+### 4e: If NO Issues Found
 
 If all tests pass and all review agents report no Critical or Warning issues:
 - Report: "Clean pass — no rework needed for [milestone title]. All tests pass, all success measures verified."
 - Do NOT create any rework tasks
+- Set the milestone review status to passed:
+
+```bash
+harnessx planning-milestones review [REWORK-MILESTONE-ID] --status passed
+```
+
 - The rework milestone will complete naturally with just this review task
 
 ---

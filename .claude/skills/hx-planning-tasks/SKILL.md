@@ -1,19 +1,47 @@
 ---
 name: hx:planning-tasks
-description: Define and write the atomic implementation tasks needed to deliver all stories under a given milestone — bite-sized units of work that a specialist agent can complete in a single focused session without context overflow. Given a milestone (from the coordinator), iterates over all its stories, reads context up the full hierarchy (story → epic → milestone → intake), discovers available specialist skills, then launches dual agents (one to propose tasks, one to review and enhance) for each story before writing tasks with skill assignments, complexity ratings, steps, integration tests, and full traceability. Tasks are sharded on disk by epic and story. Use this skill when the user says "write tasks", "plan tasks", or anything about decomposing stories into implementation work. Also trigger after stories are written and the next step is task decomposition, or when the operator routes to task planning.
+description: Define and write the implementation tasks needed to deliver a milestone — right-sized units of work (15-60 minutes each) that a specialist agent can complete in a single focused session. Given a milestone (from the coordinator), reads full context (intake docs, prior milestone handoff), decomposes into 5-12 tasks with group labels, purpose fields, strict execution ordering, skill assignments, complexity ratings, steps, integration tests, and full traceability. Tasks belong directly to milestones (no epics or stories). Use this skill when the user says "write tasks", "plan tasks", or anything about decomposing milestones into implementation work. Also trigger after milestones are written and the next step is task decomposition, or when the operator routes to task planning.
 disable-model-invocation: false
 user-invocable: false
 ---
 
 # Planning Tasks
 
-You define the tasks for all stories under a given milestone — the atomic implementation steps that a specialist agent will actually sit down and execute. Each task has a clear start, a clear end, and can be finished in a single focused session. When a task is done, the agent can point to a concrete change: a new file, a modified function, a passing test.
+You define the tasks for a milestone — the implementation steps that a specialist agent will actually sit down and execute. Tasks belong directly to milestones with optional `group` labels for organization. No epics or stories.
 
-Tasks are where the rubber meets the road. Every task you write will be dispatched to a real agent with limited context. If the task is too broad, the agent will lose focus or drift. If the task is too vague, the agent won't know when it's done. If the wrong skill is assigned, the agent will struggle with work outside its expertise. Getting tasks right is what makes the difference between agents that ship and agents that spin.
+Each task has a clear start, a clear end, and can be finished in a single focused session. When a task is done, the agent can point to a concrete change: a new file, a modified function, a passing test.
 
-Your job is to look at each story under the target milestone, understand its acceptance criteria and the behaviour it delivers, and break that into the discrete implementation steps that collectively make the story's acceptance criteria pass. Then write them using the harnessx CLI with the right skill assignments, complexity ratings, and full traceability.
+Your job is to look at the target milestone, understand what it needs to deliver, and break that into discrete implementation steps that collectively make the milestone's success measures pass. Then write them using the harnessx CLI with the right skill assignments, complexity ratings, and full traceability.
 
-**Scope discipline:** You work on ALL stories under a single milestone in one session. Process each story in order (by the story's `order` field), completing all tasks for one story before moving to the next. Once all stories in the milestone have tasks, you stop.
+**Scope discipline:** You work on ALL tasks for a single milestone in one session. Once all tasks for the milestone are written, you stop.
+
+---
+
+## Task Sizing Rules
+
+These rules are critical. Follow them precisely.
+
+### The 15-60 Minute Rule
+Each task should represent 15-60 minutes of focused agent work.
+- **< 10 minutes?** Merge with an adjacent task (e.g., "add .env to .gitignore" merges into "project skeleton")
+- **> 90 minutes?** Split it (e.g., "test all 28 endpoints" splits into 3-4 by API surface)
+
+### The "One Meaningful Change" Test
+After this task completes, can you describe what changed in one sentence?
+- "The project compiles with all SDK deps and env is configured" — meaningful
+- "Added .env to .gitignore" — trivial, merge with setup task
+- "SafeTestOrder guard is built and tested" — meaningful (even though substantial)
+
+### Count Targets
+- **Per milestone:** 5-12 tasks (target 8)
+- **Per project:** 25-50 tasks total
+- If a milestone would have > 12 tasks, the milestone should have been split
+- If a milestone would have < 3 tasks, it should have been merged
+
+### Batch-Eligible Tasks
+- `super-low` or `low` complexity tasks sharing a `group` with an adjacent task
+- Maximum 3 tasks per batch
+- Link via `--batch-with` field
 
 ---
 
@@ -27,8 +55,6 @@ If no active project exists, tell the user to set one and stop.
 
 ### Get the target milestone and its children
 
-The coordinator (hx:planning) will have identified the milestone. Get its full hierarchy:
-
 ```bash
 harnessx planning-milestones next-to-write-tasks
 ```
@@ -39,30 +65,19 @@ This returns the next milestone with `tasks_written: false`. Capture the milesto
 harnessx planning-milestones children <milestone-id>
 ```
 
-This returns all epics, stories, and existing tasks under this milestone. From this response, extract:
-- The **epics** and their IDs (you need epic IDs for the `--epic` flag)
-- The **stories** sorted by `order` — these are what you'll iterate over
-- Any **existing tasks** — to avoid duplicating work
-
-For each story, note its parent epic ID — you'll need it when creating tasks.
-
-### Pre-built check
-
-For each story, check if it already has `tasks_written: true`. If so, it has pre-built structure from rework milestone generation. Skip it — do not create additional tasks for pre-built stories.
+This returns any existing tasks under this milestone (for resume scenarios). If tasks already exist, you're filling gaps — not starting from scratch.
 
 ---
 
-## Step 2: Read the full context hierarchy
-
-Tasks sit at the bottom of the planning hierarchy, so you need context from every level above. Gather it efficiently — you'll pass this to the dual agents.
+## Step 2: Read the full context
 
 ### Milestone context (already gathered)
 
-You already have the milestone and its children from Step 1. The milestone gives you the "why" behind every story. A task that's technically correct but misaligned with the milestone's success measures is a bad task.
+You already have the milestone from Step 1. Its description and success measures define what the tasks must collectively deliver.
 
 ### Prior milestone context (critical for continuity)
 
-If this is NOT the first milestone (i.e., `milestone.depends_on` references earlier milestones), you must understand what those milestones produced. Without this, you'll write tasks with wrong assumptions about what files, interfaces, and structures already exist.
+If this is NOT the first milestone (i.e., `milestone.depends_on` references earlier milestones), you must understand what those milestones produced.
 
 ```bash
 # For each milestone this one depends on, load it and read its handoff notes
@@ -70,257 +85,133 @@ harnessx planning-milestones get <prior-milestone-id>
 ```
 
 Read the **notes** on each prior milestone — especially any note starting with "HANDOFF:". These contain:
-- Key output files and what's in them (e.g., `src/models/position.rs` contains `Position` struct)
-- Exit-point task IDs — the specific tasks whose outputs downstream work builds on
+- Key output files and what's in them
+- Exit-point task IDs whose outputs downstream work builds on
 - Interfaces and contracts — function signatures, struct shapes, API patterns
 
-If no handoff notes exist (e.g., this is the first time the system is used), fall back to loading prior milestone tasks:
+If no handoff notes exist, fall back to loading prior milestone tasks:
 
 ```bash
 harnessx planning-milestones children <prior-milestone-id>
 ```
 
-Scan the tasks' `traces.output_sources` fields to build a picture of what files and modules were created. This is your "what already exists" map — reference it when writing steps for this milestone's tasks.
+Scan the tasks' `traces.output_sources` fields to build a picture of what files and modules were created.
 
-**Key principle:** Every task step that says "Read the existing X" or "Extend the Y module" must reference something that a prior milestone's task actually produces. If you can't trace it to a specific output_source, the step is making an assumption that may be wrong.
+**Key principle:** Every task step that says "Read the existing X" must reference something that a prior milestone's task actually produces. If you can't trace it to a specific output_source, the step is making an assumption.
 
-### Check existing tasks
+### Check existing tasks across the project
 
 ```bash
-# All tasks across all stories (to spot overlaps)
 harnessx planning-tasks list
 ```
 
-If tasks already exist for some stories under this milestone, you're filling gaps — not starting from scratch. Understand what's covered before proposing what's missing.
-
 ### Read intake documents
 
-Read in parallel the files most relevant to this story's domain. At minimum:
+Read in parallel the files most relevant to this milestone's domain. At minimum:
 
-- `intake_actions.json` — the action items this story traces to (focus on the ones in the story's `traces.tags`)
+- `intake_actions.json` — the action items this milestone traces to
 - `goal.md` and `scope.md` — to stay within bounds
 - `success_measures.md` — to ensure tasks ladder up to measurable outcomes
-- Any `interview-*.md` files from agents whose domain overlaps this story
+- Any `interview-*.md` files from agents whose domain overlaps this milestone
 
 All files are in `harnessx/<project-id>/intake/`. Not every file will exist.
 
 ### Catalog available specialist skills
 
-This is unique to task planning — you need to know what agents are available so you can assign the right skills to each task. List all skill directories:
-
 ```bash
 ls .claude/skills/
 ```
 
-Identify which skill families exist and whether each has a **team lead** (a coordinator skill that can triage and delegate to specialists). Common skill families:
+Identify which skill families exist and whether each has a **team lead** (coordinator). Common families:
 
-- **`rust:*`** — Rust development team. **Team lead: `rust:team-coordinator`**. Specialists: developing, unit-testing, integration-testing, exploration-and-planning, planning-and-architecture, ergonomic-refactoring, errors-management, commenting
-- **`mermaid-diagrams`** — Diagram creation (standalone, no team lead)
-- **`research:reducer`** — URL analysis and distillation (standalone, no team lead)
-- **Other language/domain teams** — Any skills created during intake team (e.g., `python:*`, `typescript:*`). Check if they have a coordinator or team lead skill.
+- **`rust:*`** — Rust development. **Team lead: `rust:team-coordinator`**
+- **`mermaid-diagrams`** — Diagram creation (standalone)
+- **`research:reducer`** — URL analysis and distillation (standalone)
+- **Other teams** — Any skills created during intake team
 
-Read the SKILL.md frontmatter (name + description) of any skill you're uncertain about. The `--skills` flag on task creation takes these skill names — matching them correctly is critical because the wrong agent assignment wastes an entire execution cycle.
-
-### Team lead vs. specialist assignment
-
-When a skill family has a team lead, **assign the team lead by default**. Team leads exist because they understand the full specialist roster and can delegate to the right agent based on what they discover during execution. At planning time, you're making assignment decisions without seeing the code — the team lead makes that decision after exploring it.
-
-**Assign directly to a specialist only when the task is trivially single-concern** — work so focused and simple that a coordinator would just pass it straight through. Examples:
-- "Add comments to the position module" → `rust:commenting` (no delegation needed)
-- "Clean up iterator chains in the parser" → `rust:ergonomic-refactoring` (one skill, one concern)
-- "Add `#[inline]` annotations to hot-path functions" → `rust:ergonomic-refactoring`
-
-**Assign to the team lead for anything else** — implementation, multi-step work, tasks touching architecture decisions, tasks where the right specialist isn't obvious, or tasks with any complexity beyond "low":
-- "Implement the position tracker with PnL calculation" → `rust:team-coordinator` (needs exploration, architecture decisions, then implementation)
-- "Write integration tests for the websocket feed" → `rust:team-coordinator` (may need exploration first, then test design)
-- "Add error types for the ingestion module" → `rust:team-coordinator` (touches architecture patterns)
-
-This principle applies to all domain teams, not just Rust. If a Python team has a `python:team-coordinator`, the same logic applies. The team lead is the safe default; direct specialist assignment is the optimisation for trivial work.
+When a team lead exists, **assign the team lead by default**. Only assign directly to a specialist for trivially single-concern tasks (commenting, simple refactoring).
 
 ---
 
-## Step 3: For each story — launch dual agents for task analysis
+## Step 3: Decompose into tasks
 
-Iterate over each story under the milestone (sorted by `order`). For each story that doesn't have `tasks_written: true`, run the dual-agent process below.
+Use extended thinking (ultrathink) to work through decomposition carefully. You are producing the FINAL task list — no dual-agent review cycle needed.
 
-This is the core of the skill — two agents working in sequence to produce a robust task set. The reason for two agents: the first thinks creatively about decomposition, the second thinks critically about whether it's right. Neither alone is sufficient.
-
-### Agent 1: Task Proposer
-
-Launch a subagent with all the context you've gathered. Its job is to propose the complete set of tasks for this story.
-
-```
-You are proposing tasks for story [story-id]: "[story title]"
-
-STORY CONTEXT:
-- Description: [story description]
-- Acceptance Criteria: [list all criteria]
-- Epic: [epic-id] — "[epic title]": [epic description]
-- Milestone: [milestone-id] — "[milestone title]": [milestone description]
-- Traces: [story trace tags and intake sources]
-
-EXISTING TASKS FOR THIS STORY (if any):
-[paste existing tasks or "none"]
-
-UPSTREAM CONTEXT (from prior milestones):
-[paste the handoff notes from prior milestones, or a summary of their output_sources. If this is the first milestone, write "First milestone — no upstream dependencies."]
-
-TASKS ALREADY WRITTEN FOR OTHER STORIES IN THIS MILESTONE:
-[paste task titles and output_sources from stories already processed in this session, or "none yet"]
-
-AVAILABLE SPECIALIST SKILLS:
-[list all non-hx skills with their names and one-line descriptions]
-
-RELEVANT ACTION ITEMS:
-[paste the action items this story traces to]
-
-Your job: propose a complete set of tasks that, when all are done, make every acceptance criterion for this story pass. For each task, provide:
+### What to produce for each task
 
 1. **Title** — specific, actionable (verb + noun + context)
-2. **Steps** — ordered implementation steps (3-7 per task). Each step should be concrete enough that an agent can follow it without guessing
-3. **Complexity** — super-low, low, medium, high, or super-high
-4. **Skills** — which specialist skill(s) should execute this task
-5. **Integration tests** — how to verify this specific task works (not the whole story — just this task's contribution)
-6. **Dependencies** — which other proposed tasks must be done first
-7. **Output sources** — which files this task will create or modify
-8. **Trace tags** — which action items this task implements
-9. **Notes** — implementation hints, edge cases, risk flags
+2. **Purpose** — WHY this task exists, what it enables
+3. **Group** — lightweight label grouping related tasks (e.g. "setup", "harness", "ws-market")
+4. **Execution order** — strict integer ordering (1, 2, 3, ...) — the order tasks will execute
+5. **Steps** — ordered implementation steps (3-8 per task). Concrete enough for an agent to follow without guessing
+6. **Complexity** — super-low, low, medium, high, or super-high
+7. **Skills** — which specialist skill(s) should execute this task
+8. **Integration tests** — how to verify this specific task works
+9. **Output sources** — which files this task will create or modify
+10. **Trace tags** — which action items this task implements
+11. **Batch with** — if this task should execute in the same session as an adjacent task
+12. **Notes** — implementation hints, edge cases, risk flags
 
-GUIDELINES:
-- Tasks must be BITE-SIZED. An agent should be able to complete one in a single focused session without running out of context. If a task requires understanding more than 2-3 files deeply, it's probably too broad.
-- Each task should touch ONE concern — one module, one function cluster, one data transformation. Mixing concerns (e.g., "implement the parser AND write the error types") creates context bloat.
-- Skill assignment matters enormously. When a team lead exists (like rust:team-coordinator), assign it by default — it can explore and delegate to the right specialist. Only bypass the team lead for trivially single-concern tasks (commenting, simple refactoring) that clearly map to one specialist.
-- Steps are the agent's roadmap. Write them as instructions, not descriptions. "Read the existing Position struct in src/models/position.rs" not "Understand the data model."
-- Complexity should reflect what the AGENT will experience, not the conceptual difficulty. A simple but tedious task (many similar changes) might be "medium" because it requires sustained attention. A clever but small algorithm might be "low" because it's a few lines.
-- Every acceptance criterion must be addressed by at least one task. Check coverage.
-- Order tasks by dependency — foundational work first, then work that builds on it.
-```
+### Decomposition guidelines
 
-### Agent 2: Task Reviewer
+- **Target 5-12 tasks** for this milestone. If you're over 12, you're decomposing too finely.
+- **Each task should produce a meaningful, testable change.** If a task is "add a dependency to Cargo.toml," merge it into the task that uses that dependency.
+- **Group related tasks** with the same `group` label. Groups are just strings — use whatever makes the grouping clear.
+- **Execution order is strict.** Task 5 can assume tasks 1-4 are done. No need for `depends_on` within a milestone.
+- **Use `depends_on` only for cross-milestone references** (rare).
+- **Skill assignment matters.** Team lead for non-trivial work, direct specialist only for trivially simple tasks.
+- **Steps are the agent's roadmap.** Write them as instructions: "Read the existing Position struct in src/models/position.rs" not "Understand the data model."
 
-After receiving the proposer's output, launch a second subagent to critique and enhance.
+### Merge pass
 
-```
-Review these proposed tasks for story [story-id]: "[story title]"
-
-STORY CONTEXT:
-[same context block as Agent 1]
-
-PROPOSED TASKS:
-[paste Agent 1's output]
-
-Validate with these specific checks:
-
-1. **Acceptance criteria coverage** — Map each acceptance criterion to the task(s) that address it. Flag any criterion not covered by any task. Flag any criterion only partially covered.
-
-2. **Bite-size check** — Would any task require an agent to hold more than 2-3 files in context simultaneously? If so, it needs splitting. Would any task take more than one focused session? If so, it's too broad.
-
-3. **Skill assignment accuracy** — Is each task assigned to the right skill? Common mistakes:
-   - Assigning a non-trivial task directly to a specialist (like rust:developing) when a team lead exists (like rust:team-coordinator) that could explore the codebase and delegate intelligently
-   - Assigning a trivially simple task (like "add comments to module X") to the team coordinator when a direct specialist (rust:commenting) would be more efficient
-   - Forgetting rust:errors-management when new error variants are needed (though the team coordinator can also handle this)
-   - The general rule: if a team lead exists and the task has any complexity beyond "low" or touches multiple concerns, the team lead should be assigned
-
-4. **Step quality** — Are steps concrete enough for an agent to follow? Could an agent who has never seen this codebase execute step 1 without ambiguity? If steps say "implement the logic" without specifics, they need rewriting.
-
-5. **Dependency correctness** — Are there circular dependencies? Could any tasks be parallelized that are currently serialized? Are there missing dependencies (task B uses output from task A but doesn't depend on it)?
-
-6. **Integration test quality** — Does each task have a way to verify it worked? Are the tests specific enough to catch real failures?
-
-7. **Complexity calibration** — Are complexity ratings consistent? A task with 3 steps that modifies one file shouldn't be "high" while a task with 7 steps across multiple files is "medium."
-
-8. **Missing tasks** — Is there work implied by the acceptance criteria that nobody planned for? Common gaps:
-   - Error handling for the happy path
-   - Edge cases mentioned in acceptance criteria but not tasked
-   - Integration between newly created components
-   - Cleanup or refactoring needed to make new code fit existing patterns
-
-9. **Upstream dependency accuracy** — Do any steps reference files, structs, or interfaces from prior milestones? If so, check that those references match the actual output_sources and handoff notes from those milestones. Flag any step that says "Read the existing X" or "Extend Y" where X or Y doesn't appear in any prior task's output_sources.
-
-10. **Cross-story dependencies** — Do any proposed tasks consume output from tasks already written for OTHER stories in this milestone? If task-5 (from story-1) produces `src/models/position.rs` and a proposed task reads that file, add `task-5` to its `depends_on`. Missing cross-story dependencies cause execution failures when tasks run out of order.
-
-Provide specific, actionable critique. For each issue, explain what's wrong and how to fix it. If a task needs splitting, show the split. If steps are vague, rewrite them. If a skill assignment is wrong, name the correct skill and why.
-```
-
-### Incorporate feedback
-
-After receiving the reviewer's critique, synthesize both outputs. The reviewer's job is to catch problems; your job is to decide which critiques to act on and produce the final task list. Not every critique requires a change — use your judgment.
+After decomposition, scan your task list for:
+- Adjacent tasks with the same group that are each < 10 minutes → merge them
+- Tasks that only modify one line or add one dependency → merge with the task that uses the change
+- Tasks that test something just created → consider merging the impl+test if total is under 60 minutes
 
 ---
 
 ## Step 4: Write tasks via CLI
 
-Before writing, read the CLI reference. Read `docs/planning-tasks.md` if you haven't this session — especially the notes about pipe-separated fields.
+Before writing, read `docs/planning-tasks.md` if you haven't this session — especially the notes about pipe-separated fields and v2 flags.
 
 ### Creating tasks
 
-Use `harnessx planning-tasks create` for each task. The CLI auto-assigns IDs (`task-1`, `task-2`, ...) and auto-increments `order`.
+Use `harnessx planning-tasks create` for each task. The CLI auto-assigns IDs (`task-1`, `task-2`, ...).
 
 ```bash
 harnessx planning-tasks create \
-  --title "Write the GraphQL query for fetching open positions" \
-  --steps "Read the Uniswap v3 subgraph schema documentation at the URL in action-1's input_docs | Write a GraphQL query that filters positions by owner address where liquidity > 0 | Add pagination handling using the skip/first pattern for the 1000-entity limit | Write the query as a const string in src/ingestion/queries.rs" \
-  --epic "#epic-1" \
-  --story "#story-1" \
+  --milestone "#milestone-1" \
+  --title "Project skeleton: Cargo.toml, .env, .gitignore, lib.rs" \
+  --purpose "Bootstrap the project so all subsequent tasks can compile and run" \
+  --group "setup" \
+  --execution-order 1 \
+  --steps "Configure Cargo.toml with SDK dependencies and all 6 feature flags | Create .env.example with placeholder keys and add .env to .gitignore | Set up src/lib.rs as crate root with pub mod declarations | Run cargo check to verify compilation" \
   --status not_started \
   --complexity low \
   --mode plan \
   --skills "rust:team-coordinator" \
-  --integration-tests "Query returns all positions for a known wallet with active positions | Query correctly paginates when wallet has more than 1000 positions | Query returns empty results for a wallet with no positions" \
-  --trace-tags "#action-1" \
-  --trace-intake-sources "#intake-resources" \
-  --trace-output-sources "src/ingestion/queries.rs" \
-  --note "Only fetch positions where liquidity > 0 — closed positions should be excluded."
+  --integration-tests "cargo build exits with code 0 | .env.example exists with all required keys" \
+  --trace-tags "#action-1, #action-23" \
+  --trace-intake-sources "#intake-resources, #intake-scope" \
+  --trace-output-sources "Cargo.toml, src/lib.rs, .env.example" \
+  --note "Ensure edition = 2024 and all 6 SDK features enabled."
 ```
 
-**Critical: `--epic` is required.** The `--epic` and `--story` together determine where the task is stored on disk: `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. Always pass the parent epic with the `#` prefix.
+### Critical details
 
-### Critical: steps and integration-tests are pipe-separated
+- **`--milestone` is required for v2.** Uses `#` prefix. Determines shard path: `planning/tasks/<milestone-id>/planning_tasks.json`.
+- **`--execution-order` determines run sequence.** Lower numbers run first. Assign consecutive integers starting from 1.
+- **`--group` is a free-form label.** Use it to group logically related tasks.
+- **`--purpose` explains WHY.** One sentence — what this task enables or unblocks.
+- **`--batch-with` links same-session tasks.** Comma-separated task IDs.
+- **`--steps` and `--integration-tests` are pipe-separated** — not commas (text commonly contains commas).
+- **`--mode`** starts as `plan` during planning. Changes to `execute` when an agent begins work.
+- **IDs are auto-assigned** — capture the returned ID for dependency references.
 
-Both `--steps` and `--integration-tests` use **pipe (`|`) separators** — not commas. This is because steps and test descriptions commonly contain commas in their text.
+### Writing tasks in execution order
 
-```bash
-# CORRECT — pipe-separated
---steps "Read the schema docs | Write the query | Add pagination"
---integration-tests "Query returns positions for wallet X | Empty wallet returns empty list"
-
-# WRONG — comma-separated (will split incorrectly)
---steps "Read the schema docs, Write the query, Add pagination"
-```
-
-### Other important details
-
-- **`--epic` uses the `#` prefix** — e.g., `--epic "#epic-1"`. Required on create.
-- **`--story` uses the `#` prefix** — e.g., `--story "#story-1"`.
-- **`--depends-on` is comma-separated** — e.g., `--depends-on "task-1, task-2"`.
-- **`--skills` is comma-separated** — e.g., `--skills "rust:developing, rust:unit-testing"`.
-- **`--complexity`** — one of: `super-low`, `low`, `medium`, `high`, `super-high`, `uncertain`.
-- **`--mode`** — starts as `plan` during planning. Changes to `execute` when an agent begins work.
-- **`--trace-output-sources`** — file paths the task is expected to create or modify. This is unique to tasks and critical for traceability from planning to code.
-- **IDs are auto-assigned** — capture the returned ID for dependency and tagging.
-- **Update flags replace** (except notes, which append).
-
-### Writing tasks in dependency order
-
-Write tasks in the order they should be executed. If a task depends on another:
-
-```bash
-harnessx planning-tasks create \
-  --title "Parse subgraph response into typed Position structs" \
-  --depends-on "task-1" \
-  --skills "rust:developing" \
-  ...
-```
-
-### Updating existing tasks
-
-```bash
-harnessx planning-tasks update task-1 \
-  --steps "Updated step 1 | Updated step 2 | New step 3" \
-  --note "Added step 3 after review identified missing pagination edge case."
-```
-
-Remember: `--steps` and `--integration-tests` on update **replace** the existing list. Include all items, not just new ones.
+Write tasks in the order they should execute. Task with `--execution-order 1` first, then 2, etc.
 
 ---
 
@@ -330,189 +221,86 @@ After creating tasks, add `#task-N` tags back into intake documents for bidirect
 
 ### Tag the intake markdown files
 
-Find the paragraphs in intake markdown that relate to each task and add the tag inline.
-
-**Example — tagging `scope.md`:**
-
-```markdown
-The ingestion system must handle Uniswap v3 subgraph queries with pagination for large wallets. #action-1 #story-1 #task-1
-```
+Find the paragraphs in intake markdown that relate to each task and add the tag inline at the end of the most relevant line.
 
 ### Tag action items with task references
-
-For each action item a task traces to, append the task tags using `add-tag`. This creates the reverse link without replacing any existing tags.
 
 ```bash
 harnessx intake-actions add-tag action-1 --tags "#task-1, #task-2"
 harnessx intake-actions update action-1 \
   --note-author "hx-planning-tasks" \
-  --note-text "Mapped to task-1: Write GraphQL query, task-2: Parse response."
-```
-
-`add-tag` only appends — it will not remove any existing tags on the action item, and it skips duplicates.
-
-### Tag stories with their tasks
-
-Update the story's trace tags to include task references:
-
-```bash
-harnessx planning-stories update story-1 \
-  --trace-tags "#action-1, #action-4, #task-1, #task-2, #task-3" \
-  --note "Tasks defined: GraphQL query, response parsing, error handling."
+  --note-text "Mapped to task-1: Project skeleton, task-2: Auth module."
 ```
 
 ### Tagging rules (from hx:tag-context-writing)
 
 - Tags go at the **end of the line** they annotate — never on their own line
-- Only use **traceable tags** (`#task-N`, `#story-N`, `#epic-N`, `#milestone-N`, `#action-N`)
-- Do not invent categorical tags
+- Only use **traceable tags** (`#task-N`, `#milestone-N`, `#action-N`)
 - Verify with `harnessx context search-context --query "#task-1"` — should return meaningful paragraphs
 
 ---
 
-## Step 6: After each story — mark written and verify
-
-After writing all tasks for the current story and tagging artifacts:
-
-### Mark the story as written
-
-```bash
-harnessx planning-stories mark-written <story-id>
-```
-
-### Verify tasks for this story
-
-```bash
-# Verify the story sees its children
-harnessx planning-stories children <story-id>
-```
-
-### Completeness check (per story)
-
-Verify:
-- Every acceptance criterion in the story is addressed by at least one task
-- Every task has steps (no empty step lists)
-- Every task has at least one integration test
-- Every task has a skill assignment
-- Every task has a complexity rating
-- Every task has at least one trace tag back to an action item
-- Every task has `--epic` set correctly
-- Tasks are collectively sufficient — all done means every acceptance criterion passes
-- No task overlaps significantly with a task under another story
-- Dependencies form a valid DAG (no cycles)
-
-If you find gaps, go back and fix them before moving to the next story.
-
-### Continue to next story
-
-After the current story is verified, move to the next story under this milestone (from the children list gathered in Step 1). Repeat Steps 3-6 for each story.
-
----
-
-## Step 7: Cross-story dependency scan
-
-After all stories under this milestone have tasks but BEFORE final verification, do a quick scan for missing cross-story dependencies within this milestone.
-
-```bash
-harnessx planning-milestones children <milestone-id>
-```
-
-Review all tasks you just created across all stories. For each task, check:
-
-1. **Does it read from a file that another task in a DIFFERENT story produces?** If task-12 (story-3) reads `src/models/position.rs` and task-5 (story-1) creates it, task-12 must have `depends_on: ["#task-5"]`.
-2. **Does it call a function or use a struct defined by another story's task?** Same logic — add the dependency.
-3. **Are there tasks across stories that could run in parallel but are accidentally serialized?** Remove unnecessary dependencies.
-
-For each missing dependency found, fix it:
-
-```bash
-harnessx planning-tasks update task-12 --depends-on "task-5, task-11"
-```
-
-This scan takes 3-5 minutes but prevents execution failures where tasks run out of order because a cross-story dependency was missed during the per-story dual-agent process.
-
----
-
-## Step 8: Write milestone handoff notes
+## Step 6: Write milestone handoff notes
 
 Before stopping, write a structured handoff note onto the milestone. This is read by the NEXT task session (for the next milestone) so it knows what files, interfaces, and structures now exist.
 
 ```bash
 harnessx planning-milestones update <milestone-id> \
-  --note "HANDOFF: Key outputs — [list files and what they contain, referencing task IDs]. Exit-point tasks: [task IDs that downstream milestones build on]. Interfaces: [key structs, functions, APIs that downstream work will use, with enough detail to write correct task steps]."
-```
-
-**What to include:**
-- Every file path from `trace_output_sources` across this milestone's tasks, grouped by module/concern
-- The task ID that produces each file (so downstream tasks can reference it)
-- Key structs, traits, and function signatures that downstream code will depend on
-- Any patterns or conventions established (e.g., "all error types go in src/errors.rs")
-
-**What NOT to include:**
-- Internal implementation details that downstream tasks don't need
-- Every single task — focus on the "exit points" that other milestones will build on
-
-**Example:**
-
-```
-HANDOFF: Key outputs — src/models/position.rs (Position, PositionList structs; task-3), src/ingestion/client.rs (GraphQLClient with fetch_positions(); task-5), src/ingestion/queries.rs (POSITIONS_QUERY const; task-1), src/db/schema.rs (positions table migration; task-7). Exit-point tasks: task-7 (schema ready for writes), task-9 (ingestion pipeline callable). Interfaces: Position { id, owner, token0, token1, liquidity, fee_tier }, GraphQLClient::new(endpoint) and ::fetch_positions(wallet) -> Vec<Position>. Conventions: all DB queries go through src/db/queries.rs, errors use thiserror in src/errors.rs.
+  --note "HANDOFF: Key outputs — [list files and what they contain, referencing task IDs]. Exit-point tasks: [task IDs that downstream milestones build on]. Interfaces: [key structs, functions, APIs]. Conventions: [any patterns established]."
 ```
 
 ---
 
-## Step 9: Final verification and stop
+## Step 7: Final verification and stop
 
 ```bash
 # Spot-check traceability
 harnessx context search-context --query "#task-1"
+
+# Verify tasks for this milestone
+harnessx planning-milestones children <milestone-id>
 ```
 
-Once all stories under this milestone have their tasks written, cross-story dependencies are linked, and the handoff note is written, you are done. The coordinator (hx:planning) will mark the milestone with `mark-tasks-written` and check for more milestones.
+### Completeness check
+
+Verify:
+- Every milestone success measure is addressed by at least one task
+- Every task has steps, at least one integration test, a skill assignment, and a complexity rating
+- Every task has a `group` label and `purpose`
+- Execution order is consecutive (no gaps)
+- Total tasks for this milestone is between 5 and 12
+- Dependencies form a valid sequence (no task references something created by a later task)
+
+Once verified, you are done. The coordinator (hx:planning) will mark the milestone with `mark-tasks-written` and check for more milestones.
 
 ---
 
 ## What good tasks look like
 
-- **Action-oriented titles** — "Write the GraphQL query for fetching positions" not "GraphQL work"
-- **Concrete steps** — an agent can follow them without guessing. "Read src/models/position.rs to understand the Position struct" not "understand the data model"
-- **Right-sized** — completable in one focused session, touching 1-3 files. If it needs more, split it
-- **Correct skill assignment** — team lead for non-trivial work, direct specialist only for trivially simple tasks
-- **Verifiable** — integration tests describe how to check the task actually worked
-- **Accurate complexity** — reflects what the agent will experience, not conceptual difficulty
-- **Clean dependency chain** — foundational work ordered first, no cycles
-- **Full traceability** — traces to action items and intake sources, output sources point to expected files
-
----
-
-## What bad tasks look like (and how to fix them)
-
-| Bad task | Problem | Fix |
-|----------|---------|-----|
-| "Implement the data layer" | Too broad — multiple concerns | Split: "Write Position struct", "Write DB adapter", "Write query builder" |
-| "Set up the project" | Not a behavioural step | Usually absorbed into the first real task's steps |
-| "Write tests" | Too vague — test what? | "Write unit tests for the position normalizer covering empty input, single position, and multi-DEX scenarios" |
-| Skills: `rust:developing` for a complex multi-file task | Direct specialist for non-trivial work skips exploration and planning | Use the team lead `rust:team-coordinator` — it will explore, plan, and delegate |
-| Skills: `rust:team-coordinator` for "add comments to module" | Coordinator overhead for trivially simple work | Use `rust:commenting` directly — no delegation needed |
-| Complexity: `uncertain` | Planning should resolve uncertainty | Research the task enough to rate it, or flag it for the proposer agent to investigate |
-| No integration tests | Can't verify the task worked | Every task needs at least one test — even "the module compiles without errors" |
+- **Action-oriented titles** — "Build and test the SafeTestOrder guard" not "Safety work"
+- **Concrete steps** — an agent can follow them without guessing
+- **Right-sized** — 15-60 minutes of focused work, producing a meaningful testable change
+- **Correct skill assignment** — team lead for non-trivial work
+- **Verifiable** — integration tests describe how to check the task worked
+- **Grouped logically** — related tasks share a group label
+- **Strictly ordered** — execution_order determines the sequence, no ambiguity
 
 ---
 
 ## What this skill does NOT do
 
-- **Write stories, epics, or milestones** — those must exist before tasks; use the corresponding planning skills
+- **Write milestones** — those must exist before tasks; use hx:planning-milestones
 - **Execute any implementation** — tasks are plans with steps and skill assignments, not code
-- **Write tasks for stories outside the target milestone** — scope is one milestone per invocation
+- **Write tasks for milestones beyond the target** — scope is one milestone per invocation
 - **Change the pipeline stage** — the operator handles stage transitions
-- **Create action items** — action items come from intake; tasks trace to existing ones
-- **Bypass team leads for non-trivial work** — when a domain has a team lead (like `rust:team-coordinator`), assign the team lead by default. Only assign directly to a specialist for trivially simple, single-concern tasks
+- **Create epics or stories** — the v2 model uses milestones → tasks directly
 
 ## Task file storage
 
-Tasks are sharded on disk by epic and story:
+Tasks are sharded by milestone:
 
 ```
-planning/tasks/<epic-id>/<story-id>/planning_tasks.json
+planning/tasks/<milestone-id>/planning_tasks.json
 ```
 
-The `--epic` and `--story` flags determine the shard location. Task IDs and order values are globally unique across all shards.
+The `--milestone` flag determines the shard location. Task IDs and order values are globally unique across all shards.

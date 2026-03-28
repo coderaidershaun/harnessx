@@ -31,6 +31,8 @@ Common tag patterns:
 | Pattern | Purpose | Example |
 |---|---|---|
 | `#action-N` | References action item N — creates a bidirectional link between a paragraph and an action | `#action-3` |
+| `#milestone-N` | References milestone N — links content to a planning milestone | `#milestone-1` |
+| `#task-N` | References task N — links content to a planning task | `#task-5` |
 
 **Only use tags that are traceable.** Every tag you write must reference something that actually exists in the project — an action item, another document, or a paragraph. Do not invent categorical tags (`#exploration`, `#blindspot-api-drift`, `#goal`) that don't exist as searchable content elsewhere. Categorical information belongs in dedicated fields (`category`, `origin`, `note-text`) on action items, not as tags in markdown files.
 

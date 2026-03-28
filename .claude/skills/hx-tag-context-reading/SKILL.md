@@ -15,7 +15,7 @@ This is the inverse of `hx:tag-context-writing`. That skill writes tags into doc
 
 ## Why this skill exists
 
-Agents executing tasks operate with limited context. A task says *what* to do but not *why*. Without the chain of reasoning that produced the task — the user's goal, the scope boundaries, the milestone checkpoint, the epic capability, the story's acceptance criteria — agents make locally reasonable decisions that drift from the project's intent.
+Agents executing tasks operate with limited context. A task says *what* to do but not *why*. Without the chain of reasoning that produced the task — the user's goal, the scope boundaries, the milestone checkpoint, the task's integration tests and purpose — agents make locally reasonable decisions that drift from the project's intent.
 
 This skill prevents that drift by giving every agent the same grounding: here's the full story behind your work.
 
@@ -34,8 +34,9 @@ This skill prevents that drift by giving every agent the same grounding: here's 
 
 This skill accepts one of:
 - A **task ID** (e.g., `task-3`) — most common, traces from the bottom up
-- A **story ID** (e.g., `story-2`) — traces from story level up
-- An **epic ID** (e.g., `epic-1`) — traces from epic level up
+- A **milestone ID** (e.g., `milestone-1`) — traces from milestone level
+- A **story ID** (e.g., `story-2`) — v1 only, traces from story level up
+- An **epic ID** (e.g., `epic-1`) — v1 only, traces from epic level up
 - **No input** — auto-discovers via `harnessx planning-tasks next`
 
 If no input is provided, default to the next ready task.
@@ -53,7 +54,7 @@ harnessx planning-tasks list
 harnessx planning-tasks next
 ```
 
-Capture the full task object. You need: `id`, `title`, `steps`, `story`, `skills`, `complexity`, `traces` (tags, intake_sources, output_sources), and `integration_tests`.
+Capture the full task object. You need: `id`, `title`, `steps`, `milestone` (v2) or `story` (v1), `skills`, `complexity`, `traces` (tags, intake_sources, output_sources), and `integration_tests`.
 
 If starting from a story or epic, skip to the appropriate level in Step 2.
 
@@ -61,7 +62,24 @@ If starting from a story or epic, skip to the appropriate level in Step 2.
 
 ## Step 2: Walk up the hierarchy
 
-From the task, follow the parent chain all the way to the milestone. Run these commands to collect each level:
+From the task, follow the parent chain to the milestone. The approach depends on the planning model version:
+
+### v2 tasks (task has a non-empty `milestone` field)
+
+```bash
+# Get the parent milestone directly (v2 tasks belong to milestones, no epics/stories)
+harnessx planning-tasks parent <task-id>
+```
+
+This returns the milestone directly. Capture the milestone's title, description, success_measures, status, and traces.
+
+Build a hierarchy map:
+```
+Milestone: [milestone title]
+  Task: [task title] (YOUR TASK)
+```
+
+### v1 tasks (task has a `story` field — legacy fallback)
 
 ```bash
 # Get the parent story (task.story gives you the reference, e.g., "#story-1")
@@ -74,13 +92,6 @@ harnessx planning-stories parent <story-id>
 harnessx planning-epics parent <epic-id>
 ```
 
-At each level, capture:
-- **Title and description** — the "what" at that level of abstraction
-- **Acceptance criteria** (stories) — the testable definition of done
-- **Success measures** (milestones) — the measurable outcomes
-- **Status** — what's already complete vs. in progress
-- **Traces** — the `tags` and `intake_sources` arrays
-
 Build a hierarchy map:
 ```
 Milestone: [milestone title]
@@ -89,11 +100,18 @@ Milestone: [milestone title]
       Task: [task title] (YOUR TASK)
 ```
 
+### At each level, capture:
+- **Title and description** — the "what" at that level of abstraction
+- **Integration tests and purpose** (tasks) — the testable definition of done
+- **Success measures** (milestones) — the measurable outcomes
+- **Status** — what's already complete vs. in progress
+- **Traces** — the `tags` and `intake_sources` arrays
+
 ---
 
 ## Step 3: Collect all traced action items
 
-Gather every unique `#action-N` tag referenced in `traces.tags` across all four levels (task, story, epic, milestone). These action items are the bridge between planning and intake.
+Gather every unique `#action-N` tag referenced in `traces.tags` across all levels (for v2: task and milestone; for v1: task, story, epic, milestone). These action items are the bridge between planning and intake.
 
 ```bash
 # List all action items
@@ -144,10 +162,10 @@ harnessx planning-tasks list
 ```
 
 From the task list, find:
-1. The task immediately after the current one (by order) within the same story
-2. If no more tasks in this story, note that story completion comes next
+1. The task immediately after the current one (by execution order) within the same milestone
+2. If no more tasks in this milestone, note that milestone completion comes next
 
-Also check what sibling tasks exist (other tasks under the same story) to understand how this task fits into the story's overall implementation.
+Also check what sibling tasks exist (other tasks under the same milestone) to understand how this task fits into the milestone's overall implementation.
 
 ---
 
@@ -168,6 +186,8 @@ user context] so that [OUTCOME — from success measures and goal].
 
 This work is part of:
 - Milestone: "[milestone title]" — [milestone description, 1-2 sentences]
+- Task: "[task title]" — [task purpose, 1-2 sentences]
+(v1 only, if applicable:)
 - Epic: "[epic title]" — [epic description, 1-2 sentences]
 - Story: "[story title]" — [story description, 1-2 sentences]
 
@@ -198,12 +218,17 @@ Steps:
 2. [step 2]
 ...
 
-Story acceptance criteria (your task contributes to these):
-- [criterion 1]
-- [criterion 2]
+Task integration tests and purpose (your task's definition of done):
+- [integration test 1]
+- [integration test 2]
 ...
 
-Integration tests expected:
+Milestone success measures (your task contributes to these):
+- [measure 1]
+- [measure 2]
+...
+
+Additional integration tests expected:
 - [test 1]
 - [test 2]
 ...
@@ -218,9 +243,9 @@ After your task, the next task is: [next-task-id] — "[next task title]" ([brie
 description of what it does]). Your work should leave the codebase in a state where
 that task can begin cleanly.
 
-[OR if this is the last task in the story:]
-Your task is the final task in this story. When complete, the story's acceptance
-criteria should all pass.
+[OR if this is the last task in the milestone:]
+Your task is the final task in this milestone. When complete, the milestone's
+success measures should all be satisfied.
 ```
 
 ---
@@ -231,7 +256,7 @@ criteria should all pass.
 The summary should be thorough enough that an agent can start working without asking questions, but not so long that it overwhelms context. Aim for 40-80 lines total. Trim intake quotes to the most relevant sentences — don't dump entire documents.
 
 ### Prioritize the "why"
-The most valuable thing you provide is *why* this task exists. The agent can read the task's steps — what it can't see is the chain of reasoning from user goal → milestone → epic → story → this task. That chain is your main deliverable.
+The most valuable thing you provide is *why* this task exists. The agent can read the task's steps — what it can't see is the chain of reasoning from user goal → milestone → this task. That chain is your main deliverable.
 
 ### Preserve the user's voice
 When quoting intake documents, keep the user's original phrasing where it adds clarity. "My boss wants to see profit margins as percentages" is more useful than "stakeholder requires percentage-based margin display."

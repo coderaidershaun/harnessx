@@ -9,19 +9,9 @@ user-invocable: false
 
 You are the execution orchestrator. Your job is to pick up the next ready task from the planning hierarchy, gather exactly the right context from multiple sources in parallel, synthesize that context into a precision-targeted brief, and dispatch the task to the specialist agent who will do the work.
 
-This is the most context-sensitive skill in the system. Every decision you make about what context to include — and what to leave out — directly affects whether the executing agent succeeds or drifts. Too much context and the agent drowns. Too little and it guesses. Your job is to find the sweet spot: enough for the agent to understand WHY it's doing what it's doing, and exactly what "done" looks like.
+This is the most context-sensitive skill in the system. Every decision you make about what context to include — and what to leave out — directly affects whether the executing agent succeeds or drifts. Too much context and the agent drowns. Too little and it guesses. Your job is to find the sweet spot.
 
 **One task per invocation.** Pick up one task. Execute it. Record the result. Stop. The user or operator invokes you again for the next task.
-
----
-
-## Why this skill exists
-
-Specialist agents (like `rust:developing` or `rust:team-coordinator`) are excellent at their craft but terrible at knowing why they're doing what they're doing. They don't know the user's goal, the milestone checkpoint, or what the agent before them just shipped. Without that context, they make locally reasonable decisions that drift from the project's intent.
-
-Meanwhile, dumping the entire project context into an agent's prompt is wasteful and counterproductive — it dilutes the signal with noise, fills context windows with irrelevant intake paragraphs, and makes the agent spend tokens parsing information it doesn't need.
-
-This skill solves both problems. It gathers intelligence from multiple sources cheaply (parallel lightweight agents), distills it into a lean brief (the signal without the noise), and dispatches the executing agent with exactly what it needs to do excellent work.
 
 ---
 
@@ -37,27 +27,21 @@ Capture the project ID from `data.id`. You'll need this for file paths throughou
 harnessx planning-tasks next
 ```
 
-Parse the JSON response. There are three possible shapes:
+Parse the JSON response. There are several possible shapes:
 
-**Ready task found** — the response is the full task object. Capture everything: `id`, `title`, `steps`, `story`, `depends_on`, `complexity`, `mode`, `skills`, `integration_tests`, `traces`, `notes`. Proceed to Phase 2.
+**Ready task found** — the response is the full task object. Capture everything: `id`, `title`, `steps`, `milestone`, `group`, `purpose`, `execution_order`, `depends_on`, `complexity`, `mode`, `skills`, `integration_tests`, `traces`, `notes`. Proceed to Phase 2.
 
-**All blocked** — the response has `"message": "All remaining tasks are blocked by unmet dependencies."` plus a `blocked_tasks` array. Report this to the user with the specific blockers for each task. Do not attempt to unblock — ask the user what to do. Stop.
+**All blocked** — the response has `"message": "All remaining tasks are blocked..."`. Report this to the user with the specific blockers. Do not attempt to unblock — ask the user what to do. Stop.
 
-**All completed** — the response has `"message": "All tasks completed."`. Check whether the parent story needs its `tasks_completed` flag set:
-
-```bash
-harnessx planning-stories list
-```
-
-Find any stories where `tasks_completed` is false but all their tasks are done. For each:
+**Milestone tasks done** — the response has `"message": "All tasks in current milestone completed. Milestone ready for review."` plus a `milestone` field. This means all tasks in the current milestone are done but the milestone isn't marked complete yet. Trigger the built-in review:
 
 ```bash
-harnessx planning-stories mark-completed <story-id>
+harnessx planning-milestones review <milestone-id> --status pending
 ```
 
-Then cascade upward — check epics, then milestones, marking completion flags as appropriate.
+Then mark the milestone as in_progress for review and dispatch the review task (see Phase 7 below). Stop.
 
-After all completion flags are cascaded, mark the execution stage complete:
+**All completed** — the response has `"message": "All tasks completed."`. Mark the execution stage complete:
 
 ```bash
 harnessx progress complete execution
@@ -69,9 +53,9 @@ Report to the user that all tasks are complete and the pipeline will advance pas
 
 ## Phase 2: Gather intelligence (parallel agents)
 
-Launch three agents in parallel. Each has a focused job and returns a compact result. The key insight: these agents are cheap scouts, not deep thinkers. They gather and summarize — the synthesis happens in Phase 3 (your job).
+Launch three agents in parallel. Each has a focused job and returns a compact result. These are cheap scouts, not deep thinkers — the synthesis happens in Phase 3.
 
-**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground — their results are needed before the next phase can proceed.
+**IMPORTANT: Do NOT set `run_in_background: true`.** All agents must run in foreground.
 
 ### Agent A: Project context via tag tracing
 
@@ -84,20 +68,19 @@ Follow the hx:tag-context-reading skill process:
 
 1. Walk up the hierarchy:
    harnessx planning-tasks parent [TASK-ID]
-   harnessx planning-stories parent [STORY-ID]
-   harnessx planning-epics parent [EPIC-ID]
+   (This returns the parent milestone directly for v2 tasks)
 
 2. Collect traced action items:
    harnessx intake-actions list
-   (extract only the action items referenced in traces.tags across all four levels)
+   (extract only the action items referenced in traces.tags)
 
 3. Pull relevant intake context:
    harnessx context search-context --query "#action-N"
    (for each traced action item)
 
-4. Check sibling and next tasks:
-   harnessx planning-tasks list
-   (find what comes before and after this task in the same story)
+4. Check sibling tasks in the same milestone:
+   harnessx planning-milestones children [MILESTONE-ID]
+   (find what comes before and after this task by execution_order)
 
 Return the complete Context Brief and Task Brief as described in the hx:tag-context-reading skill.
 Keep it to 40-80 lines. Prioritize the WHY chain over raw detail.
@@ -148,13 +131,13 @@ Collect all three results before proceeding. If Agent A fails (e.g., parent not 
 
 ## Phase 3: Synthesize the execution brief
 
-This is where you earn your keep. You have:
+You have:
 - The full task object (from Phase 1)
 - The project context narrative (from Agent A)
 - The recent progress summary (from Agent B)
 - The git activity summary (from Agent C)
 
-Synthesize these into a **single, focused execution brief**. This brief is the ONLY context the executing agent will receive. It must be complete enough to work from but lean enough to not waste tokens.
+Synthesize these into a **single, focused execution brief**. This brief is the ONLY context the executing agent will receive.
 
 ### The execution brief structure
 
@@ -166,13 +149,14 @@ TASK: [task-id] — "[task title]"
 MODE: [plan|execute|review|rework]
 COMPLEXITY: [complexity]
 SKILLS: [assigned skills]
+GROUP: [group label]
 
 PROJECT DIRECTORY: [directory from project metadata]
 
 SITUATION
 ---------
 [2-4 sentences from Agent A's Context Brief — the "we are building X for Y so that Z" framing.
-Include the milestone → epic → story chain as a single flowing sentence, not a bullet list.
+Include the milestone purpose → task purpose chain as a single flowing sentence.
 This gives the agent the WHY without the noise.]
 
 RECENT PROGRESS
@@ -189,12 +173,10 @@ Steps:
 ...
 
 Key context from action items:
-- [1-2 sentences from the most relevant traced action item details — the stuff
-  that won't be obvious from the steps alone]
+- [1-2 sentences from the most relevant traced action item details]
 
 Scope boundaries:
-- [Any constraints from scope.md that affect this task — what NOT to do]
-- [If none are relevant, omit this section entirely]
+- [Any constraints from scope.md that affect this task]
 
 VERIFICATION
 ------------
@@ -202,72 +184,54 @@ Integration tests to pass:
 - [test 1]
 - [test 2]
 
-Story acceptance criteria this task contributes to:
-- [criterion 1 — from the parent story]
-- [criterion 2]
-
 Output files expected:
 - [output_sources entries, if any]
 
 WHAT COMES NEXT
 ---------------
-[1-2 sentences about the task that follows this one in the story.
+[1-2 sentences about the task that follows this one (next execution_order in the milestone).
 "Your work should leave the codebase in a state where [next task title] can begin cleanly."
-OR if this is the last task: "This is the final task in the story. When complete,
-all acceptance criteria should pass."]
+OR if this is the last task: "This is the final task in the milestone. When complete,
+all milestone success measures should be satisfied."]
 ```
 
 ### Brief guidelines
 
-- **40-60 lines total.** If you're over 60 lines, you're including too much. Cut the least actionable content.
-- **No intake document dumps.** The agent doesn't need to read the user's raw words from goal.md. It needs the synthesized WHY.
-- **Steps are sacred.** Copy them verbatim from the task. These were carefully written during planning — don't paraphrase.
-- **The SITUATION section is the most important.** An agent that understands why it's doing something will make better judgment calls than one that just follows steps mechanically.
-- **Include the project directory.** The agent needs to know where the code lives.
-- **Omit sections that add nothing.** If there are no scope boundaries relevant to this task, don't include an empty section. If there are no notes from risk reviews, don't mention it.
+- **40-60 lines total.** If you're over 60 lines, cut the least actionable content.
+- **No intake document dumps.** The agent needs the synthesized WHY.
+- **Steps are sacred.** Copy them verbatim from the task.
+- **The SITUATION section is the most important.**
+- **Include the project directory.**
+- **Omit sections that add nothing.**
 
 ---
 
 ## Phase 4: Determine dispatch parameters
 
-The task's `complexity` and `mode` fields determine how the executing agent is configured. The principle: **always assume the agent needs one level of thinking depth higher than what seems sufficient.** Quality beats speed. A task done well once is cheaper than a task done poorly twice.
-
 ### Model selection
 
-| Complexity | Default model | Bumped model (what you use) |
-|------------|---------------|----------------------------|
-| `super-low` | haiku | **sonnet** |
-| `low` | sonnet | **sonnet** |
-| `medium` | sonnet | **opus** |
-| `high` | opus | **opus** |
-| `super-high` | opus | **opus** |
-| `uncertain` | — | **opus** (always conservative) |
+| Complexity | Model Used |
+|------------|-----------|
+| `super-low`, `low` | sonnet |
+| `medium`, `high`, `super-high`, `uncertain` | opus |
 
-### Thinking depth (embedded in the prompt preamble)
+### Thinking depth
 
 | Complexity | Thinking instruction |
 |------------|---------------------|
 | `super-low` | "Think through each step before acting." |
 | `low` | "Think carefully about edge cases and how your changes integrate with existing code." |
 | `medium` | "Think deeply about this task. Consider architectural implications, edge cases, and how your work fits into the larger system." |
-| `high` | "This is a high-complexity task. Take your time. Analyze the problem thoroughly before writing any code. Consider every edge case, every integration point, every way this could go wrong. Quality is paramount." |
-| `super-high` | "This is the most complex type of task in the system. Use maximum analytical depth. Consider the problem from multiple angles before committing to an approach. Verify your reasoning at each step. Leave nothing to chance." |
-| `uncertain` | Same as `high` — treat uncertainty as high complexity until proven otherwise. |
+| `high` | "This is a high-complexity task. Take your time. Analyze the problem thoroughly before writing any code. Quality is paramount." |
+| `super-high` | "This is the most complex type of task. Use maximum analytical depth. Verify your reasoning at each step." |
+| `uncertain` | Same as `high`. |
 
 ### Mode-specific framing
 
-Prepend to the execution brief based on `mode`:
-
-- **`plan`**: "You are PLANNING, not implementing. Your output should be a design document, architecture decision, or implementation plan — not code. Think, analyze, decide, document."
+- **`plan`**: "You are PLANNING, not implementing. Output a design document or implementation plan — not code."
 - **`execute`**: "You are IMPLEMENTING. Write the code. Follow the steps. Make it work. Verify with the integration tests."
-- **`review`**: "You are REVIEWING existing work. Read the code critically. Check it against the acceptance criteria and integration tests. Flag issues. Do not rewrite unless explicitly broken."
-- **`rework`**: "You are FIXING issues identified during review. Focus on the specific problems. Do not refactor beyond what's needed to resolve the issues."
-
-### Skill dispatch
-
-The task's `skills` field lists the specialist skill(s) to use. The executing agent should be told to follow these skills.
-
-When skills contain a team coordinator (e.g., `rust:team-coordinator`), dispatch to the coordinator and let it triage internally. When skills are direct specialists (e.g., `rust:commenting`), the agent works as that specialist directly.
+- **`review`**: "You are REVIEWING existing work. Read critically. Check against criteria. Flag issues."
+- **`rework`**: "You are FIXING issues identified during review. Focus on the specific problems."
 
 ---
 
@@ -275,7 +239,7 @@ When skills contain a team coordinator (e.g., `rust:team-coordinator`), dispatch
 
 ### Update task status and mode
 
-Before dispatching, mark the task in progress. If the task's current `mode` is `plan`, flip it to `execute` so the agent receives implementation framing:
+Before dispatching, mark the task in progress. If the task's current `mode` is `plan`, flip it to `execute`:
 
 ```bash
 harnessx planning-tasks update [TASK-ID] --status in_progress --mode execute
@@ -289,7 +253,7 @@ harnessx planning-tasks update [TASK-ID] --status in_progress
 
 ### Launch the agent
 
-Launch one agent with the synthesized brief. This is the agent that does the actual work.
+Launch one agent with the synthesized brief.
 
 ```
 [THINKING DEPTH INSTRUCTION from Phase 4]
@@ -313,8 +277,7 @@ When you are done:
 ```
 
 **Model:** determined by Phase 4's complexity mapping.
-
-**Mode:** Use `mode: "bypassPermissions"` to let the agent work autonomously. The task was planned and approved during planning — the agent should execute without asking for permission at every file write.
+**Mode:** Use `mode: "bypassPermissions"` to let the agent work autonomously.
 
 Wait for the agent to complete and capture its result.
 
@@ -322,14 +285,12 @@ Wait for the agent to complete and capture its result.
 
 ## Phase 6: Post-execution bookkeeping
 
-After the executing agent returns, update the project state. This is critical — without it, the next invocation of this skill won't know what happened.
-
 ### 6a: Update task status
 
 If the agent succeeded:
 
 ```bash
-harnessx planning-tasks update [TASK-ID] --status completed --note "[AGENT-SUMMARY — first 1-2 bullet points from the agent's summary]"
+harnessx planning-tasks update [TASK-ID] --status completed --note "[AGENT-SUMMARY]"
 ```
 
 If the agent failed or was blocked:
@@ -347,39 +308,27 @@ Write a concise entry to `harnessx/[PROJECT-ID]/history.md`:
 **Date:** [today's date]
 **Status:** completed | rework
 **Skills used:** [skills]
-**Summary:** [2-3 sentences — what was done, key decisions, any concerns]
+**Summary:** [2-3 sentences]
 **Files changed:** [list from git diff or agent report]
 ```
 
 Read the existing file first and append — don't overwrite.
 
-### 6c: Check story completion
+### 6c: Check milestone completion
+
+After a task completes, check if all tasks in the milestone are now done:
 
 ```bash
-harnessx planning-stories children [STORY-ID]
+harnessx planning-milestones children [MILESTONE-ID]
 ```
 
-If ALL tasks under this story now have status `completed`:
+If ALL tasks under this milestone now have status `completed`:
 
 ```bash
-harnessx planning-stories mark-completed [STORY-ID]
-harnessx planning-stories update [STORY-ID] --status completed --note "All tasks completed via hx:execution-next-task."
+harnessx planning-milestones update [MILESTONE-ID] --status completed
 ```
 
-Then check epic completion:
-
-```bash
-harnessx planning-epics children [EPIC-ID]
-```
-
-If all stories under this epic are completed:
-
-```bash
-harnessx planning-epics mark-completed [EPIC-ID]
-harnessx planning-epics update [EPIC-ID] --status completed
-```
-
-Continue upward to milestones if applicable. This cascading completion keeps the hierarchy in sync.
+This triggers the built-in milestone review on the next invocation (Phase 1 will see "Milestone ready for review").
 
 ### 6d: Report to user
 
@@ -390,10 +339,28 @@ Task [TASK-ID] "[task title]" — [completed | needs rework]
 
 [2-3 bullet summary from the executing agent]
 
-Next: [next task title, or "story complete" if this was the last task]
+Next: [next task title by execution_order, or "milestone complete — review pending"]
 ```
 
-Then stop. The user or operator will invoke this skill again for the next task.
+Then stop.
+
+---
+
+## Phase 7: Milestone review (built-in)
+
+When Phase 1 detects "All tasks in current milestone completed", the milestone needs review before the next milestone's tasks can begin.
+
+The review process is handled by the `hx:milestone-rework-assessment` skill. The execution engine's role is:
+
+1. Set `review_status` to `pending`
+2. Find or create the review task for this milestone
+3. Dispatch it via the normal Phase 2-6 flow
+
+If the milestone already has a review task (from planning), execute it. If not, the rework assessment skill runs its autonomous review process.
+
+After review:
+- If clean: `harnessx planning-milestones review [ID] --status passed` and mark milestone completed
+- If issues found: rework tasks are appended to the milestone. The next `planning-tasks next` call will return the first rework task.
 
 ---
 
@@ -401,40 +368,30 @@ Then stop. The user or operator will invoke this skill again for the next task.
 
 ### Task has multiple skills
 
-If `skills` contains more than one skill (e.g., `"rust:developing, rust:unit-testing"`), the executing agent should be told about all of them. If one of them is a team coordinator, dispatch to the coordinator — it will handle the multi-skill orchestration internally.
-
-If there's no coordinator and multiple direct specialists are listed, dispatch a single agent that follows each skill in sequence (implement first, then test, etc.).
+If one is a team coordinator, dispatch to the coordinator. If multiple direct specialists, dispatch a single agent that follows each skill in sequence.
 
 ### Task has no skills assigned
 
-This shouldn't happen (planning should assign skills), but if it does: look at the task's steps and title to infer the right skill family. Default to the team coordinator for that domain if one exists.
+Look at the task's steps and title to infer the right skill family. Default to the team coordinator.
 
 ### The executing agent fails
 
-Don't retry automatically. Mark the task as `rework`, record what went wrong in history.md, and report to the user. The next invocation will pick up the same task (since it's not completed) and the rework mode framing will tell the agent to fix what's broken.
+Don't retry automatically. Mark as `rework`, record what went wrong, report to the user. The next invocation picks up the same task with rework framing.
 
 ### History.md doesn't exist
 
-Create it with a header:
+Create it with a header, then append the first entry.
 
-```markdown
-# Project History
+### Batch tasks
 
-Execution log for this project. Each entry records a task execution with its outcome.
-```
-
-Then append the first entry.
-
-### No next task but story isn't marked complete
-
-This can happen if tasks were manually completed outside this skill. Run the completion cascade (Phase 6c) to sync the hierarchy.
+If the task has `batch_with` entries, gather context for all tasks in the batch and include all their steps in the execution brief. The agent executes all batched tasks in one session. Mark all as completed/rework after.
 
 ---
 
 ## What this skill does NOT do
 
-- **Write planning artifacts** — milestones, epics, stories, and tasks must exist before execution
-- **Make architectural decisions** — that's the executing agent's job (via its assigned skill)
-- **Interact with the user during execution** — the executing agent works autonomously; if it needs user input, it fails and this skill records the failure
-- **Execute multiple tasks** — one task per invocation, always
-- **Skip the context gathering** — even for `super-low` complexity tasks, the brief matters; a two-minute context investment prevents a twenty-minute drift
+- **Write planning artifacts** — milestones and tasks must exist before execution
+- **Make architectural decisions** — that's the executing agent's job
+- **Interact with the user during execution** — the executing agent works autonomously
+- **Execute multiple tasks** — one task (or one batch) per invocation
+- **Skip the context gathering** — even for `super-low` tasks, the brief matters
