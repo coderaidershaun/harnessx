@@ -2,7 +2,7 @@
 name: hx:execution-next-task
 description: Pick up the next ready task, gather full project context via parallel lightweight agents, synthesize a precision-targeted execution brief, then dispatch the task to the right specialist agent with the right model and thinking depth. This is the execution engine — the skill that turns planning artifacts into working code by orchestrating context gathering and agent dispatch with surgical precision. Use this skill when the pipeline reaches the execution stage, when the user says "execute next task", "run next task", "do the next task", "start working", "pick up next task", "continue execution", or anything about executing planned work. Also trigger when the operator routes to execution, after all planning is complete and implementation should begin, or when the user just says "next" during the execution phase. This skill should be used repeatedly — each invocation picks up one task, executes it, records progress, and stops.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Execution: Next Task
