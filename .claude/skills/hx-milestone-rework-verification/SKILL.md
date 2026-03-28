@@ -59,32 +59,30 @@ For each failing test:
 2. Read the code being tested
 3. Identify the root cause
 
-Create ONE focused fix task for the most critical remaining failure:
+Create ONE focused fix task for the most critical remaining failure. Use the next `execution_order` after the current max in the milestone (no `--depends-on` needed — `execution_order` is the dependency within a milestone):
 
 ```bash
 harnessx planning-tasks create \
   --milestone "#[MILESTONE-ID]" \
   --title "REWORK: Fix [specific test failure]" \
   --steps "[concrete fix steps]" \
-  --depends-on "#[THIS-VERIFICATION-TASK-ID]" \
   --complexity [level] \
-  --execution-order [high-number] \
+  --execution-order [current-max + 1] \
   --mode rework \
   --skills "[appropriate skill]" \
   --integration-tests "[the failing test that must pass]" \
   --note "Created by verification. Test failure: [test name]. Error: [brief error]"
 ```
 
-Then create ANOTHER verification task that depends on the fix:
+Then create ANOTHER verification task with the next `execution_order`:
 
 ```bash
 harnessx planning-tasks create \
   --milestone "#[MILESTONE-ID]" \
   --title "VERIFY: Re-run tests after fix" \
   --steps "Run cargo test -- --test-threads=1 | Run cargo test -- --ignored --test-threads=1 | Verify all pass" \
-  --depends-on "#[FIX-TASK-ID]" \
   --complexity low \
-  --execution-order [high-number] \
+  --execution-order [current-max + 2] \
   --mode review \
   --skills "hx:milestone-rework-verification" \
   --note "Re-verification after focused fix"

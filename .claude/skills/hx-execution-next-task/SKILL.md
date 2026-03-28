@@ -392,23 +392,21 @@ harnessx planning-tasks create \
   --note "Auto-created by execution engine. Reviews all completed tasks in this milestone."
 ```
 
-### 7b: Dispatch the review task
+### 7b: Stop
 
-The review task now exists on the milestone. Re-run `harnessx planning-tasks next` — it will return this review task (highest execution_order incomplete task in the current milestone).
+Report to the user: "All tasks in [milestone title] complete. Review task created — will be dispatched on next invocation."
 
-Continue with Phase 2-6 to dispatch the review task like any other task. The `hx:milestone-rework-assessment` skill runs autonomously — it will:
+**Stop.** Do not dispatch the review task in this invocation. The next invocation will pick it up via `planning-tasks next` and dispatch it through the normal Phase 1-6 flow. The `hx:milestone-rework-assessment` skill runs autonomously — it will:
 
-- Run all tests
-- Dispatch 4 specialist review agents
+- Run all tests directly
+- Dispatch 2 review agents (test coverage + success measures, code quality + integration)
 - If **clean**: set `review_status` to `"passed"` — no fix tasks created
-- If **issues found**: create fix tasks + a verification task on the same milestone with even higher `execution_order` values, set `review_status` to `"rework"`
+- If **issues found**: create fix tasks + a verification task on the same milestone with higher `execution_order` values, set `review_status` to `"rework"`
 
-### 7c: After the review task completes
-
-Phase 6 processes the result normally. On the next invocation:
+### 7c: Subsequent invocations
 
 - If `review_status` = `"passed"`: Phase 1 marks the milestone completed and moves on
-- If `review_status` = `"rework"`: `planning-tasks next` returns the first fix task. Phases 2-6 dispatch it. The cycle continues until the verification task runs and sets `review_status` to `"passed"`.
+- If `review_status` = `"rework"`: `planning-tasks next` returns the first fix task. Phases 1-6 dispatch it. The cycle continues until the verification task runs and sets `review_status` to `"passed"`.
 
 ### The complete review cycle
 

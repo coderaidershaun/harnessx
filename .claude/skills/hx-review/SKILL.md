@@ -32,6 +32,12 @@ If no active project, tell the user to run `/hx:operator` first and stop.
 
 Capture the project metadata — you'll need `user_name`, `title`, and the project ID (from the response's `id` field).
 
+Mark the review stage as in progress:
+
+```bash
+harnessx progress update review in_progress
+```
+
 ### 2. Load Full Project State
 
 Launch **4 parallel data-gathering commands** and capture all outputs:
