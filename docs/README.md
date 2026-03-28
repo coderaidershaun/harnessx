@@ -969,8 +969,8 @@ The CLI exposes these command groups — each documented in detail in its own fi
 | `harnessx intake-actions` | `intake-actions.md` | Action items CRUD — create, list, get, update, remove, add-tag |
 | `harnessx planning` | (this doc) | 4-section planning tracker — init, status, list, next, complete, update |
 | `harnessx planning-milestones` | `planning-milestones.md` | Milestone CRUD + hierarchy (children, next-to-write, mark-written) |
-| `harnessx planning-epics` | `planning-epics.md` | Epic CRUD + hierarchy (parent, children, next-to-write, mark-written) |
-| `harnessx planning-stories` | `planning-stories.md` | Story CRUD + hierarchy (parent, children, next-to-write, mark-written) |
+| `harnessx planning-epics` | v1 legacy | Epic CRUD (v1 projects only — use `--help` for reference) |
+| `harnessx planning-stories` | v1 legacy | Story CRUD (v1 projects only — use `--help` for reference) |
 | `harnessx planning-tasks` | `planning-tasks.md` | Task CRUD + dependency-aware next + parent hierarchy traversal |
 | `harnessx context` | `context.md` | Tag/wikilink/text search across project markdown and JSON files |
 | `harnessx autorun` | `autorun.md` | Launch an autonomous Claude operator session in the current workspace |
