@@ -94,6 +94,12 @@ pub enum PlanningMilestonesCommand {
     },
     /// Show the next milestone whose tasks have not been written yet (by order).
     NextToWriteTasks,
+    /// Set the review status for a milestone (v2: "pending", "passed", "rework").
+    Review {
+        id: String,
+        #[arg(long)]
+        status: String,
+    },
 }
 
 /// Splits a comma-separated string into trimmed tokens; returns empty vec for empty input.
@@ -174,6 +180,7 @@ impl PlanningMilestonesCommand {
             Self::NextToComplete => exit_with(next_to_complete()),
             Self::MarkTasksWritten { id, value } => exit_with(mark_tasks_written(&id, value)),
             Self::NextToWriteTasks => exit_with(next_to_write_tasks()),
+            Self::Review { id, status } => exit_with(set_review_status(&id, &status)),
         }
     }
 }
@@ -202,14 +209,31 @@ fn next_milestone() -> ParserResult<serde_json::Value> {
 }
 
 fn milestone_children(id: &str) -> ParserResult<serde_json::Value> {
-    // Verify the milestone exists.
     let milestones = planning_milestones::for_active_project()?;
     if !milestones.iter().any(|m| m.id == id) {
         return Err(ParserError::MilestoneNotFound(id.to_string()));
     }
 
     let ref_id = format!("#{id}");
+    let all_tasks = planning_tasks::for_active_project().unwrap_or_default();
 
+    // v2: tasks directly reference the milestone
+    let v2_tasks: Vec<_> = all_tasks
+        .iter()
+        .filter(|t| t.milestone == ref_id)
+        .collect();
+
+    if !v2_tasks.is_empty() {
+        // v2 model: return tasks directly (sorted by execution_order)
+        let mut tasks: Vec<_> = v2_tasks.into_iter().cloned().collect();
+        tasks.sort_by_key(|t| t.execution_order.unwrap_or(t.order));
+        return Ok(serde_json::json!({
+            "milestone": id,
+            "tasks": serde_json::to_value(&tasks)?,
+        }));
+    }
+
+    // v1 fallback: trace through epics → stories → tasks
     let epics: Vec<_> = planning_epics::for_active_project()
         .unwrap_or_default()
         .into_iter()
@@ -226,8 +250,7 @@ fn milestone_children(id: &str) -> ParserResult<serde_json::Value> {
 
     let story_ids: Vec<String> = stories.iter().map(|s| format!("#{}", s.id)).collect();
 
-    let tasks: Vec<_> = planning_tasks::for_active_project()
-        .unwrap_or_default()
+    let tasks: Vec<_> = all_tasks
         .into_iter()
         .filter(|t| story_ids.contains(&t.story))
         .collect();
@@ -271,6 +294,7 @@ fn create_milestone(
         epics_written: false,
         epics_completed: false,
         tasks_written: false,
+        review_status: None,
         notes: note.map(|n| vec![MilestoneNote { note: n }]),
     };
 
@@ -432,4 +456,25 @@ fn next_to_write_tasks() -> ParserResult<serde_json::Value> {
             "message": "All milestones have their tasks written."
         })),
     }
+}
+
+/// Set the v2 review status for a milestone ("pending", "passed", "rework").
+fn set_review_status(id: &str, status: &str) -> ParserResult<Milestone> {
+    let valid = ["pending", "passed", "rework"];
+    if !valid.contains(&status) {
+        return Err(ParserError::InvalidEnumValue(format!(
+            "invalid review status: '{status}' (expected pending, passed, rework)"
+        )));
+    }
+
+    let mut items = planning_milestones::for_active_project()?;
+    let item = items
+        .iter_mut()
+        .find(|item| item.id == id)
+        .ok_or_else(|| ParserError::MilestoneNotFound(id.to_string()))?;
+
+    item.review_status = Some(status.to_string());
+    let updated = item.clone();
+    planning_milestones::save_for_active_project(&items)?;
+    Ok(updated)
 }

@@ -178,12 +178,14 @@ harnessx/                                   # Data root (in target workspace)
     │   ├── user_acceptance_testing.md      # Narrative: UAT plan
     │   └── interview-<skill-kebab>.md      # Narrative: agent interview (one per agent)
     ├── planning/
-    │   ├── planning.json                   # Planning section progress (4 sections)
+    │   ├── planning.json                   # Planning section progress (milestones + tasks)
     │   ├── planning_milestones.json        # Milestone definitions
-    │   ├── planning_epics.json             # Epic definitions
-    │   ├── planning_stories.json           # Story definitions
-    │   └── tasks/                          # Task definitions (sharded by epic/story)
-    │       └── <epic-id>/
+    │   ├── planning_epics.json             # v1 legacy: epic definitions
+    │   ├── planning_stories.json           # v1 legacy: story definitions
+    │   └── tasks/                          # Task definitions (sharded)
+    │       └── <milestone-id>/             # v2: sharded by milestone
+    │           └── planning_tasks.json
+    │       └── <epic-id>/                  # v1 legacy: sharded by epic/story
     │           └── <story-id>/
     │               └── planning_tasks.json
     └── integration-tests/
@@ -196,6 +198,7 @@ harnessx/                                   # Data root (in target workspace)
 - **intake_onboarding.json** tracks 6 sections: `goal`, `scope`, `user_knowledge`, `resources`, `success_measures`, `user_acceptance_testing` — each produces a matching `.md` narrative
 - **intake_team.json** tracks 3 sections: `team_define`, `team_build`, `team_interview`
 - **intake_completion.json** tracks 3 sections: `exploration`, `ideation`, `project_risk_manager`
-- **planning.json** tracks 4 sections: `milestones`, `epics`, `stories`, `tasks` — each produces a matching `planning_*.json` artifact
-- **Planning hierarchy**: milestones → epics → stories → tasks (each level references its parent via tag, e.g. `#milestone-1`)
+- **planning.json** tracks 2 active sections: `milestones` and `tasks` (v1 legacy also has `epics` and `stories`)
+- **Planning hierarchy (v2)**: milestones → tasks (tasks reference parent milestone directly via `#milestone-N`, with optional `group` labels for organization)
+- **Planning hierarchy (v1 legacy)**: milestones → epics → stories → tasks (each level references its parent via tag)
 - **Traceability**: all planning artifacts carry `traces` linking back to action items (`#action-N`) and intake sections (`#intake-*`)

@@ -34,12 +34,18 @@ pub struct Milestone {
     pub success_measures: Vec<String>,
     pub uat_criteria: Vec<String>,
     pub traces: Traces,
+    /// v1 legacy: whether epics have been written for this milestone.
     #[serde(default)]
     pub epics_written: bool,
+    /// v1 legacy: whether all epics under this milestone are completed.
     #[serde(default)]
     pub epics_completed: bool,
     #[serde(default)]
     pub tasks_written: bool,
+    /// v2: built-in review status replacing rework milestones.
+    /// Values: "pending", "passed", "rework". Empty for v1 milestones.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_status: Option<String>,
     #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
 }

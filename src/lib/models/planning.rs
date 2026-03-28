@@ -20,18 +20,24 @@ pub struct PlanningProgress {
 }
 
 impl Default for PlanningProgress {
+    /// v2 default: only milestones and tasks are active.
+    /// Epics and stories are pre-completed (not used in the 2-level model).
     fn default() -> Self {
+        use crate::models::status::Status;
+
         Self {
             milestones: IntakeItem {
                 skills: vec![String::from("hx:planning-milestones")],
                 ..Default::default()
             },
             epics: IntakeItem {
-                skills: vec![String::from("hx:planning-epics")],
+                status: Status::Completed,
+                skills: vec![],
                 ..Default::default()
             },
             stories: IntakeItem {
-                skills: vec![String::from("hx:planning-stories")],
+                status: Status::Completed,
+                skills: vec![],
                 ..Default::default()
             },
             tasks: IntakeItem {

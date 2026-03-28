@@ -1,6 +1,11 @@
 //! Planning tasks for projects.
 //!
-//! Tasks are sharded on disk by epic and story:
+//! Supports two storage models:
+//!
+//! **v2 (current):** Tasks sharded by milestone:
+//! `harnessx/{project}/planning/tasks/{milestone-id}/planning_tasks.json`
+//!
+//! **v1 (legacy):** Tasks sharded by epic and story:
 //! `harnessx/{project}/planning/tasks/{epic-id}/{story-id}/planning_tasks.json`
 
 use std::fs;
@@ -31,9 +36,31 @@ pub struct Task {
     pub title: SmolStr,
     pub steps: Vec<String>,
     pub status: Status,
+
+    // --- v1 legacy fields (4-level model: milestone → epic → story → task) ---
     #[serde(default)]
     pub epic: String,
+    #[serde(default)]
     pub story: String,
+
+    // --- v2 fields (2-level model: milestone → task) ---
+    /// Direct parent milestone reference (e.g. "#milestone-1"). Empty for v1 tasks.
+    #[serde(default)]
+    pub milestone: String,
+    /// Lightweight grouping label replacing epics (e.g. "setup", "harness", "ws-market").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// The WHY — explains this task's purpose, replacing story descriptions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub purpose: Option<String>,
+    /// Strict execution order within the parent milestone. Lower runs first.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_order: Option<u32>,
+    /// Task IDs to execute in the same agent session (e.g. ["#task-2", "#task-3"]).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub batch_with: Vec<String>,
+
+    // --- Common fields ---
     pub depends_on: Vec<String>,
     pub complexity: Complexity,
     pub mode: ActionMode,
@@ -42,6 +69,13 @@ pub struct Task {
     pub traces: TaskTraces,
     #[serde(default)]
     pub notes: Option<Vec<MilestoneNote>>,
+}
+
+impl Task {
+    /// Returns `true` if this task uses the v2 model (milestone-direct).
+    pub fn is_v2(&self) -> bool {
+        !self.milestone.is_empty()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -68,12 +102,20 @@ fn tasks_dir(project_id: &str) -> String {
     format!("harnessx/{project_id}/planning/tasks")
 }
 
-/// Shard file path for a specific epic/story combination.
+/// v1 shard file path: `tasks/{epic}/{story}/planning_tasks.json`
 fn shard_file_path(project_id: &str, epic_id: &str, story_id: &str) -> String {
     let epic = strip_hash(epic_id);
     let story = strip_hash(story_id);
     format!(
         "harnessx/{project_id}/planning/tasks/{epic}/{story}/{TASKS_FILE}"
+    )
+}
+
+/// v2 shard file path: `tasks/{milestone}/planning_tasks.json`
+fn milestone_shard_path(project_id: &str, milestone_id: &str) -> String {
+    let ms = strip_hash(milestone_id);
+    format!(
+        "harnessx/{project_id}/planning/tasks/{ms}/{TASKS_FILE}"
     )
 }
 
@@ -102,7 +144,7 @@ pub fn next_order(items: &[Task]) -> u32 {
 // Shard load / save
 // ---------------------------------------------------------------------------
 
-/// Load tasks from a specific shard (epic + story combination).
+/// Load tasks from a v1 shard (epic + story combination).
 pub fn load_shard(project_id: &str, epic_id: &str, story_id: &str) -> ParserResult<Vec<Task>> {
     let path = shard_file_path(project_id, epic_id, story_id);
     if !Path::new(&path).exists() {
@@ -113,7 +155,7 @@ pub fn load_shard(project_id: &str, epic_id: &str, story_id: &str) -> ParserResu
     Ok(file.tasks)
 }
 
-/// Save tasks to a specific shard (epic + story combination).
+/// Save tasks to a v1 shard (epic + story combination).
 pub fn save_shard(
     items: &[Task],
     project_id: &str,
@@ -131,7 +173,53 @@ pub fn save_shard(
     Ok(())
 }
 
-/// Load ALL tasks across every shard. Returns empty vec if no shards exist.
+/// Load tasks from a v2 milestone shard.
+pub fn load_milestone_shard(project_id: &str, milestone_id: &str) -> ParserResult<Vec<Task>> {
+    let path = milestone_shard_path(project_id, milestone_id);
+    if !Path::new(&path).exists() {
+        return Ok(Vec::new());
+    }
+    let contents = fs::read_to_string(&path)?;
+    let file: TasksFile = serde_json::from_str(&contents)?;
+    Ok(file.tasks)
+}
+
+/// Save tasks to a v2 milestone shard.
+pub fn save_milestone_shard(
+    items: &[Task],
+    project_id: &str,
+    milestone_id: &str,
+) -> ParserResult<()> {
+    let path = milestone_shard_path(project_id, milestone_id);
+    if let Some(parent) = Path::new(&path).parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let file = TasksFile {
+        tasks: items.to_vec(),
+    };
+    fs::write(&path, serde_json::to_string_pretty(&file)?)?;
+    Ok(())
+}
+
+/// Recursively collect tasks from all `planning_tasks.json` files under a directory.
+fn collect_tasks_recursive(dir: &Path, tasks: &mut Vec<Task>) -> ParserResult<()> {
+    let tasks_file = dir.join(TASKS_FILE);
+    if tasks_file.exists() {
+        let contents = fs::read_to_string(&tasks_file)?;
+        let file: TasksFile = serde_json::from_str(&contents)?;
+        tasks.extend(file.tasks);
+    }
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            collect_tasks_recursive(&entry.path(), tasks)?;
+        }
+    }
+    Ok(())
+}
+
+/// Load ALL tasks across every shard (handles both v1 and v2 directory structures).
 pub fn load_all_shards(project_id: &str) -> ParserResult<Vec<Task>> {
     let dir = tasks_dir(project_id);
     if !Path::new(&dir).exists() {
@@ -139,26 +227,7 @@ pub fn load_all_shards(project_id: &str) -> ParserResult<Vec<Task>> {
     }
 
     let mut all_tasks = Vec::new();
-
-    for epic_entry in fs::read_dir(&dir)? {
-        let epic_entry = epic_entry?;
-        if !epic_entry.file_type()?.is_dir() {
-            continue;
-        }
-        for story_entry in fs::read_dir(epic_entry.path())? {
-            let story_entry = story_entry?;
-            if !story_entry.file_type()?.is_dir() {
-                continue;
-            }
-            let tasks_file = story_entry.path().join(TASKS_FILE);
-            if tasks_file.exists() {
-                let contents = fs::read_to_string(&tasks_file)?;
-                let file: TasksFile = serde_json::from_str(&contents)?;
-                all_tasks.extend(file.tasks);
-            }
-        }
-    }
-
+    collect_tasks_recursive(Path::new(&dir), &mut all_tasks)?;
     Ok(all_tasks)
 }
 
@@ -202,7 +271,7 @@ pub fn for_active_project() -> ParserResult<Vec<Task>> {
     Ok(Vec::new())
 }
 
-/// Load tasks from a specific shard for the active project.
+/// Load tasks from a v1 shard for the active project.
 pub fn load_shard_for_active_project(
     epic_id: &str,
     story_id: &str,
@@ -212,7 +281,7 @@ pub fn load_shard_for_active_project(
     load_shard(id, epic_id, story_id)
 }
 
-/// Save tasks to a specific shard for the active project.
+/// Save tasks to a v1 shard for the active project.
 pub fn save_shard_for_active_project(
     items: &[Task],
     epic_id: &str,
@@ -221,6 +290,25 @@ pub fn save_shard_for_active_project(
     let registry = ProjectRegistry::load_or_default()?;
     let id = registry.active_project_id()?;
     save_shard(items, id, epic_id, story_id)
+}
+
+/// Load tasks from a v2 milestone shard for the active project.
+pub fn load_milestone_shard_for_active_project(
+    milestone_id: &str,
+) -> ParserResult<Vec<Task>> {
+    let registry = ProjectRegistry::load_or_default()?;
+    let id = registry.active_project_id()?;
+    load_milestone_shard(id, milestone_id)
+}
+
+/// Save tasks to a v2 milestone shard for the active project.
+pub fn save_milestone_shard_for_active_project(
+    items: &[Task],
+    milestone_id: &str,
+) -> ParserResult<()> {
+    let registry = ProjectRegistry::load_or_default()?;
+    let id = registry.active_project_id()?;
+    save_milestone_shard(items, id, milestone_id)
 }
 
 pub fn load_or_default(project_id: &str) -> Vec<Task> {

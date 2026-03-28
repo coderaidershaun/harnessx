@@ -284,20 +284,18 @@ When all 3 sections are complete: `harnessx progress complete intake_completion`
 **Skill:** `hx:planning`
 **Pipeline stage:** `planning`
 
-The planning stage decomposes all intake work into a four-level hierarchy: milestones, epics, stories, and tasks. It spans multiple sessions to manage context, with the `hx:planning` coordinator determining what phase to work on and loading the right specialist skill.
+The planning stage decomposes all intake work into a two-level hierarchy: **milestones** and **tasks**. Epics and stories have been removed — tasks belong directly to milestones, with optional `group` labels for organization. This spans 2+ sessions (milestones in session 1, tasks per milestone in subsequent sessions).
 
 **Section tracking:** `harnessx planning init|status|list|next|complete|update` — same pattern as intake sections.
 
-**Storage:** `harnessx/<id>/planning/planning.json` (section tracker), plus `planning_milestones.json`, `planning_epics.json`, `planning_stories.json` (planning artifacts), and `tasks/<epic-id>/<story-id>/planning_tasks.json` (sharded task files).
+**Storage:** `harnessx/<id>/planning/planning.json` (section tracker), `planning_milestones.json`, and `tasks/<milestone-id>/planning_tasks.json` (sharded task files).
 
 ### Session Model
 
 | Session | Section | What Happens |
 |---------|---------|-------------|
 | 1 | milestones | Create ALL project milestones (3-7 demonstrable checkpoints) |
-| 2 | epics | Create ALL epics for ALL milestones (capability chunks) |
-| 3 | stories | Create ALL stories for ALL epics (testable behavioural increments) |
-| 4+ | tasks | Create all tasks for ONE milestone per session (atomic implementation steps) |
+| 2+ | tasks | Create all tasks for ONE milestone per session (5-12 tasks each) |
 
 Each session: get current section via `harnessx planning next`, do the work, mark progress, stop. The user returns via `/hx:operator` to continue.
 
@@ -305,44 +303,56 @@ Each session: get current section via `harnessx planning next`, do the work, mar
 
 **Skill:** `hx:planning-milestones`
 
-Reads all intake documents, analyzes what "done" looks like at each checkpoint, and creates 3-7 milestones. Milestones are observable states, not tasks ("Live position data flowing" not "Build the pipeline"). Each milestone has success measures, UAT criteria, and full traceability back to intake.
+Reads all intake documents, analyzes what "done" looks like at each checkpoint, and creates 3-7 milestones. Milestones are observable states, not tasks ("Live position data flowing" not "Build the pipeline"). Each milestone has success measures, UAT criteria, and full traceability back to intake. No rework milestones are auto-generated — review is a built-in step per milestone.
 
 After milestones are created: `harnessx planning complete milestones`. Session ends.
 
-### Section 2: Epics
-
-**Skill:** `hx:planning-epics`
-
-Processes ALL milestones in one session. Loops through each milestone using `harnessx planning-milestones next-to-write`, creates epics for that milestone (coherent capability chunks that collectively make the milestone true), marks it written via `harnessx planning-milestones mark-written <id>`, then continues to the next milestone.
-
-After all milestones have epics: `harnessx planning complete epics`. Session ends.
-
-### Section 3: Stories
-
-**Skill:** `hx:planning-stories`
-
-Processes ALL epics in one session. Loops through each epic using `harnessx planning-epics next-to-write`, creates stories for that epic (testable behavioural increments) with acceptance criteria, marks it written via `harnessx planning-epics mark-written <id>`, then continues to the next epic.
-
-After all epics have stories: `harnessx planning complete stories`. Session ends.
-
-### Section 4: Tasks (one milestone per session)
+### Section 2: Tasks (one milestone per session)
 
 **Skill:** `hx:planning-tasks`
 
-Uses `harnessx planning-milestones next-to-write-tasks` to find the next milestone without tasks. The process for each milestone session:
+Uses `harnessx planning-milestones next-to-write-tasks` to find the next milestone without tasks. Tasks belong directly to milestones (no epic/story intermediaries).
 
-1. **Load prior milestone context** — reads handoff notes from upstream milestones (key outputs, exit-point task IDs, interfaces) so task steps don't make wrong assumptions about what already exists.
-2. **Per-story dual-agent decomposition** — for each story, a proposer agent creates tasks and a reviewer agent validates them. Both receive upstream context (prior milestone handoff) and sibling context (tasks from other stories already written this session). The reviewer checks upstream dependency accuracy and cross-story dependencies.
-3. **Cross-story dependency scan** — after all stories have tasks, a dedicated pass links any producer→consumer dependencies between stories that the per-story process missed.
-4. **Milestone handoff notes** — writes a structured `HANDOFF:` note onto the milestone summarising key outputs, interfaces, and exit-point task IDs for the next session to read.
+#### Task Sizing Rules
 
-Each task gets skill assignments, complexity ratings, concrete steps, integration tests, and an `--epic` flag that determines shard storage. Tasks are stored at `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. After all stories in the milestone have tasks, marks each story via `harnessx planning-stories mark-written <id>` and the milestone via `harnessx planning-milestones mark-tasks-written <id>`.
+- **The 15-60 Minute Rule:** Each task = 15-60 minutes of focused agent work. If < 10 minutes, merge with adjacent task. If > 90 minutes, split.
+- **The "One Meaningful Change" Test:** After this task completes, can you describe what changed in one sentence? "Added .env to .gitignore" is too small — merge it. "Built and tested the SafeTestOrder guard" is meaningful.
+- **Count targets:** 5-12 tasks per milestone (target 8), 25-50 tasks per project total. If > 12 per milestone, split the milestone.
 
-If more milestones remain, session ends. If all milestones have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
+#### Task Structure
+
+Each task gets:
+- **`milestone`** — direct parent reference (e.g. `#milestone-1`)
+- **`group`** — lightweight label replacing epics (e.g. "setup", "harness", "ws-market")
+- **`purpose`** — the WHY, replacing story descriptions
+- **`execution_order`** — strict integer ordering within the milestone (lower runs first)
+- **`batch_with`** — task IDs to execute in the same agent session
+- Plus: skill assignments, complexity ratings, concrete steps, integration tests, traces
+
+Tasks are stored at `planning/tasks/<milestone-id>/planning_tasks.json`.
+
+#### Ordering: Strict Sequence
+
+Within a milestone, `execution_order` IS the dependency. Task 5 can assume tasks 1-4 are done. No dependency DAG needed within a milestone. `depends_on` is only used for cross-milestone references (rare).
+
+The `harnessx planning-tasks next` command returns the lowest `execution_order` incomplete task in the lowest incomplete milestone. Zero ambiguity.
+
+#### The Process
+
+1. **Load prior milestone context** — reads handoff notes from upstream milestones.
+2. **Decompose into tasks** — single-agent decomposition (no dual-agent proposer/reviewer). Groups related work with `group` labels.
+3. **Merge pass** — scan for adjacent sub-10-minute tasks and consolidate.
+4. **Milestone handoff notes** — writes a structured `HANDOFF:` note onto the milestone for the next session to read.
+
+After tasks are created for the milestone: `harnessx planning-milestones mark-tasks-written <id>`. If more milestones remain, session ends. If all milestones have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
 
 ### Resume Handling
 
-The coordinator handles mid-phase resumption gracefully. `harnessx planning next` returns the current section; `next-to-write` and `next-to-write-tasks` commands within each section return the exact item that still needs work. Already-marked items are skipped.
+The coordinator handles mid-phase resumption gracefully. `harnessx planning next` returns the current section; `next-to-write-tasks` returns the next milestone that still needs tasks.
+
+### Legacy v1 Model
+
+Projects created before this change use a 4-level hierarchy (milestone → epic → story → task). The CLI remains backward-compatible: `planning-epics` and `planning-stories` commands still work, and `planning-tasks next` auto-detects the model version.
 
 ---
 
@@ -403,10 +413,14 @@ The execution engine. It picks up one task per invocation, gathers the right con
 harnessx planning-tasks next
 ```
 
-Uses dependency-aware resolution: a task is "ready" only when all its `depends_on` tasks are completed. Returns one of three states:
+**v2 model:** Returns the lowest `execution_order` incomplete task in the lowest incomplete milestone. Simple and unambiguous.
+
+**v1 model (legacy):** Uses dependency-aware resolution through the 4-level hierarchy.
+
+Returns one of three states:
 - **Ready task found** — proceed to context gathering.
 - **All blocked** — report unmet dependencies to the user and stop.
-- **All completed** — cascade completion flags upward (story → epic → milestone), mark the execution stage complete via `harnessx progress complete execution`, and stop.
+- **All completed** — cascade completion upward, mark the execution stage complete via `harnessx progress complete execution`, and stop.
 
 ### Phase 7b: Gather Intelligence (3 Parallel Agents)
 
@@ -414,7 +428,7 @@ Three lightweight agents launch simultaneously:
 
 | Agent | Purpose | Model |
 |-------|---------|-------|
-| **Project context** | Follows `hx:tag-context-reading` to walk task → story → epic → milestone, collect traced action items, pull relevant intake context | opus |
+| **Project context** | Follows `hx:tag-context-reading` to walk task → milestone (v2) or task → story → epic → milestone (v1), collect traced action items, pull relevant intake context | opus |
 | **Recent progress** | Reads `harnessx/<id>/history.md` for last completed tasks, blockers, decisions | sonnet |
 | **Git activity** | Runs `git log` and `git diff` to understand current codebase state | sonnet |
 
@@ -422,10 +436,10 @@ Three lightweight agents launch simultaneously:
 
 Distills all gathered intelligence into a 40-60 line brief — the only context the executing agent receives. Structure:
 
-- **SITUATION** — the WHY chain (milestone → epic → story → task purpose) in flowing prose
+- **SITUATION** — the WHY chain: milestone purpose → task group → task purpose (v2) or milestone → epic → story → task (v1)
 - **RECENT PROGRESS** — what just happened, codebase state
 - **YOUR WORK** — steps copied verbatim from the task, key action item context, scope boundaries
-- **VERIFICATION** — integration tests, story acceptance criteria, expected output files
+- **VERIFICATION** — integration tests, expected output files
 - **WHAT COMES NEXT** — the following task, so the agent leaves the codebase ready for it
 
 ### Phase 7d: Determine Dispatch Parameters
@@ -457,32 +471,34 @@ After the executing agent returns:
 
 1. **Update task status** — `completed` (success) or `rework` (failure), with a note summarizing what happened.
 2. **Append to history.md** — date, status, skills used, summary, files changed.
-3. **Cascade completion upward** — if all tasks in a story are done, mark story completed; if all stories in an epic, mark epic; if all epics in a milestone, mark milestone.
+3. **Cascade completion upward** — v2: if all tasks in a milestone are done, trigger milestone review. v1 (legacy): cascade through story → epic → milestone.
 4. **Report to user** — what happened, what's next.
 
 Then stop. The user or operator invokes again for the next task.
 
 ### Phase 7g: Milestone Review & Rework
 
-Every main milestone has an auto-generated companion **rework milestone** that acts as a quality gate. The dependency chain enforces ordering:
+#### v2 Model: Built-In Review
+
+When all tasks in a milestone complete, a built-in review step runs automatically (no separate rework milestone needed):
+
+1. **Set review status** — `harnessx planning-milestones review <id> --status pending`
+2. **Run tests and dispatch review agents** — same 4-agent assessment as before (Test Analyst, Code Quality, Cross-Component Integration, Success Measure Verifier).
+3. **If issues found** — create fix tasks appended to the milestone with high `execution_order` values. Set `review_status` to `rework`.
+4. **After fix tasks complete** — verification re-run. If clean, set `review_status` to `passed` and mark milestone completed.
+5. **Clean pass** — no issues found, `review_status` set to `passed`, milestone completed immediately.
+
+The review loop is self-correcting and contained within the milestone. No rework milestones, no extra hierarchy.
+
+#### v1 Model (Legacy): Rework Milestones
+
+Projects using the legacy 4-level model still use auto-generated rework milestones with the dependency chain:
 
 ```
-milestone-1 (main) → milestone-2 (rework) → milestone-3 (main) → milestone-4 (rework) → ...
+milestone-1 (main) → milestone-2 (rework) → milestone-3 (main) → ...
 ```
 
-Each rework milestone has a single pre-built epic → story → task structure. The review task is assigned to `hx:milestone-rework-assessment` and runs on full autopilot:
-
-1. **Run all tests** — `cargo test -- --test-threads=1` (unit) and `cargo test -- --ignored --test-threads=1` (integration), sequentially.
-2. **Dispatch 4 review agents** (parallel, opus) — Test Analyst, Code Quality, Cross-Component Integration, Success Measure Verifier.
-3. **Synthesize findings** — Deduplicate, rank by severity (Critical / Warning / Observation).
-4. **Create rework tasks** — For each Critical or Warning issue, create a rework task via CLI under the rework story. Then create a final verification task (`hx:milestone-rework-verification`) that depends on all rework tasks and re-runs all tests.
-5. **Clean pass** — If no issues found, the rework milestone completes with just the review task.
-
-The rework cycle is self-correcting: verification task fails → creates focused fix task → re-verification. Naturally converges as issues are resolved. After 3+ cycles, the system flags for attention.
-
-**CLI enforcement**: The `planning-tasks next` function enforces milestone-level dependencies. Tasks in a rework milestone won't be returned until the parent main milestone is completed. Tasks in the next main milestone won't be returned until the rework milestone is completed.
-
-**Planning compatibility**: Rework milestones are created during the milestone planning phase with all `*_written` flags set (`epics_written`, `stories_written`, `tasks_written`). The `next-to-write` mechanism in downstream planning skills automatically skips them.
+Each rework milestone has a pre-built epic → story → task structure. The `planning-tasks next` function enforces milestone-level dependencies.
 
 ### Available Execution Skills
 
