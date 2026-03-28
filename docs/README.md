@@ -288,16 +288,16 @@ The planning stage decomposes all intake work into a four-level hierarchy: miles
 
 **Section tracking:** `harnessx planning init|status|list|next|complete|update` — same pattern as intake sections.
 
-**Storage:** `harnessx/<id>/planning/planning.json` (section tracker), plus `planning_milestones.json`, `planning_epics.json`, `planning_stories.json`, `planning_tasks.json` (planning artifacts).
+**Storage:** `harnessx/<id>/planning/planning.json` (section tracker), plus `planning_milestones.json`, `planning_epics.json`, `planning_stories.json` (planning artifacts), and `tasks/<epic-id>/<story-id>/planning_tasks.json` (sharded task files).
 
 ### Session Model
 
 | Session | Section | What Happens |
 |---------|---------|-------------|
-| 1 | milestones | Create all project milestones (3-7 demonstrable checkpoints) |
-| 2+ | epics | Create epics for ONE milestone per session (capability chunks) |
-| N+ | stories | Create stories for ONE epic per session (testable behavioural increments) |
-| M+ | tasks | Create tasks for ONE story per session (atomic implementation steps) |
+| 1 | milestones | Create ALL project milestones (3-7 demonstrable checkpoints) |
+| 2 | epics | Create ALL epics for ALL milestones (capability chunks) |
+| 3 | stories | Create ALL stories for ALL epics (testable behavioural increments) |
+| 4+ | tasks | Create all tasks for ONE milestone per session (atomic implementation steps) |
 
 Each session: get current section via `harnessx planning next`, do the work, mark progress, stop. The user returns via `/hx:operator` to continue.
 
@@ -313,7 +313,7 @@ After milestones are created: `harnessx planning complete milestones`. Session e
 
 **Skill:** `hx:planning-epics`
 
-Processes one milestone per session using `harnessx planning-milestones next-to-write`. Creates epics for that milestone (coherent capability chunks that collectively make the milestone true), marks it written, checks if more milestones remain, and stops. The user returns for the next milestone.
+Processes ALL milestones in one session. Loops through each milestone using `harnessx planning-milestones next-to-write`, creates epics for that milestone (coherent capability chunks that collectively make the milestone true), marks it written via `harnessx planning-milestones mark-written <id>`, then continues to the next milestone.
 
 After all milestones have epics: `harnessx planning complete epics`. Session ends.
 
@@ -321,21 +321,21 @@ After all milestones have epics: `harnessx planning complete epics`. Session end
 
 **Skill:** `hx:planning-stories`
 
-Processes one epic per session using `harnessx planning-epics next-to-write`. Creates stories for that epic (testable behavioural increments) with acceptance criteria, marks it written, checks if more epics remain, and stops. The user returns for the next epic.
+Processes ALL epics in one session. Loops through each epic using `harnessx planning-epics next-to-write`, creates stories for that epic (testable behavioural increments) with acceptance criteria, marks it written via `harnessx planning-epics mark-written <id>`, then continues to the next epic.
 
 After all epics have stories: `harnessx planning complete stories`. Session ends.
 
-### Section 4: Tasks (one story per session)
+### Section 4: Tasks (one milestone per session)
 
 **Skill:** `hx:planning-tasks`
 
-Uses `harnessx planning-stories next-to-write` to find the next story without tasks. Creates atomic implementation tasks for that one story using a two-agent process (proposer + reviewer). Each task gets skill assignments, complexity ratings, concrete steps, and integration tests. After tasks are written, marks the story: `harnessx planning-stories mark-written <id>`.
+Uses `harnessx planning-milestones next-to-write-tasks` to find the next milestone without tasks. For each story under that milestone, creates atomic implementation tasks using a two-agent process (proposer + reviewer). Each task gets skill assignments, complexity ratings, concrete steps, integration tests, and an `--epic` flag that determines shard storage. Tasks are stored at `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. After all stories in the milestone have tasks, marks each story via `harnessx planning-stories mark-written <id>` and the milestone via `harnessx planning-milestones mark-tasks-written <id>`.
 
-If more stories remain, session ends. If all stories have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
+If more milestones remain, session ends. If all milestones have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
 
 ### Resume Handling
 
-The coordinator handles mid-phase resumption gracefully. `harnessx planning next` returns the current section; `next-to-write` commands within each section return the exact item that still needs work. Already-marked items are skipped.
+The coordinator handles mid-phase resumption gracefully. `harnessx planning next` returns the current section; `next-to-write` and `next-to-write-tasks` commands within each section return the exact item that still needs work. Already-marked items are skipped.
 
 ---
 
