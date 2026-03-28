@@ -329,7 +329,14 @@ After all epics have stories: `harnessx planning complete stories`. Session ends
 
 **Skill:** `hx:planning-tasks`
 
-Uses `harnessx planning-milestones next-to-write-tasks` to find the next milestone without tasks. For each story under that milestone, creates atomic implementation tasks using a two-agent process (proposer + reviewer). Each task gets skill assignments, complexity ratings, concrete steps, integration tests, and an `--epic` flag that determines shard storage. Tasks are stored at `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. After all stories in the milestone have tasks, marks each story via `harnessx planning-stories mark-written <id>` and the milestone via `harnessx planning-milestones mark-tasks-written <id>`.
+Uses `harnessx planning-milestones next-to-write-tasks` to find the next milestone without tasks. The process for each milestone session:
+
+1. **Load prior milestone context** — reads handoff notes from upstream milestones (key outputs, exit-point task IDs, interfaces) so task steps don't make wrong assumptions about what already exists.
+2. **Per-story dual-agent decomposition** — for each story, a proposer agent creates tasks and a reviewer agent validates them. Both receive upstream context (prior milestone handoff) and sibling context (tasks from other stories already written this session). The reviewer checks upstream dependency accuracy and cross-story dependencies.
+3. **Cross-story dependency scan** — after all stories have tasks, a dedicated pass links any producer→consumer dependencies between stories that the per-story process missed.
+4. **Milestone handoff notes** — writes a structured `HANDOFF:` note onto the milestone summarising key outputs, interfaces, and exit-point task IDs for the next session to read.
+
+Each task gets skill assignments, complexity ratings, concrete steps, integration tests, and an `--epic` flag that determines shard storage. Tasks are stored at `planning/tasks/<epic-id>/<story-id>/planning_tasks.json`. After all stories in the milestone have tasks, marks each story via `harnessx planning-stories mark-written <id>` and the milestone via `harnessx planning-milestones mark-tasks-written <id>`.
 
 If more milestones remain, session ends. If all milestones have tasks: `harnessx planning complete tasks`, which auto-completes the planning pipeline stage.
 
@@ -651,7 +658,7 @@ Uses the dual-agent methodology from `hx:planning-tasks`:
 - **Proposer agent (opus)**: Receives all context and proposes epics, stories, and tasks that address every FAIL and PARTIAL scenario
 - **Reviewer agent (opus)**: Validates feedback coverage, regression risk, task sizing, skill assignments, and acceptance criteria quality
 
-Creates the full hierarchy via CLI (`planning-epics create`, `planning-stories create`, `planning-tasks create`) and marks all `*_written` flags.
+Creates the full hierarchy via CLI (`planning-epics create`, `planning-stories create`, `planning-tasks create` with `--epic` flag) and marks all `*_written` flags including `mark-tasks-written` on the rework milestone.
 
 ### Phase 9d: Reset Pipeline
 

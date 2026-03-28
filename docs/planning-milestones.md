@@ -26,6 +26,7 @@ The milestones file wraps the array in a top-level object:
       },
       "epics_written": false,
       "epics_completed": false,
+      "tasks_written": false,
       "notes": [
         { "note": "This is the thinnest possible vertical slice." }
       ]
@@ -62,12 +63,15 @@ Links a milestone back to intake artifacts for traceability.
 |-------------------|------|---------|----------------------------------------------------|
 | `epics_written`   | bool | `false` | Whether epics have been decomposed for this milestone |
 | `epics_completed` | bool | `false` | Whether all epics under this milestone are done    |
+| `tasks_written`   | bool | `false` | Whether all tasks for this milestone's stories have been written |
 
 ### MilestoneNote
 
 | Field  | Type   | Description  |
 |--------|--------|--------------|
 | `note` | string | Note content |
+
+**Handoff note convention:** After all tasks for a milestone are written, the `hx:planning-tasks` skill appends a note starting with `HANDOFF:` that summarises key output files, exit-point task IDs, and interfaces. The next task-writing session reads this note to understand what the prior milestone produced, ensuring cross-session continuity.
 
 ## `planning-milestones next`
 
