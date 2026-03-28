@@ -657,7 +657,7 @@ The skill requires at least one specific piece of feedback before proceeding wit
 **Skill:** `hx:uat-rework`
 **Pipeline stage:** `uat_rework`
 
-Takes the structured feedback from user acceptance testing and creates a rework plan with the full planning hierarchy (milestone, epics, stories, tasks). Unlike the automated milestone-level rework during execution, UAT rework is driven by the user's direct feedback.
+Takes the structured feedback from user acceptance testing and creates a rework plan with a milestone and tasks. Unlike the automated milestone-level rework during execution, UAT rework is driven by the user's direct feedback.
 
 ### Phase 9a: Read Feedback and Context
 
@@ -742,7 +742,7 @@ flowchart TD
 
     subgraph Plan ["Planning & Review"]
         Planning["5. planning\nhx:planning"]
-        Planning -->|"4 sections across sessions:\nmilestones → epics → stories → tasks"| Review
+        Planning -->|"2 sections across sessions:\nmilestones → tasks"| Review
         Review["6. review\nhx:review"]
         Review -->|"5-agent quality gate\n+ per-milestone remediation"| PlanDone((" "))
     end

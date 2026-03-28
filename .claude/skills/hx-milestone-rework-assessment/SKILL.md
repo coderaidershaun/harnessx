@@ -3,18 +3,19 @@ name: hx:milestone-rework-assessment
 description: >
   Autonomous milestone review that runs all tests, dispatches 4 specialist review agents to assess
   completed work against success measures, and creates rework tasks via the harnessx CLI when issues
-  are found. Assigned to the initial review task in each rework milestone. Runs on full autopilot —
-  no user gates. Use this skill when a rework milestone's review task is dispatched during execution,
-  or when the user says "review milestone", "assess milestone work", "run milestone review".
+  are found. Assigned to the review task appended to a milestone after all its implementation tasks
+  complete. Runs on full autopilot — no user gates. Use this skill when a milestone review task is
+  dispatched during execution, or when the user says "review milestone", "assess milestone work",
+  "run milestone review".
 disable-model-invocation: false
 user-invocable: false
 ---
 
 # Milestone Rework Assessment
 
-This is the skill assigned to the initial review task in each rework milestone. It runs autonomously — no user gates, no confirmation prompts. Its job is to verify the completed main milestone's work by running the full test suite and dispatching four specialist review agents, then creating targeted rework tasks via the harnessx CLI when issues are found.
+This is the skill assigned to the review task that the execution engine creates on a milestone after all its implementation tasks complete. It runs autonomously — no user gates, no confirmation prompts. Its job is to verify the milestone's completed work by running the full test suite and dispatching four specialist review agents, then creating targeted fix tasks via the harnessx CLI when issues are found.
 
-The rework milestone depends on its corresponding main milestone. When the main milestone completes and this review task becomes ready, the execution engine dispatches it here. This skill takes over from that point: run tests, assess the work from four angles, synthesize findings, create rework tasks for anything that needs fixing, and report results.
+The review task lives on the **same milestone** as the implementation tasks it reviews. Fix tasks and a verification task are also appended to the same milestone with higher `execution_order` values. The `review_status` field on the milestone tracks the review lifecycle.
 
 ---
 
@@ -28,7 +29,7 @@ harnessx project active
 
 Capture the project ID, directory, and metadata.
 
-### 2. Trace Parent Chain to Find the Main Milestone
+### 2. Find the Milestone Being Reviewed
 
 Get the parent milestone directly from this task:
 
@@ -36,21 +37,18 @@ Get the parent milestone directly from this task:
 harnessx planning-tasks parent [THIS-TASK-ID]
 ```
 
-This returns the **rework milestone** directly (v2 tasks belong to milestones, no epics/stories).
+This returns the milestone this review task belongs to — the **same milestone** whose implementation tasks are being reviewed.
 
-Read the rework milestone's `depends_on` field to find the **main milestone ID**.
-
-```bash
-harnessx planning-milestones get [MAIN-MILESTONE-ID]
-```
-
-Capture the main milestone — its title, success_measures, and all metadata.
+Capture the milestone's title, success_measures, uat_criteria, and all metadata.
 
 ```bash
-harnessx planning-milestones children [MAIN-MILESTONE-ID]
+harnessx planning-milestones children [MILESTONE-ID]
 ```
 
-Capture the full hierarchy of completed work: all tasks under the main milestone, including their notes (which contain execution summaries from the agents that completed them).
+This returns all tasks under this milestone. Categorize them:
+- **Completed implementation tasks** — tasks with `completed` status whose group is NOT `"review"`. These are the work being reviewed.
+- **This review task** — the task you're running as. Skip it in your analysis.
+- **Any prior rework tasks** — if this is a re-review after a rework cycle, note what was already fixed (tasks with `"REWORK:"` or `"VERIFY:"` title prefixes).
 
 ### 3. Load Intake Documents
 
@@ -64,11 +62,12 @@ Read from `harnessx/[PROJECT-ID]/intake/`:
 
 Before proceeding, confirm you have:
 
-- **Main milestone's success measures** — from the milestone object and intake docs
+- **Milestone's success measures** — from the milestone object and intake docs
 - **UAT criteria** — from the intake docs
-- **All tasks with their notes** — execution summaries from the agents that did the work
-- **Rework milestone ID** — the milestone where new rework tasks will be appended
-- **This review task's ID** — rework tasks will use this as their `depends_on`
+- **All completed implementation tasks with their notes** — execution summaries from the agents that did the work
+- **This milestone's ID** — fix tasks will be appended to the same milestone
+- **This review task's ID** — fix tasks will use this as their `depends_on`
+- **Current max execution_order** — from the milestone's children, needed for ordering fix tasks
 
 ---
 
@@ -102,7 +101,7 @@ Launch a single agent to run the test suites. Tests are the hard gate — test f
 ## Phase 3: Dispatch 4 Review Agents (parallel)
 
 All agents receive the same base context:
-- The main milestone and its full hierarchy (all epics, stories, tasks with their notes/execution summaries)
+- The milestone and its completed implementation tasks (with their notes/execution summaries)
 - The test results from Phase 2
 - The relevant intake documents (success_measures.md, user_acceptance_testing.md, scope.md)
 
@@ -224,7 +223,7 @@ For each Critical or Warning issue that needs fixing, create a rework task via t
 
 ```bash
 harnessx planning-tasks create \
-  --milestone "#[REWORK-MILESTONE-ID]" \
+  --milestone "#[MILESTONE-ID]" \
   --title "REWORK: [specific fix description]" \
   --steps "[step 1 | step 2 | ...]" \
   --depends-on "#[THIS-REVIEW-TASK-ID]" \
@@ -248,7 +247,7 @@ After all rework tasks are created, create a verification task that depends on A
 
 ```bash
 harnessx planning-tasks create \
-  --milestone "#[REWORK-MILESTONE-ID]" \
+  --milestone "#[MILESTONE-ID]" \
   --title "VERIFY: Re-run all tests after rework" \
   --steps "Run cargo test -- --test-threads=1 | Run cargo test -- --ignored --test-threads=1 | Verify all tests pass | Report results" \
   --depends-on "[comma-separated list of ALL rework task IDs]" \
@@ -264,7 +263,7 @@ harnessx planning-tasks create \
 After creating rework tasks, set the milestone review status to rework:
 
 ```bash
-harnessx planning-milestones review [REWORK-MILESTONE-ID] --status rework
+harnessx planning-milestones review [MILESTONE-ID] --status rework
 ```
 
 ### 4e: If NO Issues Found
@@ -275,10 +274,10 @@ If all tests pass and all review agents report no Critical or Warning issues:
 - Set the milestone review status to passed:
 
 ```bash
-harnessx planning-milestones review [REWORK-MILESTONE-ID] --status passed
+harnessx planning-milestones review [MILESTONE-ID] --status passed
 ```
 
-- The rework milestone will complete naturally with just this review task
+- The execution engine will see `review_status = "passed"` on the next invocation and mark the milestone completed
 
 ---
 
@@ -287,7 +286,7 @@ harnessx planning-milestones review [REWORK-MILESTONE-ID] --status passed
 Append to `harnessx/[PROJECT-ID]/history.md`:
 
 ```markdown
-## Milestone Review: [main-milestone-id] — "[title]"
+## Milestone Review: [milestone-id] — "[title]"
 **Date**: [today]
 **Test Results**: X unit tests passed, Y integration tests passed, Z failures
 **Review Agents**: Test X/10, Quality X/10, Integration X/10, Success X/10

@@ -23,6 +23,12 @@ harnessx project active
 
 Capture the project ID from `data.id`. You'll need this for file paths throughout.
 
+Mark the execution stage as in progress (idempotent — safe on every invocation):
+
+```bash
+harnessx progress update execution in_progress
+```
+
 ```bash
 harnessx planning-tasks next
 ```
@@ -33,13 +39,23 @@ Parse the JSON response. There are several possible shapes:
 
 **All blocked** — the response has `"message": "All remaining tasks are blocked..."`. Report this to the user with the specific blockers. Do not attempt to unblock — ask the user what to do. Stop.
 
-**Milestone tasks done** — the response has `"message": "All tasks in current milestone completed. Milestone ready for review."` plus a `milestone` field. This means all tasks in the current milestone are done but the milestone isn't marked complete yet. Trigger the built-in review:
+**Milestone tasks done** — the response has `"message": "All tasks in current milestone completed. Milestone ready for review."` plus a `milestone` field. This means all tasks in the current milestone are done but the milestone isn't marked complete yet. Get the milestone's current state:
 
 ```bash
-harnessx planning-milestones review <milestone-id> --status pending
+harnessx planning-milestones get <milestone-id>
 ```
 
-Then mark the milestone as in_progress for review and dispatch the review task (see Phase 7 below). Stop.
+Check the `review_status` field in the response:
+
+- **`review_status` is `"passed"`** — The review cycle already completed successfully. Mark the milestone as completed:
+  ```bash
+  harnessx planning-milestones update <milestone-id> --status completed
+  ```
+  Report: "Milestone [id] — [title] completed (review passed)." Then re-run `harnessx planning-tasks next` to check for the next task or milestone. If a ready task is returned, continue from Phase 2. If all completed, mark execution complete. If another milestone is ready for review, handle it.
+
+- **`review_status` is absent/null** — This is the first time all tasks completed for this milestone. Trigger the built-in review. Go to Phase 7.
+
+- **`review_status` is `"rework"`** — Fix tasks were created but all show as completed. This means the verification passed and set `review_status` to `"passed"` — but if you're seeing `"rework"` with all tasks done, treat it as a recovery case: set to `"passed"` and mark completed.
 
 **All completed** — the response has `"message": "All tasks completed."`. Mark the execution stage complete:
 
@@ -314,21 +330,17 @@ Write a concise entry to `harnessx/[PROJECT-ID]/history.md`:
 
 Read the existing file first and append — don't overwrite.
 
-### 6c: Check milestone completion
+### 6c: Note milestone boundary (do NOT auto-complete milestones)
 
-After a task completes, check if all tasks in the milestone are now done:
+After a task completes, do **not** mark the milestone as completed. The review cycle handles milestone completion — `planning-tasks next` will detect when all tasks are done and return "Milestone ready for review", which Phase 1 handles.
+
+Simply note whether this was the last task in the milestone for your report in Phase 6d. You can check with:
 
 ```bash
 harnessx planning-milestones children [MILESTONE-ID]
 ```
 
-If ALL tasks under this milestone now have status `completed`:
-
-```bash
-harnessx planning-milestones update [MILESTONE-ID] --status completed
-```
-
-This triggers the built-in milestone review on the next invocation (Phase 1 will see "Milestone ready for review").
+If all tasks show `completed`, mention "milestone ready for review" in your report. The next invocation will trigger the review process via Phase 1.
 
 ### 6d: Report to user
 
@@ -348,19 +360,79 @@ Then stop.
 
 ## Phase 7: Milestone review (built-in)
 
-When Phase 1 detects "All tasks in current milestone completed", the milestone needs review before the next milestone's tasks can begin.
+When Phase 1 detects "All tasks in current milestone completed" and `review_status` is absent/null, the milestone needs review before it can be marked complete and the next milestone can begin.
 
-The review process is handled by the `hx:milestone-rework-assessment` skill. The execution engine's role is:
+Review, fix, and verification tasks are appended to the **same milestone** with high `execution_order` values. The `review_status` field on the milestone tracks the review lifecycle: `pending` → `passed` (clean) or `pending` → `rework` → `passed` (after fixes).
 
-1. Set `review_status` to `pending`
-2. Find or create the review task for this milestone
-3. Dispatch it via the normal Phase 2-6 flow
+### 7a: Set review status and create review task
 
-If the milestone already has a review task (from planning), execute it. If not, the rework assessment skill runs its autonomous review process.
+```bash
+harnessx planning-milestones review [MILESTONE-ID] --status pending
+```
 
-After review:
-- If clean: `harnessx planning-milestones review [ID] --status passed` and mark milestone completed
-- If issues found: rework tasks are appended to the milestone. The next `planning-tasks next` call will return the first rework task.
+Get the current max execution_order from the milestone's children:
+
+```bash
+harnessx planning-milestones children [MILESTONE-ID]
+```
+
+Find the highest `execution_order` among existing tasks. Then create the review task:
+
+```bash
+harnessx planning-tasks create \
+  --milestone "#[MILESTONE-ID]" \
+  --title "REVIEW: Assess [milestone title]" \
+  --steps "Run full test suite | Dispatch 4 review agents | Synthesize findings | Create fix tasks if needed | Set review_status" \
+  --group "review" \
+  --purpose "Verify all completed work in this milestone meets success measures and quality standards" \
+  --execution-order [MAX + 100] \
+  --complexity medium \
+  --mode review \
+  --skills "hx:milestone-rework-assessment" \
+  --note "Auto-created by execution engine. Reviews all completed tasks in this milestone."
+```
+
+### 7b: Dispatch the review task
+
+The review task now exists on the milestone. Re-run `harnessx planning-tasks next` — it will return this review task (highest execution_order incomplete task in the current milestone).
+
+Continue with Phase 2-6 to dispatch the review task like any other task. The `hx:milestone-rework-assessment` skill runs autonomously — it will:
+
+- Run all tests
+- Dispatch 4 specialist review agents
+- If **clean**: set `review_status` to `"passed"` — no fix tasks created
+- If **issues found**: create fix tasks + a verification task on the same milestone with even higher `execution_order` values, set `review_status` to `"rework"`
+
+### 7c: After the review task completes
+
+Phase 6 processes the result normally. On the next invocation:
+
+- If `review_status` = `"passed"`: Phase 1 marks the milestone completed and moves on
+- If `review_status` = `"rework"`: `planning-tasks next` returns the first fix task. Phases 2-6 dispatch it. The cycle continues until the verification task runs and sets `review_status` to `"passed"`.
+
+### The complete review cycle
+
+```
+Original tasks complete
+    → Phase 1: "Milestone ready for review", review_status = null
+    → Phase 7: Create REVIEW task, set review_status = "pending"
+    → Dispatch REVIEW task (assessment skill)
+
+If clean:
+    → Assessment sets review_status = "passed"
+    → Next invocation: Phase 1 sees "passed" → mark milestone completed
+
+If issues found:
+    → Assessment creates FIX tasks + VERIFY task, sets review_status = "rework"
+    → Next invocations: dispatch FIX tasks one by one
+    → Then: dispatch VERIFY task (verification skill)
+    → Verification passes → sets review_status = "passed"
+    → Next invocation: Phase 1 sees "passed" → mark milestone completed
+
+If verification fails:
+    → Verification creates another FIX + VERIFY cycle on same milestone
+    → Loop converges as issues are resolved
+```
 
 ---
 
